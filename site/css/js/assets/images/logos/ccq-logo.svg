@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="300" height="100">
+  <!-- Background -->
+  <rect width="300" height="100" fill="#00356B"/>
+
+  <!-- CCQ Text -->
+  <text x="150" y="45" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">CCQ</text>
+
+  <!-- Subtitle -->
+  <text x="150" y="70" font-family="Arial, sans-serif" font-size="10" fill="#99CCFF" text-anchor="middle">COMMISSION DE LA CONSTRUCTION</text>
+  <text x="150" y="83" font-family="Arial, sans-serif" font-size="10" fill="#99CCFF" text-anchor="middle">DU QUÉBEC</text>
+</svg>

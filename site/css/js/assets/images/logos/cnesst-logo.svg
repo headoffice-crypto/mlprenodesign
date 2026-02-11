@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="300" height="100">
+  <!-- Background -->
+  <rect width="300" height="100" fill="#005DAA"/>
+
+  <!-- CNESST Text -->
+  <text x="150" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">CNESST</text>
+
+  <!-- Subtitle -->
+  <text x="150" y="75" font-family="Arial, sans-serif" font-size="9" fill="#B3D9FF" text-anchor="middle">Commission des normes, de l'équité, de la santé</text>
+  <text x="150" y="87" font-family="Arial, sans-serif" font-size="9" fill="#B3D9FF" text-anchor="middle">et de la sécurité du travail</text>
+</svg>

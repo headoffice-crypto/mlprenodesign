@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" width="300" height="100">
+  <!-- Background -->
+  <rect width="300" height="100" fill="#E31E24"/>
+
+  <!-- House Icon -->
+  <path d="M 80 45 L 95 30 L 110 45 L 110 60 L 80 60 Z" fill="white"/>
+  <rect x="87" y="50" width="16" height="10" fill="#E31E24"/>
+
+  <!-- APCHQ Text -->
+  <text x="130" y="50" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">APCHQ</text>
+
+  <!-- Subtitle -->
+  <text x="130" y="70" font-family="Arial, sans-serif" font-size="8" fill="#FFE5E6">Association des professionnels de la</text>
+  <text x="130" y="80" font-family="Arial, sans-serif" font-size="8" fill="#FFE5E6">construction et de l'habitation du Québec</text>
+</svg>
