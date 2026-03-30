@@ -9,10 +9,6 @@ let optionCounter = 0;
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', () => {
   setTodayDates();
-  addQuoteLineItem();
-  addQuoteLineItem();
-  addInvoiceLineItem();
-  addInvoiceLineItem();
   addExtra();
   addPayment();
   loadPresets();
@@ -278,27 +274,37 @@ function generateQuote() {
   showToast('Quote generated!', 'success');
 }
 
-function generateQuoteAI() {
-  const data = collectQuoteData();
-  // AI polishing — rewrites rough scope into professional wording
-  data.scope = aiPolishScope(data.scope, data.lang);
-  data.line_items = data.line_items.map(item => ({
-    ...item,
-    description: aiPolishLineItem(item.description, data.lang)
-  }));
-  if (data.options && data.options.length) {
-    data.options = data.options.map(opt => ({
-      ...opt,
-      scope: aiPolishScope(opt.scope, data.lang),
-      items: opt.items.map(item => ({
-        ...item,
-        description: aiPolishLineItem(item.description, data.lang)
-      }))
-    }));
+async function generateQuoteAI() {
+  showToast('AI polishing in progress...', 'info');
+  try {
+    const data = collectQuoteData();
+    // AI polishing via GPT — rewrites rough scope into professional wording
+    const [polishedScope, polishedItems] = await Promise.all([
+      aiPolishScopeGPT(data.scope, data.lang),
+      aiPolishLineItemsGPT(data.line_items, data.lang)
+    ]);
+    data.scope = polishedScope;
+    data.line_items = polishedItems;
+
+    if (data.options && data.options.length) {
+      const optResults = await Promise.all(
+        data.options.map(async opt => ({
+          ...opt,
+          scope: await aiPolishScopeGPT(opt.scope, data.lang),
+          items: await aiPolishLineItemsGPT(opt.items, data.lang)
+        }))
+      );
+      data.options = optResults;
+    }
+
+    const html = renderQuotePreview(data);
+    document.getElementById('q-preview-content').innerHTML = html;
+    showToast('AI-polished quote generated!', 'success');
+  } catch (err) {
+    console.error('AI Quote Error:', err);
+    showToast('AI error: ' + err.message + ' — falling back to local polish.', 'error');
+    generateQuote();
   }
-  const html = renderQuotePreview(data);
-  document.getElementById('q-preview-content').innerHTML = html;
-  showToast('AI-polished quote generated!', 'success');
 }
 
 function collectQuoteData() {
@@ -454,19 +460,27 @@ function generateInvoice() {
   showToast('Invoice generated!', 'success');
 }
 
-function generateInvoiceAI() {
-  const data = collectInvoiceData();
-  data.line_items = data.line_items.map(item => ({
-    ...item,
-    description: aiPolishLineItem(item.description, data.lang)
-  }));
-  data.extras = data.extras.map(e => ({
-    ...e,
-    description: aiPolishLineItem(e.description, data.lang)
-  }));
-  const html = renderInvoicePreview(data);
-  document.getElementById('i-preview-content').innerHTML = html;
-  showToast('AI-polished invoice generated!', 'success');
+async function generateInvoiceAI() {
+  showToast('AI polishing in progress...', 'info');
+  try {
+    const data = collectInvoiceData();
+    const [polishedItems, polishedExtras] = await Promise.all([
+      aiPolishLineItemsGPT(data.line_items, data.lang),
+      aiPolishLineItemsGPT(data.extras.map(e => ({ description: e.description })), data.lang)
+    ]);
+    data.line_items = polishedItems;
+    data.extras = data.extras.map((e, i) => ({
+      ...e,
+      description: polishedExtras[i]?.description || e.description
+    }));
+    const html = renderInvoicePreview(data);
+    document.getElementById('i-preview-content').innerHTML = html;
+    showToast('AI-polished invoice generated!', 'success');
+  } catch (err) {
+    console.error('AI Invoice Error:', err);
+    showToast('AI error: ' + err.message + ' — falling back to local polish.', 'error');
+    generateInvoice();
+  }
 }
 
 function collectInvoiceData() {
@@ -588,11 +602,19 @@ function generateEmail() {
   showToast('Email generated!', 'success');
 }
 
-function generateEmailAI() {
-  const data = collectEmailData();
-  const result = buildEmail(data, true);
-  document.getElementById('e-preview-content').innerHTML = renderEmailPreview(data, result);
-  showToast('AI email generated!', 'success');
+async function generateEmailAI() {
+  showToast('AI polishing email...', 'info');
+  try {
+    const data = collectEmailData();
+    const baseResult = buildEmail(data);
+    const polished = await aiPolishEmailGPT(baseResult.subject, baseResult.body, data.lang, data.purpose, data.context);
+    document.getElementById('e-preview-content').innerHTML = renderEmailPreview(data, polished);
+    showToast('AI email generated!', 'success');
+  } catch (err) {
+    console.error('AI Email Error:', err);
+    showToast('AI error: ' + err.message + ' — falling back to template.', 'error');
+    generateEmail();
+  }
 }
 
 function collectEmailData() {
@@ -729,6 +751,53 @@ function formatDate(dateStr, lang) {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
   return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// ============================================
+// AI GENERATE LINE ITEMS FROM PROMPT
+// ============================================
+async function aiGenerateLineItems(section) {
+  const isQuote = section === 'quote';
+  const promptEl = isQuote ? document.getElementById('q-scope') : document.getElementById('i-scope-prompt');
+  const prompt = promptEl.value.trim();
+  if (!prompt) {
+    showToast('Enter a project description first.', 'error');
+    return;
+  }
+  const lang = document.getElementById(isQuote ? 'q-lang' : 'i-lang').value;
+  showToast('AI is generating line items...', 'info');
+
+  try {
+    const result = await aiGenerateLineItemsGPT(prompt, lang);
+
+    // Populate scope (quote only)
+    if (isQuote && result.scope) {
+      document.getElementById('q-scope').value = result.scope;
+    }
+
+    // Clear existing line items and populate with AI-generated ones
+    const tbodyId = isQuote ? 'q-line-items' : 'i-line-items';
+    document.getElementById(tbodyId).innerHTML = '';
+    const addFn = isQuote ? addQuoteLineItem : addInvoiceLineItem;
+
+    if (result.line_items && result.line_items.length) {
+      result.line_items.forEach(item => {
+        addFn(
+          item.description || '',
+          String(item.quantity || 1),
+          String(item.unit_price || ''),
+          String(item.total_price || '')
+        );
+      });
+      showToast(`AI generated ${result.line_items.length} line items!`, 'success');
+    } else {
+      addFn();
+      showToast('AI could not determine line items from your description.', 'error');
+    }
+  } catch (err) {
+    console.error('AI Generate Line Items Error:', err);
+    showToast('AI error: ' + err.message, 'error');
+  }
 }
 
 // ============================================
