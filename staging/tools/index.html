@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MLP Reno &amp; Design — Internal Tools (Staging)</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="css/tools.css">
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <h1>MLP Reno &amp; Design</h1>
+    <span class="staging-badge">Staging</span>
+  </div>
+  <nav class="topbar-nav" id="mainNav">
+    <button class="active" data-section="quotes" onclick="switchSection('quotes')">Quotes</button>
+    <button data-section="invoices" onclick="switchSection('invoices')">Invoices</button>
+    <button data-section="emails" onclick="switchSection('emails')">Emails</button>
+    <button data-section="samples" onclick="switchSection('samples')">Sample Data</button>
+  </nav>
+</div>
+
+<!-- ============ QUOTES SECTION ============ -->
+<div class="section-page active" id="section-quotes">
+  <div class="app-layout">
+    <!-- FORM -->
+    <div class="panel-form">
+      <div class="card">
+        <div class="card-title">&#128196; Quote Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quote Number</label>
+            <input type="text" id="q-number" placeholder="Q-2026-001">
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="q-date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Language</label>
+            <select id="q-lang">
+              <option value="fr">Fran&ccedil;ais</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Project Title</label>
+            <input type="text" id="q-project-title" placeholder="Bathroom renovation">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#128100; Client Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client Name</label>
+            <input type="text" id="q-client-name" placeholder="Jean Tremblay">
+          </div>
+          <div class="form-group">
+            <label>Client Email</label>
+            <input type="email" id="q-client-email" placeholder="jean@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client Phone</label>
+            <input type="tel" id="q-client-phone" placeholder="(450) 555-1234">
+          </div>
+          <div class="form-group">
+            <label>Project Address</label>
+            <input type="text" id="q-address" placeholder="123 Rue Principale, Laval QC">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#128221; Scope of Work</div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Rough Scope Notes (AI will rewrite)</label>
+            <textarea id="q-scope" rows="4" placeholder="e.g. demo old bathroom, install new shower, retile floor, new vanity..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#128176; Line Items</div>
+        <div id="q-line-items-container">
+          <table class="line-items-table">
+            <thead>
+              <tr>
+                <th class="col-desc">Description</th>
+                <th class="col-qty">Qty</th>
+                <th class="col-unit">Unit Price</th>
+                <th class="col-total">Total</th>
+                <th class="col-action"></th>
+              </tr>
+            </thead>
+            <tbody id="q-line-items"></tbody>
+          </table>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="addQuoteLineItem()">+ Add Line Item</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#9881;&#65039; Options &amp; Settings</div>
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="q-taxes" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Include Quebec Taxes (GST + QST)</span>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="q-options-mode" onchange="toggleOptionsMode()">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Options Mode (A / B / C)</span>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="q-payment-terms" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Include Payment Terms</span>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="q-timeline" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Include Timeline</span>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="q-notes" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Include Notes / Exclusions</span>
+        </div>
+      </div>
+
+      <!-- OPTIONS BLOCKS (hidden by default) -->
+      <div id="q-options-container" style="display:none;">
+        <div class="card">
+          <div class="card-title">&#127991;&#65039; Options A / B / C</div>
+          <div id="q-options-blocks"></div>
+          <div class="btn-row">
+            <button class="btn btn-secondary btn-sm" onclick="addOptionBlock()">+ Add Option</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="q-notes-card">
+        <div class="card-title">&#128466;&#65039; Notes &amp; Terms</div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Notes / Exclusions</label>
+            <textarea id="q-notes-text" rows="3" placeholder="Any exclusions, assumptions, or important notes..."></textarea>
+            <div style="margin-top:6px;">
+              <span class="preset-chip" onclick="appendPreset('q-notes-text','Client should plan approximately 5% to 15% for unforeseen circumstances.')">+ Unforeseen 5-15%</span>
+              <span class="preset-chip" onclick="appendPreset('q-notes-text','Permit fees, if applicable, are not included in this quote.')">+ Permits excluded</span>
+              <span class="preset-chip" onclick="appendPreset('q-notes-text','Materials are subject to availability and current pricing at time of purchase.')">+ Material availability</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Payment Terms</label>
+            <textarea id="q-payment-text" rows="3" placeholder="Payment schedule details..."></textarea>
+            <div style="margin-top:6px;">
+              <span class="preset-chip" onclick="setPreset('q-payment-text','10% deposit to reserve date\n40% before start of work\n40% mid-project\n10% on final day')">Use Default Schedule</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Timeline</label>
+            <textarea id="q-timeline-text" rows="2" placeholder="Estimated timeline..."></textarea>
+            <div style="margin-top:6px;">
+              <span class="preset-chip" onclick="setPreset('q-timeline-text','Work may take approximately 2 to 3 weeks depending on scope and material availability. A 2-week heads-up may be required to mobilize the team.')">Use Default Timeline</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:24px;">
+        <button class="btn btn-primary" onclick="generateQuote()">&#9998; Generate Quote</button>
+        <button class="btn btn-success" onclick="generateQuoteAI()">&#129302; AI Polish &amp; Generate</button>
+        <button class="btn btn-ghost" onclick="saveQuoteDraft()">&#128190; Save Draft</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="panel-preview" id="q-preview-panel">
+      <div class="preview-toolbar">
+        <h3>Quote Preview</h3>
+        <div class="btn-row" style="margin:0;">
+          <button class="btn btn-secondary btn-sm" onclick="copyPreview('q-preview-content')">&#128203; Copy</button>
+          <button class="btn btn-ghost btn-sm" onclick="convertQuoteToInvoice()">&#8594; Convert to Invoice</button>
+        </div>
+      </div>
+      <div id="q-preview-content">
+        <div class="preview-empty">
+          <div class="preview-empty-icon">&#128196;</div>
+          <p>Fill in the form and click <strong>Generate Quote</strong> to see a professional preview here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ INVOICES SECTION ============ -->
+<div class="section-page" id="section-invoices">
+  <div class="app-layout">
+    <!-- FORM -->
+    <div class="panel-form">
+      <div class="card">
+        <div class="card-title">&#128196; Invoice Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Invoice Number</label>
+            <input type="text" id="i-number" placeholder="INV-2026-001">
+          </div>
+          <div class="form-group">
+            <label>Invoice Date</label>
+            <input type="date" id="i-date">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Related Quote #</label>
+            <input type="text" id="i-quote-ref" placeholder="Q-2026-001">
+          </div>
+          <div class="form-group">
+            <label>Language</label>
+            <select id="i-lang">
+              <option value="fr">Fran&ccedil;ais</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#128100; Client Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client Name</label>
+            <input type="text" id="i-client-name" placeholder="Jean Tremblay">
+          </div>
+          <div class="form-group">
+            <label>Client Email</label>
+            <input type="email" id="i-client-email" placeholder="jean@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client Phone</label>
+            <input type="tel" id="i-client-phone" placeholder="(450) 555-1234">
+          </div>
+          <div class="form-group">
+            <label>Project Address</label>
+            <input type="text" id="i-address" placeholder="123 Rue Principale, Laval QC">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#128176; Billed Items</div>
+        <table class="line-items-table">
+          <thead>
+            <tr>
+              <th class="col-desc">Description</th>
+              <th class="col-qty">Qty</th>
+              <th class="col-unit">Unit Price</th>
+              <th class="col-total">Total</th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody id="i-line-items"></tbody>
+        </table>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="addInvoiceLineItem()">+ Add Line Item</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#10010; Extras / Change Orders</div>
+        <div class="extras-list" id="i-extras"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="addExtra()">+ Add Extra</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#9989; Payments Received</div>
+        <div class="payments-list" id="i-payments"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary btn-sm" onclick="addPayment()">+ Add Payment</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#9881;&#65039; Settings</div>
+        <div class="toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="i-taxes" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">Include Quebec Taxes (GST + QST)</span>
+        </div>
+        <div class="form-row full" style="margin-top:10px;">
+          <div class="form-group">
+            <label>Notes / Payment Instructions</label>
+            <textarea id="i-notes" rows="3" placeholder="Payment instructions, notes..."></textarea>
+            <div style="margin-top:6px;">
+              <span class="preset-chip" onclick="setPreset('i-notes','Payment by cheque or e-Transfer to info@mlprenodesign.ca')">+ e-Transfer</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:24px;">
+        <button class="btn btn-primary" onclick="generateInvoice()">&#9998; Generate Invoice</button>
+        <button class="btn btn-success" onclick="generateInvoiceAI()">&#129302; AI Polish &amp; Generate</button>
+        <button class="btn btn-ghost" onclick="saveInvoiceDraft()">&#128190; Save Draft</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="panel-preview" id="i-preview-panel">
+      <div class="preview-toolbar">
+        <h3>Invoice Preview</h3>
+        <div class="btn-row" style="margin:0;">
+          <button class="btn btn-secondary btn-sm" onclick="copyPreview('i-preview-content')">&#128203; Copy</button>
+          <button class="btn btn-ghost btn-sm" onclick="generateEmailFromInvoice()">&#9993; Draft Email</button>
+        </div>
+      </div>
+      <div id="i-preview-content">
+        <div class="preview-empty">
+          <div class="preview-empty-icon">&#128196;</div>
+          <p>Fill in the form and click <strong>Generate Invoice</strong> to see a professional preview here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EMAILS SECTION ============ -->
+<div class="section-page" id="section-emails">
+  <div class="app-layout">
+    <!-- FORM -->
+    <div class="panel-form">
+      <div class="card">
+        <div class="card-title">&#9993; Email Settings</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email Purpose</label>
+            <select id="e-purpose">
+              <option value="send-quote">Send Quote</option>
+              <option value="send-invoice">Send Invoice</option>
+              <option value="follow-up">Follow-up</option>
+              <option value="approval">Request Approval</option>
+              <option value="payment-reminder">Payment Reminder</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Language</label>
+            <select id="e-lang">
+              <option value="fr">Fran&ccedil;ais</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client Name</label>
+            <input type="text" id="e-client-name" placeholder="Jean Tremblay">
+          </div>
+          <div class="form-group">
+            <label>Client Email</label>
+            <input type="email" id="e-client-email" placeholder="jean@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Related Quote / Invoice #</label>
+            <input type="text" id="e-ref" placeholder="Q-2026-001">
+          </div>
+          <div class="form-group">
+            <label>Attachment</label>
+            <select id="e-attach">
+              <option value="none">No attachment</option>
+              <option value="quote">Quote attached</option>
+              <option value="invoice">Invoice attached</option>
+              <option value="both">Both attached</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Context / Notes for AI</label>
+            <textarea id="e-context" rows="4" placeholder="e.g. following up on the bathroom reno quote we discussed last week..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:24px;">
+        <button class="btn btn-primary" onclick="generateEmail()">&#9998; Generate Email</button>
+        <button class="btn btn-success" onclick="generateEmailAI()">&#129302; AI Generate Email</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="panel-preview" id="e-preview-panel">
+      <div class="preview-toolbar">
+        <h3>Email Preview</h3>
+        <div class="btn-row" style="margin:0;">
+          <button class="btn btn-secondary btn-sm" onclick="copyPreview('e-preview-content')">&#128203; Copy</button>
+        </div>
+      </div>
+      <div id="e-preview-content">
+        <div class="preview-empty">
+          <div class="preview-empty-icon">&#9993;</div>
+          <p>Select a purpose, fill in the details, and click <strong>Generate Email</strong> to preview.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SAMPLE DATA SECTION ============ -->
+<div class="section-page" id="section-samples">
+  <div class="app-layout full-width">
+    <div class="panel-form" style="border:none; max-width:1000px; margin:0 auto;">
+      <div class="card">
+        <div class="card-title">&#128202; Sample Test Data</div>
+        <p style="font-size:13px; color:var(--mlp-text-muted); margin-bottom:16px;">Click any sample below to load it into the corresponding form for quick testing. This data is for staging only.</p>
+        <div class="sample-data-grid" id="sample-grid"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#128190; Saved Drafts</div>
+        <div id="drafts-list">
+          <p style="font-size:13px; color:var(--mlp-text-muted);">No saved drafts yet. Generate a quote or invoice and click Save Draft.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">&#9881;&#65039; Default Presets</div>
+        <p style="font-size:13px; color:var(--mlp-text-muted); margin-bottom:12px;">Edit these defaults used across the tool.</p>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Default Payment Terms</label>
+            <textarea id="preset-payment" rows="4">10% deposit to reserve date
+40% before start of work
+40% mid-project
+10% on final day</textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Default Timeline</label>
+            <textarea id="preset-timeline" rows="3">Work may take approximately 2 to 3 weeks depending on scope and material availability. A 2-week heads-up may be required to mobilize the team.</textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Default Notes</label>
+            <textarea id="preset-notes" rows="3">Client should plan approximately 5% to 15% for unforeseen circumstances.</textarea>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" onclick="savePresets()">Save Presets</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
