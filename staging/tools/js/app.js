@@ -800,6 +800,25 @@ async function aiGenerateLineItems(section) {
   }
 }
 
+// ---- Clear & Regenerate Quote with AI ----
+function clearAndRegenerateQuote() {
+  const scope = document.getElementById('q-scope').value.trim();
+  if (!scope) {
+    showToast('Enter a project description first.', 'error');
+    return;
+  }
+  // Clear line items, scope, notes, preview
+  document.getElementById('q-line-items').innerHTML = '';
+  document.getElementById('q-scope').value = '';
+  document.getElementById('q-notes-text').value = '';
+  document.getElementById('q-payment-text').value = '';
+  document.getElementById('q-timeline-text').value = '';
+  document.getElementById('q-preview-content').innerHTML = '<p style="color:var(--mlp-text-muted);">Regenerating with AI...</p>';
+  // Re-set scope and trigger AI generation
+  document.getElementById('q-scope').value = scope;
+  aiGenerateLineItems('quote');
+}
+
 // ============================================
 // AI POLISH (LOCAL STAGING — pattern-based)
 // ============================================

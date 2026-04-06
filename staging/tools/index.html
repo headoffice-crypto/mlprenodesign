@@ -379,9 +379,10 @@ body::after {
         <div class="form-row full">
           <div class="form-group">
             <label>Describe the project (AI will create scope + line items)</label>
-            <textarea id="q-scope" rows="4" placeholder="e.g. bathroom reno in Laval, demo everything, new shower with ceramic tile, 60 inch vanity, paint, budget around 12k..."></textarea>
+            <textarea id="q-scope" rows="10" placeholder="e.g. bathroom reno in Laval, demo everything, new shower with ceramic tile, 60 inch vanity, paint, budget around 12k..."></textarea>
             <div class="btn-row" style="margin-top:8px;">
               <button class="btn btn-success btn-sm" onclick="aiGenerateLineItems('quote')">&#129302; AI Generate Line Items from Scope</button>
+              <button class="btn btn-danger btn-sm" onclick="clearAndRegenerateQuote()">&#128260; Clear &amp; Regenerate</button>
             </div>
           </div>
         </div>
