@@ -1,793 +1,1077 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MLP Reno &amp; Design — Internal Tools (Staging)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MLP Reno & Design — Soumission</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <style>
 :root {
-  --mlp-dark: #0f1219;
-  --mlp-darker: #090c11;
-  --mlp-accent: #c8a45a;
-  --mlp-accent-hover: #dbb86e;
-  --mlp-accent-glow: rgba(200,164,90,0.25);
-  --mlp-text: #e8ecf4;
-  --mlp-text-muted: #7a8599;
-  --mlp-border: rgba(255,255,255,0.06);
-  --mlp-border-hover: rgba(255,255,255,0.12);
-  --mlp-card: rgba(17,21,30,0.75);
-  --mlp-card-solid: #11151e;
-  --mlp-input: rgba(255,255,255,0.04);
-  --mlp-input-focus: rgba(255,255,255,0.08);
-  --mlp-success: #34d399;
-  --mlp-warning: #fbbf24;
-  --mlp-danger: #f87171;
-  --mlp-info: #60a5fa;
-  --mlp-primary: #60a5fa;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 8px 32px rgba(0,0,0,0.4);
-  --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
-  --glass: saturate(180%) blur(20px);
+  --white: #ffffff;
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface-dim: #f1f3f4;
+  --outline: #dadce0;
+  --outline-light: #e8eaed;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-hint: #9aa0a6;
+  --accent: #c8a45a;
+  --accent-light: #f5edda;
+  --accent-dark: #a68a3e;
+  --blue: #1a73e8;
+  --blue-light: #e8f0fe;
+  --green: #1e8e3e;
+  --green-light: #e6f4ea;
+  --red: #d93025;
+  --red-light: #fce8e6;
+  --orange: #e37400;
+  --orange-light: #fef7e0;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --radius-xs: 8px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: var(--mlp-darker);
-  color: var(--mlp-text);
+  font-family: 'Inter', 'Google Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
   min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-  background-image: url('../../site/css/js/assets/images/Salon TD.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: rgba(9,12,17,0.92);
-  z-index: 0;
-  pointer-events: none;
-}
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(200,164,90,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(59,130,246,0.05) 0%, transparent 60%);
-  z-index: 0;
-  pointer-events: none;
-}
-.topbar {
-  background: rgba(15,18,25,0.85);
-  backdrop-filter: var(--glass);
-  -webkit-backdrop-filter: var(--glass);
-  border-bottom: 1px solid var(--mlp-border);
-  padding: 0 32px;
+
+/* ============ HEADER ============ */
+.header {
+  background: var(--white);
+  border-bottom: 1px solid var(--outline-light);
+  padding: 0 20px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 100;
-  height: 64px;
 }
-.topbar-brand { display: flex; align-items: center; gap: 14px; }
-.topbar-brand h1 { font-size: 17px; font-weight: 700; color: var(--mlp-accent); letter-spacing: -0.3px; }
-.topbar-brand .staging-badge {
-  background: linear-gradient(135deg, var(--mlp-accent), #e8c96a);
-  color: #000; font-size: 10px; font-weight: 700; padding: 3px 10px;
-  border-radius: 20px; text-transform: uppercase; letter-spacing: 1px;
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-.topbar-nav { display: flex; gap: 2px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 10px; }
-.topbar-nav button {
-  background: transparent; border: none; color: var(--mlp-text-muted);
-  padding: 8px 20px; border-radius: 8px; cursor: pointer;
-  font-size: 13px; font-weight: 500; transition: all 0.25s ease; font-family: inherit;
+.header-logo {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
 }
-.topbar-nav button:hover { color: var(--mlp-text); background: rgba(255,255,255,0.06); }
-.topbar-nav button.active {
-  color: #000; background: linear-gradient(135deg, var(--mlp-accent), var(--mlp-accent-hover));
-  font-weight: 600; box-shadow: 0 2px 12px var(--mlp-accent-glow);
+.header-brand h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
 }
-.app-layout {
-  display: grid; grid-template-columns: 1fr 1fr;
-  height: calc(100vh - 64px); overflow: hidden;
-  position: relative; z-index: 1;
+.lang-toggle {
+  display: flex;
+  background: var(--surface-dim);
+  border-radius: 20px;
+  padding: 2px;
 }
-.app-layout.full-width { grid-template-columns: 1fr; }
-.panel-form { overflow-y: auto; padding: 28px; border-right: 1px solid var(--mlp-border); }
-.panel-preview { overflow-y: auto; padding: 28px; background: rgba(0,0,0,0.15); }
-.section-page { display: none; }
-.section-page.active { display: block; }
+.lang-toggle button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  border-radius: 18px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.lang-toggle button.active {
+  background: var(--white);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============ PROGRESS ============ */
+.progress-section {
+  background: var(--white);
+  border-bottom: 1px solid var(--outline-light);
+  padding: 12px 20px 16px;
+}
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.progress-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.progress-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+.progress-track {
+  height: 4px;
+  background: var(--surface-dim);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============ MAIN ============ */
+.main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 16px 100px;
+}
+
+/* ============ STEP ============ */
+.step { display: none; }
+.step.active {
+  display: block;
+  animation: stepIn 0.3s ease;
+}
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-header {
+  margin-bottom: 24px;
+}
+.step-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  font-size: 24px;
+}
+.step-icon.gold { background: var(--accent-light); color: var(--accent-dark); }
+.step-icon.blue { background: var(--blue-light); color: var(--blue); }
+.step-icon.green { background: var(--green-light); color: var(--green); }
+.step-icon.orange { background: var(--orange-light); color: var(--orange); }
+.step-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.step-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ============ CARD ============ */
 .card {
-  background: var(--mlp-card);
-  backdrop-filter: var(--glass);
-  -webkit-backdrop-filter: var(--glass);
-  border: 1px solid var(--mlp-border);
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
   border-radius: var(--radius);
-  padding: 22px; margin-bottom: 16px;
-  transition: border-color 0.3s ease;
-  animation: fadeInUp 0.4s ease both;
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
 }
-.card:hover { border-color: var(--mlp-border-hover); }
-.card:nth-child(2) { animation-delay: 0.05s; }
-.card:nth-child(3) { animation-delay: 0.1s; }
-.card:nth-child(4) { animation-delay: 0.15s; }
-.card:nth-child(5) { animation-delay: 0.2s; }
-.card-title {
-  font-size: 13px; font-weight: 700; color: var(--mlp-accent);
-  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
-  text-transform: uppercase; letter-spacing: 0.8px;
+.card-flat {
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
 }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-.form-row.three-col { grid-template-columns: 1fr 1fr 1fr; }
-.form-row.four-col { grid-template-columns: 1fr 1fr 1fr 1fr; }
-.form-row.full { grid-template-columns: 1fr; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label {
-  font-size: 11px; font-weight: 600; color: var(--mlp-text-muted);
-  text-transform: uppercase; letter-spacing: 0.5px;
+
+/* ============ FORM ============ */
+.form-group {
+  margin-bottom: 20px;
 }
-.form-group input, .form-group select, .form-group textarea {
-  background: var(--mlp-input); border: 1px solid var(--mlp-border);
-  color: var(--mlp-text); padding: 10px 14px; border-radius: var(--radius-sm);
-  font-size: 14px; font-family: inherit; transition: all 0.25s ease;
+.form-group:last-child {
+  margin-bottom: 0;
 }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  outline: none; border-color: var(--mlp-accent);
-  background: var(--mlp-input-focus); box-shadow: 0 0 0 3px var(--mlp-accent-glow);
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.2); }
-.form-group textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
-.toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.toggle-switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
-  position: absolute; inset: 0; background: rgba(255,255,255,0.06);
-  border: 1px solid var(--mlp-border); border-radius: 12px; cursor: pointer; transition: 0.3s;
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  background: var(--white);
+  border: 1.5px solid var(--outline);
+  color: var(--text-primary);
+  padding: 14px 16px;
+  border-radius: var(--radius-xs);
+  font-size: 16px;
+  font-family: inherit;
+  transition: var(--transition);
+  -webkit-appearance: none;
 }
-.toggle-slider::before {
-  content: ''; position: absolute; width: 18px; height: 18px; left: 2px; top: 2px;
-  background: var(--mlp-text-muted); border-radius: 50%; transition: 0.3s;
+.form-input:hover,
+.form-textarea:hover {
+  border-color: var(--text-hint);
 }
-.toggle-switch input:checked + .toggle-slider {
-  background: var(--mlp-accent); border-color: var(--mlp-accent);
-  box-shadow: 0 0 12px var(--mlp-accent-glow);
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
-.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: #fff; }
-.toggle-label { font-size: 13px; color: var(--mlp-text-muted); }
-.line-items-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.line-items-table th {
-  font-size: 10px; font-weight: 700; color: var(--mlp-text-muted);
-  text-transform: uppercase; letter-spacing: 0.5px; text-align: left;
-  padding: 8px 10px; border-bottom: 1px solid var(--mlp-border);
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--text-hint);
 }
-.line-items-table td { padding: 4px; }
-.line-items-table input {
-  background: var(--mlp-input); border: 1px solid var(--mlp-border);
-  color: var(--mlp-text); padding: 8px 10px; border-radius: 6px;
-  font-size: 13px; width: 100%; font-family: inherit; transition: all 0.2s;
+.form-textarea {
+  resize: vertical;
+  min-height: 110px;
+  line-height: 1.6;
 }
-.line-items-table input:focus { outline: none; border-color: var(--mlp-accent); box-shadow: 0 0 0 2px var(--mlp-accent-glow); }
-.line-items-table .col-desc { width: 45%; }
-.line-items-table .col-qty { width: 12%; }
-.line-items-table .col-unit { width: 18%; }
-.line-items-table .col-total { width: 18%; }
-.line-items-table .col-action { width: 7%; text-align: center; }
-#q-line-items:empty::after, #i-line-items:empty::after {
-  content: 'No line items yet \2014 describe your project above and let AI generate them.';
-  display: block; padding: 24px 16px; text-align: center;
-  color: var(--mlp-text-muted); font-size: 13px; font-style: italic; opacity: 0.6;
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
-.btn-remove-row {
-  background: transparent; border: none; color: var(--mlp-danger);
-  cursor: pointer; font-size: 16px; padding: 6px; border-radius: 6px;
-  line-height: 1; transition: all 0.2s; opacity: 0.5;
+.form-helper {
+  font-size: 12px;
+  color: var(--text-hint);
+  margin-top: 6px;
+  line-height: 1.5;
 }
-.btn-remove-row:hover { background: rgba(248,113,113,0.12); opacity: 1; }
+.form-prefix {
+  position: relative;
+}
+.form-prefix .prefix {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-hint);
+  font-weight: 500;
+  font-size: 16px;
+  pointer-events: none;
+}
+.form-prefix input {
+  padding-left: 32px;
+}
+
+/* ============ CHIP TOGGLE ============ */
+.chip-group {
+  display: flex;
+  gap: 8px;
+}
+.chip {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1.5px solid var(--outline);
+  border-radius: var(--radius-xs);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: var(--transition);
+}
+.chip:hover {
+  border-color: var(--text-hint);
+  background: var(--surface-dim);
+}
+.chip.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+/* ============ PAYMENT OPTION ============ */
+.option-card {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--outline-light);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.option-card:last-child { border-bottom: none; }
+.option-card:hover { background: var(--surface-dim); }
+.option-card.selected { background: var(--accent-light); }
+.option-radio {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--outline);
+  margin-top: 1px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.option-card.selected .option-radio {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.option-card.selected .option-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+}
+.option-body { flex: 1; }
+.option-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.option-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============ LINE ITEMS ============ */
+.line-item {
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+}
+.line-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.line-item-desc {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1.5;
+  resize: none;
+}
+.line-item-desc:focus { outline: none; }
+.line-item-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.li-field label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 4px;
+}
+.li-field input {
+  width: 100%;
+  background: var(--surface-dim);
+  border: 1px solid var(--outline-light);
+  color: var(--text-primary);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+  text-align: right;
+}
+.li-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.line-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--outline-light);
+}
+.li-material-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.li-material-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.li-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+.li-remove {
+  background: none;
+  border: none;
+  color: var(--text-hint);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: var(--transition);
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+.li-remove:hover { background: var(--red-light); color: var(--red); }
+
+/* ============ BUTTONS ============ */
 .btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 20px; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  border: 1px solid transparent; transition: all 0.25s ease;
-  font-family: inherit; letter-spacing: 0.1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-radius: var(--radius-xs);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: var(--transition);
+  width: 100%;
+  letter-spacing: 0.1px;
 }
-.btn-sm { padding: 7px 14px; font-size: 12px; }
 .btn-primary {
-  background: linear-gradient(135deg, var(--mlp-accent), var(--mlp-accent-hover));
-  color: #000; box-shadow: 0 4px 16px var(--mlp-accent-glow);
+  background: var(--accent);
+  color: #fff;
 }
-.btn-primary:hover { background: linear-gradient(135deg, var(--mlp-accent-hover), #e8d080); box-shadow: 0 6px 24px var(--mlp-accent-glow); transform: translateY(-1px); }
-.btn-secondary { background: rgba(255,255,255,0.05); color: var(--mlp-text); border-color: var(--mlp-border); }
-.btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: var(--mlp-border-hover); }
-.btn-success {
-  background: linear-gradient(135deg, #059669, #34d399);
-  color: #fff; border: none; box-shadow: 0 4px 16px rgba(52,211,153,0.2);
+.btn-primary:hover {
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-md);
 }
-.btn-success:hover { background: linear-gradient(135deg, #047857, #2dd4a0); box-shadow: 0 6px 24px rgba(52,211,153,0.3); transform: translateY(-1px); }
-.btn-ghost { background: transparent; color: var(--mlp-accent); border-color: rgba(200,164,90,0.3); }
-.btn-ghost:hover { background: rgba(200,164,90,0.08); border-color: var(--mlp-accent); }
-.btn-danger { background: transparent; color: var(--mlp-danger); border-color: rgba(248,113,113,0.3); }
-.btn-danger:hover { background: rgba(248,113,113,0.08); border-color: var(--mlp-danger); }
-.btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.option-block { border: 1px solid var(--mlp-border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; background: rgba(200,164,90,0.02); }
-.option-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.option-block-header h4 { font-size: 14px; font-weight: 600; color: var(--mlp-accent); }
-.preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--mlp-text-muted); text-align: center; gap: 16px; }
-.preview-empty-icon { font-size: 56px; opacity: 0.2; }
-.preview-empty p { font-size: 14px; max-width: 320px; line-height: 1.6; }
-.preview-doc { background: #fff; color: #1a1a1a; border-radius: var(--radius); padding: 48px; max-width: 800px; margin: 0 auto; box-shadow: var(--shadow-lg); font-size: 14px; line-height: 1.65; }
-.preview-doc h1 { font-size: 24px; font-weight: 800; color: #1a1f2e; margin-bottom: 4px; letter-spacing: -0.5px; }
-.preview-doc h2 { font-size: 15px; font-weight: 700; color: #1a1f2e; margin-top: 28px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #c8a45a; text-transform: uppercase; letter-spacing: 0.3px; }
-.preview-doc h3 { font-size: 14px; font-weight: 700; color: #c8a45a; margin-top: 18px; margin-bottom: 8px; }
-.preview-doc .doc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 3px solid #c8a45a; }
-.preview-doc .doc-header-left h1 { color: #c8a45a; }
-.preview-doc .doc-header-right { text-align: right; font-size: 13px; color: #64748b; }
-.preview-doc .doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-.preview-doc .doc-meta-block label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; display: block; margin-bottom: 4px; }
-.preview-doc .doc-meta-block p { font-size: 13px; color: #334155; }
-.preview-doc .scope-item { padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
-.preview-doc .scope-item:last-child { border-bottom: none; }
-.preview-doc table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-.preview-doc table th { background: #f8fafc; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; text-align: left; padding: 10px 14px; border-bottom: 2px solid #e2e8f0; }
-.preview-doc table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-.preview-doc table td.text-right, .preview-doc table th.text-right { text-align: right; }
-.preview-doc .totals-section { margin-top: 20px; border-top: 2px solid #e2e8f0; padding-top: 14px; }
-.preview-doc .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
-.preview-doc .total-row.grand-total { font-size: 17px; font-weight: 800; color: #c8a45a; border-top: 3px solid #c8a45a; padding-top: 10px; margin-top: 8px; }
-.preview-doc .total-row.balance-due { font-size: 17px; font-weight: 800; color: #dc2626; border-top: 3px solid #dc2626; padding-top: 10px; margin-top: 8px; }
-.preview-doc .notes-section { margin-top: 24px; padding: 18px; background: #fafbfd; border-radius: 8px; border-left: 4px solid #c8a45a; }
-.preview-doc .notes-section p { font-size: 13px; color: #475569; margin-bottom: 4px; }
-.preview-doc .closing-msg { margin-top: 28px; text-align: center; font-style: italic; color: #64748b; }
-.preview-doc .option-section { margin-top: 24px; padding: 20px; border: 2px solid #c8a45a; border-radius: 10px; }
-.preview-doc .option-label { display: inline-block; background: linear-gradient(135deg, #c8a45a, #dbb86e); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; letter-spacing: 0.5px; }
-.preview-email { background: #fff; color: #1a1a1a; border-radius: var(--radius); max-width: 640px; margin: 0 auto; box-shadow: var(--shadow-lg); overflow: hidden; }
-.preview-email-header { background: #f8fafc; padding: 18px 28px; border-bottom: 1px solid #e2e8f0; }
-.preview-email-header .email-field { display: flex; gap: 10px; margin-bottom: 6px; font-size: 13px; }
-.preview-email-header .email-field label { color: #64748b; font-weight: 600; min-width: 65px; }
-.preview-email-header .email-field span { color: #334155; }
-.preview-email-body { padding: 28px; font-size: 14px; line-height: 1.8; color: #334155; white-space: pre-wrap; }
-.sample-data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.sample-card { background: var(--mlp-card); border: 1px solid var(--mlp-border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: all 0.3s ease; }
-.sample-card:hover { border-color: var(--mlp-accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(200,164,90,0.1); }
-.sample-card h4 { font-size: 14px; font-weight: 600; color: var(--mlp-text); margin-bottom: 4px; }
-.sample-card p { font-size: 12px; color: var(--mlp-text-muted); }
-.sample-card .sample-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-.sample-tag.tag-quote { background: rgba(96,165,250,0.12); color: var(--mlp-info); }
-.sample-tag.tag-invoice { background: rgba(52,211,153,0.12); color: var(--mlp-success); }
-.sample-tag.tag-email { background: rgba(168,85,247,0.12); color: #a78bfa; }
-.sample-tag.tag-options { background: rgba(251,191,36,0.12); color: var(--mlp-warning); }
-.preview-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--mlp-border); }
-.preview-toolbar h3 { font-size: 14px; font-weight: 700; color: var(--mlp-text); text-transform: uppercase; letter-spacing: 0.5px; }
-.toast { position: fixed; bottom: 28px; right: 28px; background: var(--mlp-card-solid); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass); border: 1px solid var(--mlp-border); color: var(--mlp-text); padding: 14px 24px; border-radius: var(--radius); box-shadow: var(--shadow-lg); font-size: 13px; font-weight: 500; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.toast.show { transform: translateY(0); opacity: 1; }
-.toast.toast-success { border-left: 4px solid var(--mlp-success); }
-.toast.toast-error { border-left: 4px solid var(--mlp-danger); }
-.toast.toast-info { border-left: 4px solid var(--mlp-info); }
-.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--mlp-border); border-top-color: var(--mlp-accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: var(--white);
+  color: var(--text-primary);
+  border: 1.5px solid var(--outline);
+}
+.btn-secondary:hover {
+  background: var(--surface-dim);
+}
+.btn-sm {
+  padding: 10px 18px;
+  font-size: 14px;
+  width: auto;
+}
+.btn-add {
+  background: none;
+  border: 2px dashed var(--outline);
+  color: var(--text-secondary);
+  padding: 14px;
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+  transition: var(--transition);
+  margin-top: 4px;
+}
+.btn-add:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: var(--accent-light);
+}
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  min-width: 40px;
+}
+
+/* ============ BOTTOM NAV ============ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border-top: 1px solid var(--outline-light);
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 100;
+  display: flex;
+  gap: 10px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.bottom-nav .btn { flex: 1; }
+
+/* ============ TAX BOX ============ */
+.tax-box {
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.tax-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+.tax-row span:last-child {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.tax-row + .tax-row {
+  border-top: 1px solid var(--outline-light);
+}
+.tax-row.total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  border-top: 2px solid var(--accent);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+.tax-row.total span:last-child {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+/* ============ INFO BANNER ============ */
+.info-banner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--blue-light);
+  border-radius: var(--radius-xs);
+  margin-top: 12px;
+}
+.info-banner .material-icons-round {
+  color: var(--blue);
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.info-banner p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ============ AI STATUS ============ */
+.ai-status {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.spinner-ring {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--outline-light);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-bottom: 10px;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.extras-list, .payments-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-.extras-row, .payment-row { display: grid; grid-template-columns: 1fr 120px 32px; gap: 8px; align-items: center; }
-.extras-row input, .payment-row input { background: var(--mlp-input); border: 1px solid var(--mlp-border); color: var(--mlp-text); padding: 8px 10px; border-radius: 6px; font-size: 13px; font-family: inherit; transition: all 0.2s; }
-.extras-row input:focus, .payment-row input:focus { outline: none; border-color: var(--mlp-accent); box-shadow: 0 0 0 2px var(--mlp-accent-glow); }
-.preset-chip { display: inline-block; background: rgba(255,255,255,0.04); border: 1px solid var(--mlp-border); color: var(--mlp-text-muted); padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; margin: 2px; transition: all 0.25s ease; font-family: inherit; }
-.preset-chip:hover { border-color: var(--mlp-accent); color: var(--mlp-accent); background: rgba(200,164,90,0.06); }
+
+/* ============ QUOTE PREVIEW ============ */
+.quote-preview {
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: var(--radius);
+  padding: 36px 28px;
+  font-size: 14px;
+  line-height: 1.65;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--outline-light);
+}
+.quote-preview h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #c8a45a;
+  margin-bottom: 2px;
+}
+.qp-subtitle { font-size: 13px; color: #5f6368; }
+.qp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #c8a45a;
+  margin-bottom: 20px;
+}
+.qp-header-right {
+  text-align: right;
+  font-size: 13px;
+  color: #5f6368;
+}
+.qp-header-right strong {
+  color: #202124;
+  font-size: 15px;
+}
+.quote-preview h2 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #202124;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #c8a45a;
+}
+.qp-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.qp-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9aa0a6;
+}
+.qp-meta-value { font-size: 13px; color: #3c4043; }
+.quote-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+.quote-preview th {
+  background: #f8f9fa;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #5f6368;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #e8eaed;
+}
+.quote-preview th.r { text-align: right; }
+.quote-preview td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f3f4;
+  font-size: 13px;
+}
+.quote-preview td.r { text-align: right; }
+.qp-totals {
+  margin-top: 16px;
+  border-top: 2px solid #e8eaed;
+  padding-top: 10px;
+}
+.qp-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.qp-grand-total {
+  font-size: 18px;
+  font-weight: 800;
+  color: #c8a45a;
+  border-top: 3px solid #c8a45a;
+  padding-top: 10px;
+  margin-top: 6px;
+}
+.qp-section {
+  margin-top: 12px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #c8a45a;
+  font-size: 13px;
+  color: #3c4043;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+.qp-signature {
+  margin-top: 44px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.qp-sig-line {
+  border-top: 1px solid #dadce0;
+  padding-top: 8px;
+  font-size: 12px;
+  color: #9aa0a6;
+}
+.qp-closing {
+  margin-top: 28px;
+  text-align: center;
+  font-style: italic;
+  color: #5f6368;
+  font-size: 13px;
+}
+.qp-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.qp-badge.included { background: #e6f4ea; color: #1e8e3e; }
+.qp-badge.excluded { background: #fef7e0; color: #e37400; }
+
+/* ============ QUOTE ACTIONS ============ */
+.quote-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.quote-actions .btn { flex: 1; }
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #202124;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ============ SCROLLBAR ============ */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-@media (max-width: 1024px) {
-  .app-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
-  .panel-form { border-right: none; border-bottom: 1px solid var(--mlp-border); }
-  .panel-preview { min-height: 50vh; }
-  .form-row { grid-template-columns: 1fr; }
-  .form-row.three-col { grid-template-columns: 1fr; }
-  .form-row.four-col { grid-template-columns: 1fr 1fr; }
-  .sample-data-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-  .topbar { flex-direction: column; gap: 10px; padding: 12px 16px; height: auto; }
-  .topbar-nav { overflow-x: auto; width: 100%; }
-  .panel-form, .panel-preview { padding: 16px; }
-  .preview-doc { padding: 24px; }
+::-webkit-scrollbar-thumb { background: var(--outline); border-radius: 3px; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 380px) {
+  .line-item-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+  .qp-meta, .qp-signature {
+    grid-template-columns: 1fr;
+  }
 }
   </style>
 </head>
 <body>
 
-<!-- ============ TOP BAR ============ -->
-<div class="topbar">
-  <div class="topbar-brand">
-    <h1>MLP Reno &amp; Design</h1>
-    <span class="staging-badge">Staging</span>
+<!-- ====== HEADER ====== -->
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">M</div>
+    <h1>MLP Reno & Design</h1>
   </div>
-  <nav class="topbar-nav" id="mainNav">
-    <button class="active" data-section="quotes" onclick="switchSection('quotes')">Quotes</button>
-    <button data-section="invoices" onclick="switchSection('invoices')">Invoices</button>
-    <button data-section="emails" onclick="switchSection('emails')">Emails</button>
-    <button data-section="samples" onclick="switchSection('samples')">Sample Data</button>
-  </nav>
-</div>
-
-<!-- ============ QUOTES SECTION ============ -->
-<div class="section-page active" id="section-quotes">
-  <div class="app-layout">
-    <!-- FORM -->
-    <div class="panel-form">
-      <div class="card">
-        <div class="card-title">&#128196; Quote Details</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Quote Number</label>
-            <input type="text" id="q-number" placeholder="Q-2026-001">
-          </div>
-          <div class="form-group">
-            <label>Date</label>
-            <input type="date" id="q-date">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Language</label>
-            <select id="q-lang">
-              <option value="fr">Fran&ccedil;ais</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Project Title</label>
-            <input type="text" id="q-project-title" placeholder="Bathroom renovation">
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#128100; Client Information</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Client Name</label>
-            <input type="text" id="q-client-name" placeholder="Jean Tremblay">
-          </div>
-          <div class="form-group">
-            <label>Client Email</label>
-            <input type="email" id="q-client-email" placeholder="jean@example.com">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Client Phone</label>
-            <input type="tel" id="q-client-phone" placeholder="(450) 555-1234">
-          </div>
-          <div class="form-group">
-            <label>Project Address</label>
-            <input type="text" id="q-address" placeholder="123 Rue Principale, Laval QC">
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#128221; Scope of Work</div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Describe the project (AI will create scope + line items)</label>
-            <textarea id="q-scope" rows="10" placeholder="e.g. bathroom reno in Laval, demo everything, new shower with ceramic tile, 60 inch vanity, paint, budget around 12k..."></textarea>
-            <div class="btn-row" style="margin-top:8px;">
-              <button class="btn btn-success btn-sm" onclick="aiGenerateLineItems('quote')">&#129302; AI Generate Line Items from Scope</button>
-              <button class="btn btn-danger btn-sm" onclick="clearAndRegenerateQuote()">&#128260; Clear &amp; Regenerate</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#128176; Line Items</div>
-        <div id="q-line-items-container">
-          <table class="line-items-table">
-            <thead>
-              <tr>
-                <th class="col-desc">Description</th>
-                <th class="col-qty">Qty</th>
-                <th class="col-unit">Unit Price</th>
-                <th class="col-total">Total</th>
-                <th class="col-action"></th>
-              </tr>
-            </thead>
-            <tbody id="q-line-items"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#9881;&#65039; Options &amp; Settings</div>
-        <div class="toggle-row">
-          <label class="toggle-switch">
-            <input type="checkbox" id="q-taxes" checked>
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-label">Include Quebec Taxes (GST + QST)</span>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-switch">
-            <input type="checkbox" id="q-options-mode" onchange="toggleOptionsMode()">
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-label">Options Mode (A / B / C)</span>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-switch">
-            <input type="checkbox" id="q-payment-terms" checked>
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-label">Include Payment Terms</span>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-switch">
-            <input type="checkbox" id="q-timeline" checked>
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-label">Include Timeline</span>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-switch">
-            <input type="checkbox" id="q-notes" checked>
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-label">Include Notes / Exclusions</span>
-        </div>
-      </div>
-
-      <!-- OPTIONS BLOCKS (hidden by default) -->
-      <div id="q-options-container" style="display:none;">
-        <div class="card">
-          <div class="card-title">&#127991;&#65039; Options A / B / C</div>
-          <div id="q-options-blocks"></div>
-          <div class="btn-row">
-            <button class="btn btn-secondary btn-sm" onclick="addOptionBlock()">+ Add Option</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" id="q-notes-card">
-        <div class="card-title">&#128466;&#65039; Notes &amp; Terms</div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Notes / Exclusions</label>
-            <textarea id="q-notes-text" rows="3" placeholder="Any exclusions, assumptions, or important notes..."></textarea>
-            <div style="margin-top:6px;">
-              <span class="preset-chip" onclick="appendPreset('q-notes-text','Client should plan approximately 5% to 15% for unforeseen circumstances.')">+ Unforeseen 5-15%</span>
-              <span class="preset-chip" onclick="appendPreset('q-notes-text','Permit fees, if applicable, are not included in this quote.')">+ Permits excluded</span>
-              <span class="preset-chip" onclick="appendPreset('q-notes-text','Materials are subject to availability and current pricing at time of purchase.')">+ Material availability</span>
-            </div>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Payment Terms</label>
-            <textarea id="q-payment-text" rows="3" placeholder="Payment schedule details..."></textarea>
-            <div style="margin-top:6px;">
-              <span class="preset-chip" onclick="setPreset('q-payment-text','10% deposit to reserve date\n40% before start of work\n40% mid-project\n10% on final day')">Use Default Schedule</span>
-            </div>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Timeline</label>
-            <textarea id="q-timeline-text" rows="2" placeholder="Estimated timeline..."></textarea>
-            <div style="margin-top:6px;">
-              <span class="preset-chip" onclick="setPreset('q-timeline-text','Work may take approximately 2 to 3 weeks depending on scope and material availability. A 2-week heads-up may be required to mobilize the team.')">Use Default Timeline</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="btn-row" style="margin-bottom:24px;">
-        <button class="btn btn-primary" onclick="generateQuote()">&#9998; Generate Quote</button>
-        <button class="btn btn-success" onclick="generateQuoteAI()">&#129302; AI Polish &amp; Generate</button>
-        <button class="btn btn-ghost" onclick="saveQuoteDraft()">&#128190; Save Draft</button>
-      </div>
-    </div>
-
-    <!-- PREVIEW -->
-    <div class="panel-preview" id="q-preview-panel">
-      <div class="preview-toolbar">
-        <h3>Quote Preview</h3>
-        <div class="btn-row" style="margin:0;">
-          <button class="btn btn-secondary btn-sm" onclick="copyPreview('q-preview-content')">&#128203; Copy</button>
-          <button class="btn btn-ghost btn-sm" onclick="convertQuoteToInvoice()">&#8594; Convert to Invoice</button>
-        </div>
-      </div>
-      <div id="q-preview-content">
-        <div class="preview-empty">
-          <div class="preview-empty-icon">&#128196;</div>
-          <p>Fill in the form and click <strong>Generate Quote</strong> to see a professional preview here.</p>
-        </div>
-      </div>
-    </div>
+  <div class="lang-toggle">
+    <button id="lang-fr" class="active" onclick="setLang('fr')">FR</button>
+    <button id="lang-en" onclick="setLang('en')">EN</button>
   </div>
 </div>
 
-<!-- ============ INVOICES SECTION ============ -->
-<div class="section-page" id="section-invoices">
-  <div class="app-layout">
-    <!-- FORM -->
-    <div class="panel-form">
-      <div class="card">
-        <div class="card-title">&#128196; Invoice Details</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Invoice Number</label>
-            <input type="text" id="i-number" placeholder="INV-2026-001">
-          </div>
-          <div class="form-group">
-            <label>Invoice Date</label>
-            <input type="date" id="i-date">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Related Quote #</label>
-            <input type="text" id="i-quote-ref" placeholder="Q-2026-001">
-          </div>
-          <div class="form-group">
-            <label>Language</label>
-            <select id="i-lang">
-              <option value="fr">Fran&ccedil;ais</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#128100; Client Information</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Client Name</label>
-            <input type="text" id="i-client-name" placeholder="Jean Tremblay">
-          </div>
-          <div class="form-group">
-            <label>Client Email</label>
-            <input type="email" id="i-client-email" placeholder="jean@example.com">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Client Phone</label>
-            <input type="tel" id="i-client-phone" placeholder="(450) 555-1234">
-          </div>
-          <div class="form-group">
-            <label>Project Address</label>
-            <input type="text" id="i-address" placeholder="123 Rue Principale, Laval QC">
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#128176; Billed Items</div>
-        <div class="form-row full" style="margin-bottom:12px;">
-          <div class="form-group">
-            <label>Describe the work (AI will generate line items)</label>
-            <textarea id="i-scope-prompt" rows="3" placeholder="e.g. completed bathroom reno, demo, plumbing, ceramic tile, vanity install, paint, cleanup..."></textarea>
-            <div class="btn-row" style="margin-top:8px;">
-              <button class="btn btn-success btn-sm" onclick="aiGenerateLineItems('invoice')">&#129302; AI Generate Line Items</button>
-            </div>
-          </div>
-        </div>
-        <table class="line-items-table">
-          <thead>
-            <tr>
-              <th class="col-desc">Description</th>
-              <th class="col-qty">Qty</th>
-              <th class="col-unit">Unit Price</th>
-              <th class="col-total">Total</th>
-              <th class="col-action"></th>
-            </tr>
-          </thead>
-          <tbody id="i-line-items"></tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#10010; Extras / Change Orders</div>
-        <div class="extras-list" id="i-extras"></div>
-        <div class="btn-row">
-          <button class="btn btn-secondary btn-sm" onclick="addExtra()">+ Add Extra</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#9989; Payments Received</div>
-        <div class="payments-list" id="i-payments"></div>
-        <div class="btn-row">
-          <button class="btn btn-secondary btn-sm" onclick="addPayment()">+ Add Payment</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#9881;&#65039; Settings</div>
-        <div class="toggle-row">
-          <label class="toggle-switch">
-            <input type="checkbox" id="i-taxes" checked>
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-label">Include Quebec Taxes (GST + QST)</span>
-        </div>
-        <div class="form-row full" style="margin-top:10px;">
-          <div class="form-group">
-            <label>Notes / Payment Instructions</label>
-            <textarea id="i-notes" rows="3" placeholder="Payment instructions, notes..."></textarea>
-            <div style="margin-top:6px;">
-              <span class="preset-chip" onclick="setPreset('i-notes','Payment by cheque or e-Transfer to info@mlprenodesign.ca')">+ e-Transfer</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="btn-row" style="margin-bottom:24px;">
-        <button class="btn btn-primary" onclick="generateInvoice()">&#9998; Generate Invoice</button>
-        <button class="btn btn-success" onclick="generateInvoiceAI()">&#129302; AI Polish &amp; Generate</button>
-        <button class="btn btn-ghost" onclick="saveInvoiceDraft()">&#128190; Save Draft</button>
-      </div>
-    </div>
-
-    <!-- PREVIEW -->
-    <div class="panel-preview" id="i-preview-panel">
-      <div class="preview-toolbar">
-        <h3>Invoice Preview</h3>
-        <div class="btn-row" style="margin:0;">
-          <button class="btn btn-secondary btn-sm" onclick="copyPreview('i-preview-content')">&#128203; Copy</button>
-          <button class="btn btn-ghost btn-sm" onclick="generateEmailFromInvoice()">&#9993; Draft Email</button>
-        </div>
-      </div>
-      <div id="i-preview-content">
-        <div class="preview-empty">
-          <div class="preview-empty-icon">&#128196;</div>
-          <p>Fill in the form and click <strong>Generate Invoice</strong> to see a professional preview here.</p>
-        </div>
-      </div>
-    </div>
+<!-- ====== PROGRESS ====== -->
+<div class="progress-section">
+  <div class="progress-info">
+    <span class="progress-label" id="progress-label">Étape 1 / 9</span>
+    <span class="progress-count" id="progress-pct">11%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill" style="width:11%"></div>
   </div>
 </div>
 
-<!-- ============ EMAILS SECTION ============ -->
-<div class="section-page" id="section-emails">
-  <div class="app-layout">
-    <!-- FORM -->
-    <div class="panel-form">
-      <div class="card">
-        <div class="card-title">&#9993; Email Settings</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Email Purpose</label>
-            <select id="e-purpose">
-              <option value="send-quote">Send Quote</option>
-              <option value="send-invoice">Send Invoice</option>
-              <option value="follow-up">Follow-up</option>
-              <option value="approval">Request Approval</option>
-              <option value="payment-reminder">Payment Reminder</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Language</label>
-            <select id="e-lang">
-              <option value="fr">Fran&ccedil;ais</option>
-              <option value="en">English</option>
-            </select>
-          </div>
+<!-- ====== STEPS ====== -->
+<div class="main" id="main">
+
+  <!-- STEP 1 -->
+  <div class="step active" id="step-1">
+    <div class="step-header">
+      <div class="step-icon gold"><span class="material-icons-round">person</span></div>
+      <div class="step-title" data-i18n="step1_title">Informations du client</div>
+      <div class="step-subtitle" data-i18n="step1_sub">Coordonnées du client pour la soumission</div>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label" data-i18n="client_name">Nom du client</label>
+        <input class="form-input" type="text" id="f-client-name" placeholder="">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="client_address">Adresse du client</label>
+        <input class="form-input" type="text" id="f-client-address" placeholder="">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-i18n="client_email">Courriel</label>
+          <input class="form-input" type="email" id="f-client-email" placeholder="">
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Client Name</label>
-            <input type="text" id="e-client-name" placeholder="Jean Tremblay">
-          </div>
-          <div class="form-group">
-            <label>Client Email</label>
-            <input type="email" id="e-client-email" placeholder="jean@example.com">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Related Quote / Invoice #</label>
-            <input type="text" id="e-ref" placeholder="Q-2026-001">
-          </div>
-          <div class="form-group">
-            <label>Attachment</label>
-            <select id="e-attach">
-              <option value="none">No attachment</option>
-              <option value="quote">Quote attached</option>
-              <option value="invoice">Invoice attached</option>
-              <option value="both">Both attached</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Context / Notes for AI</label>
-            <textarea id="e-context" rows="4" placeholder="e.g. following up on the bathroom reno quote we discussed last week..."></textarea>
-          </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="client_phone">Téléphone</label>
+          <input class="form-input" type="tel" id="f-client-phone" placeholder="">
         </div>
       </div>
-
-      <div class="btn-row" style="margin-bottom:24px;">
-        <button class="btn btn-primary" onclick="generateEmail()">&#9998; Generate Email</button>
-        <button class="btn btn-success" onclick="generateEmailAI()">&#129302; AI Generate Email</button>
+      <div class="form-group">
+        <label class="form-label" data-i18n="quote_date">Date de la soumission</label>
+        <input class="form-input" type="date" id="f-date">
       </div>
     </div>
+  </div>
 
-    <!-- PREVIEW -->
-    <div class="panel-preview" id="e-preview-panel">
-      <div class="preview-toolbar">
-        <h3>Email Preview</h3>
-        <div class="btn-row" style="margin:0;">
-          <button class="btn btn-secondary btn-sm" onclick="copyPreview('e-preview-content')">&#128203; Copy</button>
+  <!-- STEP 2 -->
+  <div class="step" id="step-2">
+    <div class="step-header">
+      <div class="step-icon blue"><span class="material-icons-round">construction</span></div>
+      <div class="step-title" data-i18n="step2_title">Détails du projet</div>
+      <div class="step-subtitle" data-i18n="step2_sub">Décrivez le projet et votre budget</div>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label" data-i18n="project_title">Titre du projet</label>
+        <input class="form-input" type="text" id="f-project-title" placeholder="">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="project_desc">Description du projet</label>
+        <textarea class="form-textarea" id="f-project-desc" rows="5" placeholder=""></textarea>
+        <div class="form-helper" data-i18n="project_desc_helper">Décrivez les travaux en détail. L'IA utilisera cette description pour générer les postes.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-i18n="project_budget">Budget du projet ($)</label>
+          <div class="form-prefix">
+            <span class="prefix">$</span>
+            <input class="form-input" type="number" id="f-budget" min="0" step="500" placeholder="0">
+          </div>
+          <div class="form-helper" data-i18n="budget_helper">Avant taxes. L'IA s'ajustera à ce budget.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="project_duration">Durée (semaines)</label>
+          <input class="form-input" type="number" id="f-duration" min="1" value="2">
         </div>
       </div>
-      <div id="e-preview-content">
-        <div class="preview-empty">
-          <div class="preview-empty-icon">&#9993;</div>
-          <p>Select a purpose, fill in the details, and click <strong>Generate Email</strong> to preview.</p>
+    </div>
+    <div class="info-banner">
+      <span class="material-icons-round">info</span>
+      <p data-i18n="duration_note">Les délais sont estimés en jours ouvrables / semaines. Selon l'entente, certains travaux peuvent être effectués la fin de semaine.</p>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step-3">
+    <div class="step-header">
+      <div class="step-icon orange"><span class="material-icons-round">inventory_2</span></div>
+      <div class="step-title" data-i18n="step3_title">Matériaux</div>
+      <div class="step-subtitle" data-i18n="step3_sub">Ce paramètre s'applique par défaut. Vous pourrez ajuster par poste à l'étape suivante.</div>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label" data-i18n="materials_default">Matériaux inclus par défaut ?</label>
+        <div class="chip-group">
+          <button class="chip active" id="mat-yes" onclick="setMaterials(true)" data-i18n="yes">Oui</button>
+          <button class="chip" id="mat-no" onclick="setMaterials(false)" data-i18n="no">Non</button>
+        </div>
+      </div>
+      <div class="form-group" id="mat-budget-group">
+        <label class="form-label" data-i18n="materials_budget">Budget matériaux ($)</label>
+        <div class="form-prefix">
+          <span class="prefix">$</span>
+          <input class="form-input" type="number" id="f-mat-budget" min="0" step="100" placeholder="0">
+        </div>
+      </div>
+      <div id="mat-excluded-msg" style="display:none;">
+        <div class="info-banner">
+          <span class="material-icons-round">info</span>
+          <p data-i18n="materials_excluded_note">Les matériaux sont exclus de cette soumission. Le client fournit les matériaux. Vous pourrez inclure les matériaux individuellement par poste.</p>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step-4">
+    <div class="step-header">
+      <div class="step-icon green"><span class="material-icons-round">smart_toy</span></div>
+      <div class="step-title" data-i18n="step4_title">Postes de soumission</div>
+      <div class="step-subtitle" data-i18n="step4_sub">Générez avec l'IA ou ajoutez manuellement. Cochez les matériaux par poste.</div>
+    </div>
+    <div class="card" id="ai-card">
+      <button class="btn btn-primary" id="btn-ai-generate" onclick="generateLineItems()">
+        <span class="material-icons-round">auto_awesome</span>
+        <span data-i18n="ai_generate">Générer les postes avec l'IA</span>
+      </button>
+      <div class="ai-status" id="ai-status" style="display:none;">
+        <div class="spinner-ring"></div>
+        <div data-i18n="ai_working">L'IA génère les postes...</div>
+      </div>
+    </div>
+    <div id="line-items-container"></div>
+    <button class="btn-add" id="btn-add-item" onclick="addLineItem()">
+      + <span data-i18n="add_item">Ajouter un poste</span>
+    </button>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="step-5">
+    <div class="step-header">
+      <div class="step-icon gold"><span class="material-icons-round">receipt_long</span></div>
+      <div class="step-title" data-i18n="step5_title">Prix et taxes</div>
+      <div class="step-subtitle" data-i18n="step5_sub">Taxes du Québec calculées automatiquement (TPS + TVQ)</div>
+    </div>
+    <div id="pricing-items"></div>
+    <div class="tax-box" id="tax-box">
+      <div class="tax-row">
+        <span data-i18n="subtotal">Sous-total</span>
+        <span id="tx-subtotal">$0.00</span>
+      </div>
+      <div class="tax-row">
+        <span>TPS / GST (5%)</span>
+        <span id="tx-gst">$0.00</span>
+      </div>
+      <div class="tax-row">
+        <span>TVQ / QST (9.975%)</span>
+        <span id="tx-qst">$0.00</span>
+      </div>
+      <div class="tax-row total">
+        <span data-i18n="total_with_tax">Total avec taxes</span>
+        <span id="tx-total">$0.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step" id="step-6">
+    <div class="step-header">
+      <div class="step-icon blue"><span class="material-icons-round">account_balance_wallet</span></div>
+      <div class="step-title" data-i18n="step6_title">Modalités de paiement</div>
+      <div class="step-subtitle" data-i18n="step6_sub">Choisissez l'échéancier de paiement</div>
+    </div>
+    <div class="card-flat" id="payment-options-container"></div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step" id="step-7">
+    <div class="step-header">
+      <div class="step-icon green"><span class="material-icons-round">payments</span></div>
+      <div class="step-title" data-i18n="step7_title">Méthodes de paiement</div>
+      <div class="step-subtitle" data-i18n="step7_sub">Informations pour recevoir les paiements</div>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <textarea class="form-textarea" id="f-payment-methods" rows="8"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step" id="step-8">
+    <div class="step-header">
+      <div class="step-icon orange"><span class="material-icons-round">sticky_note_2</span></div>
+      <div class="step-title" data-i18n="step8_title">Notes importantes</div>
+      <div class="step-subtitle" data-i18n="step8_sub">Conditions et avertissements inclus dans la soumission</div>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <textarea class="form-textarea" id="f-notes" rows="8"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 9 -->
+  <div class="step" id="step-9">
+    <div class="step-header">
+      <div class="step-icon gold"><span class="material-icons-round">description</span></div>
+      <div class="step-title" data-i18n="step9_title">Soumission finale</div>
+      <div class="step-subtitle" data-i18n="step9_sub">Vérifiez et partagez votre soumission</div>
+    </div>
+    <div class="quote-actions">
+      <button class="btn btn-secondary btn-sm" onclick="copyQuote()">
+        <span class="material-icons-round" style="font-size:18px">content_copy</span>
+        <span data-i18n="copy">Copier</span>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="printQuote()">
+        <span class="material-icons-round" style="font-size:18px">print</span>
+        <span data-i18n="print_pdf">Imprimer / PDF</span>
+      </button>
+    </div>
+    <div id="quote-output"></div>
+  </div>
+
 </div>
 
-<!-- ============ SAMPLE DATA SECTION ============ -->
-<div class="section-page" id="section-samples">
-  <div class="app-layout full-width">
-    <div class="panel-form" style="border:none; max-width:1000px; margin:0 auto;">
-      <div class="card">
-        <div class="card-title">&#128202; Sample Test Data</div>
-        <p style="font-size:13px; color:var(--mlp-text-muted); margin-bottom:16px;">Click any sample below to load it into the corresponding form for quick testing. This data is for staging only.</p>
-        <div class="sample-data-grid" id="sample-grid"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#128190; Saved Drafts</div>
-        <div id="drafts-list">
-          <p style="font-size:13px; color:var(--mlp-text-muted);">No saved drafts yet. Generate a quote or invoice and click Save Draft.</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">&#9881;&#65039; Default Presets</div>
-        <p style="font-size:13px; color:var(--mlp-text-muted); margin-bottom:12px;">Edit these defaults used across the tool.</p>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Default Payment Terms</label>
-            <textarea id="preset-payment" rows="4">10% deposit to reserve date
-40% before start of work
-40% mid-project
-10% on final day</textarea>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Default Timeline</label>
-            <textarea id="preset-timeline" rows="3">Work may take approximately 2 to 3 weeks depending on scope and material availability. A 2-week heads-up may be required to mobilize the team.</textarea>
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Default Notes</label>
-            <textarea id="preset-notes" rows="3">Client should plan approximately 5% to 15% for unforeseen circumstances.</textarea>
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-primary btn-sm" onclick="savePresets()">Save Presets</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- ====== BOTTOM NAV ====== -->
+<div class="bottom-nav" id="bottom-nav">
+  <button class="btn btn-secondary" id="btn-prev" onclick="prevStep()" style="display:none;">
+    <span class="material-icons-round" style="font-size:18px">arrow_back</span>
+    <span data-i18n="previous">Précédent</span>
+  </button>
+  <button class="btn btn-primary" id="btn-next" onclick="nextStep()">
+    <span data-i18n="next">Suivant</span>
+    <span class="material-icons-round" style="font-size:18px">arrow_forward</span>
+  </button>
 </div>
 
 <!-- Toast -->

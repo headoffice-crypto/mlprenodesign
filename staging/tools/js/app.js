@@ -1,1358 +1,664 @@
 /* ============================================
-   MLP Reno & Design — Internal Tools Engine
-   Staging Version
+   MLP Reno & Design — Quote Builder
+   Mobile-first, Google Material-inspired
    ============================================ */
 
-// ---- State ----
-let optionCounter = 0;
+const TOTAL_STEPS = 9;
+let currentStep = 1;
+let lang = 'fr';
+let materialsIncluded = true;
+let lineItems = [];
+let selectedPaymentOption = 'A';
 
-// ---- Init ----
+// ---- i18n ----
+const I18N = {
+  step1_title: { fr: 'Informations du client', en: 'Client Information' },
+  step1_sub: { fr: 'Coordonnées du client pour la soumission', en: 'Client contact details for the quote' },
+  step2_title: { fr: 'Détails du projet', en: 'Project Details' },
+  step2_sub: { fr: 'Décrivez le projet et votre budget', en: 'Describe the project and your budget' },
+  step3_title: { fr: 'Matériaux', en: 'Materials' },
+  step3_sub: { fr: 'Ce paramètre s\'applique par défaut. Vous pourrez ajuster par poste à l\'étape suivante.', en: 'This is the default setting. You can adjust per item in the next step.' },
+  step4_title: { fr: 'Postes de soumission', en: 'Quote Line Items' },
+  step4_sub: { fr: 'Générez avec l\'IA ou ajoutez manuellement. Cochez les matériaux par poste.', en: 'Generate with AI or add manually. Toggle materials per item.' },
+  step5_title: { fr: 'Prix et taxes', en: 'Pricing & Taxes' },
+  step5_sub: { fr: 'Taxes du Québec calculées automatiquement (TPS + TVQ)', en: 'Quebec taxes calculated automatically (GST + QST)' },
+  step6_title: { fr: 'Modalités de paiement', en: 'Payment Terms' },
+  step6_sub: { fr: 'Choisissez l\'échéancier de paiement', en: 'Choose the payment schedule' },
+  step7_title: { fr: 'Méthodes de paiement', en: 'Payment Methods' },
+  step7_sub: { fr: 'Informations pour recevoir les paiements', en: 'Payment collection details' },
+  step8_title: { fr: 'Notes importantes', en: 'Important Notes' },
+  step8_sub: { fr: 'Conditions et avertissements inclus dans la soumission', en: 'Terms and conditions included in the quote' },
+  step9_title: { fr: 'Soumission finale', en: 'Final Quote' },
+  step9_sub: { fr: 'Vérifiez et partagez votre soumission', en: 'Review and share your quote' },
+  client_name: { fr: 'Nom du client', en: 'Client Name' },
+  client_address: { fr: 'Adresse du client', en: 'Client Address' },
+  client_email: { fr: 'Courriel', en: 'Email' },
+  client_phone: { fr: 'Téléphone', en: 'Phone' },
+  quote_date: { fr: 'Date de la soumission', en: 'Quote Date' },
+  project_title: { fr: 'Titre du projet', en: 'Project Title' },
+  project_desc: { fr: 'Description du projet', en: 'Project Description' },
+  project_desc_helper: { fr: 'Décrivez les travaux en détail. L\'IA utilisera cette description pour générer les postes.', en: 'Describe the work in detail. AI will use this to generate line items.' },
+  project_budget: { fr: 'Budget du projet ($)', en: 'Project Budget ($)' },
+  budget_helper: { fr: 'Avant taxes. L\'IA s\'ajustera à ce budget.', en: 'Before taxes. AI will adjust to this budget.' },
+  project_duration: { fr: 'Durée (semaines)', en: 'Duration (weeks)' },
+  duration_note: {
+    fr: 'Les délais sont estimés en jours ouvrables / semaines. Selon l\'entente, certains travaux peuvent être effectués la fin de semaine.',
+    en: 'Project timelines are estimated in business days/weeks. Depending on the agreement, some work may be done on weekends.'
+  },
+  materials_default: { fr: 'Matériaux inclus par défaut ?', en: 'Materials included by default?' },
+  yes: { fr: 'Oui', en: 'Yes' },
+  no: { fr: 'Non', en: 'No' },
+  materials_budget: { fr: 'Budget matériaux ($)', en: 'Materials Budget ($)' },
+  materials_excluded_note: {
+    fr: 'Les matériaux sont exclus de cette soumission. Le client fournit les matériaux. Vous pourrez inclure les matériaux individuellement par poste.',
+    en: 'Materials are excluded from this quote. The client provides materials. You can include materials individually per item.'
+  },
+  ai_generate: { fr: 'Générer les postes avec l\'IA', en: 'Generate Items with AI' },
+  ai_working: { fr: 'L\'IA génère les postes...', en: 'AI is generating items...' },
+  add_item: { fr: 'Ajouter un poste', en: 'Add Item' },
+  subtotal: { fr: 'Sous-total', en: 'Subtotal' },
+  total_with_tax: { fr: 'Total avec taxes', en: 'Total with taxes' },
+  previous: { fr: 'Précédent', en: 'Previous' },
+  next: { fr: 'Suivant', en: 'Next' },
+  generate_quote: { fr: 'Voir la soumission', en: 'View Quote' },
+  copy: { fr: 'Copier', en: 'Copy' },
+  print_pdf: { fr: 'Imprimer / PDF', en: 'Print / PDF' },
+  qty: { fr: 'Qté', en: 'Qty' },
+  unit_price: { fr: 'Prix unit.', en: 'Unit $' },
+  total_label: { fr: 'Total', en: 'Total' },
+  mat_included: { fr: 'Matériaux inclus', en: 'Materials included' },
+  step_label: { fr: 'Étape', en: 'Step' },
+};
+
+const PAYMENT_OPTIONS_DATA = [
+  {
+    key: 'A',
+    fr: { title: 'Option A', desc: '10% dépôt\n40% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux' },
+    en: { title: 'Option A', desc: '10% deposit\n40% before work begins\n40% mid-project\n10% upon completion' },
+    summary: { fr: '10% dépôt · 40% avant début · 40% mi-parcours · 10% fin', en: '10% deposit · 40% before start · 40% mid-project · 10% completion' }
+  },
+  {
+    key: 'B',
+    fr: { title: 'Option B', desc: '20% dépôt\n30% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux' },
+    en: { title: 'Option B', desc: '20% deposit\n30% before work begins\n40% mid-project\n10% upon completion' },
+    summary: { fr: '20% dépôt · 30% avant début · 40% mi-parcours · 10% fin', en: '20% deposit · 30% before start · 40% mid-project · 10% completion' }
+  },
+  {
+    key: 'C',
+    fr: { title: 'Option C', desc: '20% dépôt\n40% avant le début des travaux\n30% mi-parcours\n10% à la fin des travaux' },
+    en: { title: 'Option C', desc: '20% deposit\n40% before work begins\n30% mid-project\n10% upon completion' },
+    summary: { fr: '20% dépôt · 40% avant début · 30% mi-parcours · 10% fin', en: '20% deposit · 40% before start · 30% mid-project · 10% completion' }
+  },
+];
+
+const PAYMENT_METHODS = {
+  fr: `Virement Interac :\npayment@mlpexperience.com\n\nChèque :\nMLP Gestion et Consultation Inc.\n\nNote : Les paiements par chèque peuvent prendre 5 à 7 jours ouvrables avant réception. Les dates de début et la planification sont confirmées seulement après réception du paiement.`,
+  en: `Interac e-Transfer:\npayment@mlpexperience.com\n\nCheque:\nMLP Gestion et Consultation Inc.\n\nNote: Cheque payments may take 5–7 business days to clear. Project scheduling starts only after payment is received.`
+};
+
+const DEFAULT_NOTES = {
+  fr: `• Le budget peut varier de 5% à 15% selon les imprévus\n• Les délais de livraison des matériaux peuvent varier\n• Tout travail non inclus dans cette soumission sera considéré comme un extra\n• Les délais sont estimés en jours ouvrables\n• Les taxes sont en sus`,
+  en: `• Budget may vary 5%–15% due to unforeseen circumstances\n• Material delivery delays are possible\n• Work not included in this quote will be considered an extra\n• Timeline is estimated in business days\n• Taxes are extra`
+};
+
+// ============================================
+// INIT
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
-  setTodayDates();
-  addExtra();
-  addPayment();
-  loadPresets();
-  renderSampleData();
-  renderDrafts();
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-payment-methods').value = PAYMENT_METHODS[lang];
+  document.getElementById('f-notes').value = DEFAULT_NOTES[lang];
+  buildPaymentOptions();
+  goToStep(1);
 });
 
-function setTodayDates() {
-  const today = new Date().toISOString().split('T')[0];
-  const qd = document.getElementById('q-date');
-  const id = document.getElementById('i-date');
-  if (qd && !qd.value) qd.value = today;
-  if (id && !id.value) id.value = today;
-}
+// ============================================
+// LANGUAGE
+// ============================================
 
-// ---- Navigation ----
-function switchSection(name) {
-  document.querySelectorAll('.section-page').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.topbar-nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById('section-' + name).classList.add('active');
-  document.querySelector(`.topbar-nav button[data-section="${name}"]`).classList.add('active');
-}
+function setLang(l) {
+  lang = l;
+  document.getElementById('lang-fr').className = l === 'fr' ? 'active' : '';
+  document.getElementById('lang-en').className = l === 'en' ? 'active' : '';
 
-// ---- Quote Line Items ----
-function addQuoteLineItem(desc = '', qty = '', unit = '', total = '') {
-  const tbody = document.getElementById('q-line-items');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="col-desc"><input type="text" placeholder="Description" value="${esc(desc)}" onchange="calcLineTotal(this)"></td>
-    <td class="col-qty"><input type="number" placeholder="1" value="${esc(qty)}" min="0" step="1" onchange="calcLineTotal(this)"></td>
-    <td class="col-unit"><input type="number" placeholder="0.00" value="${esc(unit)}" min="0" step="0.01" onchange="calcLineTotal(this)"></td>
-    <td class="col-total"><input type="number" placeholder="0.00" value="${esc(total)}" min="0" step="0.01"></td>
-    <td class="col-action"><button class="btn-remove-row" onclick="this.closest('tr').remove()">&times;</button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-function addInvoiceLineItem(desc = '', qty = '', unit = '', total = '') {
-  const tbody = document.getElementById('i-line-items');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="col-desc"><input type="text" placeholder="Description" value="${esc(desc)}" onchange="calcLineTotal(this)"></td>
-    <td class="col-qty"><input type="number" placeholder="1" value="${esc(qty)}" min="0" step="1" onchange="calcLineTotal(this)"></td>
-    <td class="col-unit"><input type="number" placeholder="0.00" value="${esc(unit)}" min="0" step="0.01" onchange="calcLineTotal(this)"></td>
-    <td class="col-total"><input type="number" placeholder="0.00" value="${esc(total)}" min="0" step="0.01"></td>
-    <td class="col-action"><button class="btn-remove-row" onclick="this.closest('tr').remove()">&times;</button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-function calcLineTotal(input) {
-  const tr = input.closest('tr');
-  const inputs = tr.querySelectorAll('input');
-  const qty = parseFloat(inputs[1].value) || 0;
-  const unit = parseFloat(inputs[2].value) || 0;
-  if (qty && unit) {
-    inputs[3].value = (qty * unit).toFixed(2);
+  const pmField = document.getElementById('f-payment-methods');
+  const notesField = document.getElementById('f-notes');
+  const otherLang = l === 'fr' ? 'en' : 'fr';
+  if (pmField.value.trim() === PAYMENT_METHODS[otherLang].trim() || pmField.value.trim() === '') {
+    pmField.value = PAYMENT_METHODS[l];
   }
-}
-
-// ---- Extras / Payments ----
-function addExtra(desc = '', amount = '') {
-  const container = document.getElementById('i-extras');
-  const div = document.createElement('div');
-  div.className = 'extras-row';
-  div.innerHTML = `
-    <input type="text" placeholder="Description" value="${esc(desc)}">
-    <input type="number" placeholder="0.00" value="${esc(amount)}" min="0" step="0.01">
-    <button class="btn-remove-row" onclick="this.parentElement.remove()">&times;</button>
-  `;
-  container.appendChild(div);
-}
-
-function addPayment(desc = '', amount = '') {
-  const container = document.getElementById('i-payments');
-  const div = document.createElement('div');
-  div.className = 'payment-row';
-  div.innerHTML = `
-    <input type="text" placeholder="Description (e.g. Deposit)" value="${esc(desc)}">
-    <input type="number" placeholder="0.00" value="${esc(amount)}" min="0" step="0.01">
-    <button class="btn-remove-row" onclick="this.parentElement.remove()">&times;</button>
-  `;
-  container.appendChild(div);
-}
-
-// ---- Options Mode ----
-function toggleOptionsMode() {
-  const on = document.getElementById('q-options-mode').checked;
-  document.getElementById('q-options-container').style.display = on ? 'block' : 'none';
-  if (on && document.getElementById('q-options-blocks').children.length === 0) {
-    addOptionBlock('Option A');
-    addOptionBlock('Option B');
+  if (notesField.value.trim() === DEFAULT_NOTES[otherLang].trim() || notesField.value.trim() === '') {
+    notesField.value = DEFAULT_NOTES[l];
   }
+
+  applyI18N();
+  buildPaymentOptions();
+  renderLineItems();
+  if (currentStep === 5) updatePricing();
+  if (currentStep === 9) renderQuote();
 }
 
-function addOptionBlock(label) {
-  optionCounter++;
-  const id = 'opt-' + optionCounter;
-  if (!label) label = 'Option ' + String.fromCharCode(64 + optionCounter);
-  const container = document.getElementById('q-options-blocks');
-  const div = document.createElement('div');
-  div.className = 'option-block';
-  div.id = id;
-  div.innerHTML = `
-    <div class="option-block-header">
-      <h4>${esc(label)}</h4>
-      <button class="btn btn-danger btn-sm" onclick="document.getElementById('${id}').remove()">Remove</button>
-    </div>
-    <div class="form-row full">
-      <div class="form-group">
-        <label>Option Title</label>
-        <input type="text" class="opt-title" placeholder="e.g. Standard Renovation">
-      </div>
-    </div>
-    <div class="form-row full">
-      <div class="form-group">
-        <label>Scope Notes</label>
-        <textarea class="opt-scope" rows="3" placeholder="Rough scope for this option..."></textarea>
-      </div>
-    </div>
-    <table class="line-items-table">
-      <thead>
-        <tr>
-          <th class="col-desc">Description</th>
-          <th class="col-qty">Qty</th>
-          <th class="col-unit">Unit Price</th>
-          <th class="col-total">Total</th>
-          <th class="col-action"></th>
-        </tr>
-      </thead>
-      <tbody class="opt-items"></tbody>
-    </table>
-    <div class="btn-row">
-      <button class="btn btn-secondary btn-sm" onclick="addOptLineItem('${id}')">+ Add Item</button>
-    </div>
-  `;
-  container.appendChild(div);
-  addOptLineItem(id);
-}
-
-function addOptLineItem(blockId, desc = '', qty = '', unit = '', total = '') {
-  const tbody = document.getElementById(blockId).querySelector('.opt-items');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="col-desc"><input type="text" placeholder="Description" value="${esc(desc)}" onchange="calcLineTotal(this)"></td>
-    <td class="col-qty"><input type="number" placeholder="1" value="${esc(qty)}" min="0" step="1" onchange="calcLineTotal(this)"></td>
-    <td class="col-unit"><input type="number" placeholder="0.00" value="${esc(unit)}" min="0" step="0.01" onchange="calcLineTotal(this)"></td>
-    <td class="col-total"><input type="number" placeholder="0.00" value="${esc(total)}" min="0" step="0.01"></td>
-    <td class="col-action"><button class="btn-remove-row" onclick="this.closest('tr').remove()">&times;</button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-// ---- Presets ----
-function appendPreset(fieldId, text) {
-  const el = document.getElementById(fieldId);
-  el.value = el.value ? el.value + '\n' + text : text;
-}
-function setPreset(fieldId, text) {
-  document.getElementById(fieldId).value = text;
-}
-function savePresets() {
-  const presets = {
-    payment: document.getElementById('preset-payment').value,
-    timeline: document.getElementById('preset-timeline').value,
-    notes: document.getElementById('preset-notes').value,
-  };
-  localStorage.setItem('mlp-presets', JSON.stringify(presets));
-  showToast('Presets saved!', 'success');
-}
-function loadPresets() {
-  const saved = localStorage.getItem('mlp-presets');
-  if (saved) {
-    const p = JSON.parse(saved);
-    if (p.payment) document.getElementById('preset-payment').value = p.payment;
-    if (p.timeline) document.getElementById('preset-timeline').value = p.timeline;
-    if (p.notes) document.getElementById('preset-notes').value = p.notes;
-  }
-}
-
-// ---- Helpers ----
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function money(n) {
-  return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-function nl2br(s) {
-  return (s || '').replace(/\n/g, '<br>');
-}
-
-function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show toast-' + type;
-  setTimeout(() => t.className = 'toast', 3000);
-}
-
-function getLineItems(tbodyId) {
-  const rows = document.getElementById(tbodyId).querySelectorAll('tr');
-  const items = [];
-  rows.forEach(tr => {
-    const inputs = tr.querySelectorAll('input');
-    const desc = inputs[0].value.trim();
-    const qty = inputs[1].value.trim();
-    const unit = inputs[2].value.trim();
-    const total = inputs[3].value.trim();
-    if (desc || total) {
-      items.push({ description: desc, quantity: qty, unit_price: unit, total_price: total || '0' });
+function applyI18N() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[key] && I18N[key][lang]) {
+      el.textContent = I18N[key][lang];
     }
   });
-  return items;
+  updateProgress();
 }
 
-function getExtras() {
-  const rows = document.querySelectorAll('#i-extras .extras-row');
-  const items = [];
-  rows.forEach(r => {
-    const inputs = r.querySelectorAll('input');
-    const desc = inputs[0].value.trim();
-    const amt = inputs[1].value.trim();
-    if (desc || amt) items.push({ description: desc, amount: amt || '0' });
-  });
-  return items;
+function t(key) {
+  return I18N[key] ? (I18N[key][lang] || key) : key;
 }
-
-function getPayments() {
-  const rows = document.querySelectorAll('#i-payments .payment-row');
-  const items = [];
-  rows.forEach(r => {
-    const inputs = r.querySelectorAll('input');
-    const desc = inputs[0].value.trim();
-    const amt = inputs[1].value.trim();
-    if (desc || amt) items.push({ description: desc, amount: amt || '0' });
-  });
-  return items;
-}
-
-// ---- Tax Calculations ----
-function calcTaxes(subtotal, includeTaxes) {
-  if (!includeTaxes) return { subtotal, gst: 0, qst: 0, total: subtotal };
-  const gst = Math.round(subtotal * 0.05 * 100) / 100;
-  const qst = Math.round(subtotal * 0.09975 * 100) / 100;
-  const total = Math.round((subtotal + gst + qst) * 100) / 100;
-  return { subtotal, gst, qst, total };
-}
-
-// ---- Label helpers for bilingual ----
-function L(lang, fr, en) { return lang === 'fr' ? fr : en; }
 
 // ============================================
-// QUOTE GENERATION
+// PROGRESS
 // ============================================
-function generateQuote() {
-  const data = collectQuoteData();
-  const html = renderQuotePreview(data);
-  document.getElementById('q-preview-content').innerHTML = html;
-  showToast('Quote generated!', 'success');
+
+function updateProgress() {
+  const pct = Math.round((currentStep / TOTAL_STEPS) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-label').textContent =
+    (lang === 'fr' ? 'Étape' : 'Step') + ' ' + currentStep + ' / ' + TOTAL_STEPS;
 }
 
-async function generateQuoteAI() {
-  showToast('AI polishing in progress...', 'info');
+// ============================================
+// NAVIGATION
+// ============================================
+
+function goToStep(n) {
+  if (n < 1 || n > TOTAL_STEPS) return;
+  currentStep = n;
+
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+
+  btnPrev.style.display = n === 1 ? 'none' : '';
+
+  if (n === TOTAL_STEPS) {
+    btnNext.style.display = 'none';
+  } else {
+    btnNext.style.display = '';
+    const spans = btnNext.querySelectorAll('span');
+    const textSpan = spans[0];
+    const iconSpan = spans[1];
+    if (n === TOTAL_STEPS - 1) {
+      textSpan.textContent = t('generate_quote');
+      iconSpan.textContent = 'check';
+    } else {
+      textSpan.textContent = t('next');
+      iconSpan.textContent = 'arrow_forward';
+    }
+  }
+
+  updateProgress();
+  applyI18N();
+
+  if (n === 5) updatePricing();
+  if (n === 9) renderQuote();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1);
+}
+
+function prevStep() {
+  if (currentStep > 1) goToStep(currentStep - 1);
+}
+
+// ============================================
+// MATERIALS TOGGLE
+// ============================================
+
+function setMaterials(included) {
+  materialsIncluded = included;
+  document.getElementById('mat-yes').className = 'chip' + (included ? ' active' : '');
+  document.getElementById('mat-no').className = 'chip' + (!included ? ' active' : '');
+  document.getElementById('mat-budget-group').style.display = included ? '' : 'none';
+  document.getElementById('mat-excluded-msg').style.display = included ? 'none' : '';
+
+  // Update all existing line items to match default
+  lineItems.forEach(item => {
+    item.materialsIncluded = included;
+  });
+  renderLineItems();
+}
+
+// ============================================
+// AI LINE ITEMS
+// ============================================
+
+async function generateLineItems() {
+  const desc = document.getElementById('f-project-desc').value.trim();
+  if (!desc) {
+    showToast(lang === 'fr' ? 'Ajoutez une description du projet d\'abord (étape 2).' : 'Add a project description first (step 2).', 'error');
+    return;
+  }
+
+  const budget = document.getElementById('f-budget').value;
+  let prompt = desc;
+  if (budget && parseFloat(budget) > 0) {
+    prompt += lang === 'fr'
+      ? `\n\nBudget total du client : ${budget}$ avant taxes. Ajuste les prix pour respecter ce budget.`
+      : `\n\nClient total budget: $${budget} before taxes. Adjust prices to match this budget.`;
+  }
+
+  const btn = document.getElementById('btn-ai-generate');
+  const status = document.getElementById('ai-status');
+  btn.disabled = true;
+  btn.style.display = 'none';
+  status.style.display = '';
+
   try {
-    const data = collectQuoteData();
-    // AI polishing via GPT — rewrites rough scope into professional wording
-    const [polishedScope, polishedItems] = await Promise.all([
-      aiPolishScopeGPT(data.scope, data.lang),
-      aiPolishLineItemsGPT(data.line_items, data.lang)
-    ]);
-    data.scope = polishedScope;
-    data.line_items = polishedItems;
-
-    if (data.options && data.options.length) {
-      const optResults = await Promise.all(
-        data.options.map(async opt => ({
-          ...opt,
-          scope: await aiPolishScopeGPT(opt.scope, data.lang),
-          items: await aiPolishLineItemsGPT(opt.items, data.lang)
-        }))
-      );
-      data.options = optResults;
-    }
-
-    const html = renderQuotePreview(data);
-    document.getElementById('q-preview-content').innerHTML = html;
-    showToast('AI-polished quote generated!', 'success');
+    const items = await callGPTLineItems(prompt, lang);
+    lineItems = items.map(item => ({
+      ...item,
+      materialsIncluded: materialsIncluded
+    }));
+    renderLineItems();
+    showToast(lang === 'fr' ? 'Postes générés!' : 'Items generated!', 'success');
   } catch (err) {
-    console.error('AI Quote Error:', err);
-    showToast('AI error: ' + err.message + ' — falling back to local polish.', 'error');
-    generateQuote();
-  }
-}
-
-function collectQuoteData() {
-  const lang = document.getElementById('q-lang').value;
-  const optionsMode = document.getElementById('q-options-mode').checked;
-  const data = {
-    lang,
-    number: document.getElementById('q-number').value || '[TO COMPLETE]',
-    date: document.getElementById('q-date').value || '[TO COMPLETE]',
-    project_title: document.getElementById('q-project-title').value || '',
-    client_name: document.getElementById('q-client-name').value || '[TO COMPLETE]',
-    client_email: document.getElementById('q-client-email').value || '',
-    client_phone: document.getElementById('q-client-phone').value || '',
-    address: document.getElementById('q-address').value || '[TO COMPLETE]',
-    scope: document.getElementById('q-scope').value || '',
-    line_items: getLineItems('q-line-items'),
-    include_taxes: document.getElementById('q-taxes').checked,
-    options_mode: optionsMode,
-    options: [],
-    include_payment: document.getElementById('q-payment-terms').checked,
-    payment_text: document.getElementById('q-payment-text').value || '',
-    include_timeline: document.getElementById('q-timeline').checked,
-    timeline_text: document.getElementById('q-timeline-text').value || '',
-    include_notes: document.getElementById('q-notes').checked,
-    notes_text: document.getElementById('q-notes-text').value || '',
-  };
-
-  if (optionsMode) {
-    const blocks = document.querySelectorAll('#q-options-blocks .option-block');
-    blocks.forEach((block, idx) => {
-      const title = block.querySelector('.opt-title').value || 'Option ' + String.fromCharCode(65 + idx);
-      const scope = block.querySelector('.opt-scope').value || '';
-      const items = [];
-      block.querySelectorAll('.opt-items tr').forEach(tr => {
-        const inputs = tr.querySelectorAll('input');
-        const desc = inputs[0].value.trim();
-        const qty = inputs[1].value.trim();
-        const unit = inputs[2].value.trim();
-        const total = inputs[3].value.trim();
-        if (desc || total) items.push({ description: desc, quantity: qty, unit_price: unit, total_price: total || '0' });
-      });
-      data.options.push({ label: 'Option ' + String.fromCharCode(65 + idx), title, scope, items });
-    });
+    showToast('Erreur: ' + err.message, 'error');
   }
 
-  return data;
+  btn.disabled = false;
+  btn.style.display = '';
+  status.style.display = 'none';
 }
 
-function renderQuotePreview(data) {
-  const lang = data.lang;
-  let html = '<div class="preview-doc">';
+function renderLineItems() {
+  const container = document.getElementById('line-items-container');
+  container.innerHTML = '';
+
+  lineItems.forEach((item, i) => {
+    const lineTotal = item.quantity * item.unit_price;
+    const div = document.createElement('div');
+    div.className = 'line-item';
+    div.innerHTML = `
+      <div class="line-item-header">
+        <textarea class="line-item-desc" rows="2" oninput="updateItem(${i},'desc',this.value)">${esc(item.description)}</textarea>
+        <button class="li-remove" onclick="removeLineItem(${i})" title="Supprimer">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="line-item-fields">
+        <div class="li-field">
+          <label>${t('qty')}</label>
+          <input type="number" min="1" value="${item.quantity}" onchange="updateItem(${i},'qty',this.value)">
+        </div>
+        <div class="li-field">
+          <label>${t('unit_price')}</label>
+          <input type="number" min="0" step="50" value="${item.unit_price}" onchange="updateItem(${i},'price',this.value)">
+        </div>
+        <div class="li-field">
+          <label>${t('total_label')}</label>
+          <input type="text" value="$${money(lineTotal)}" readonly style="background:transparent;border-color:transparent;font-weight:600;color:var(--accent-dark);">
+        </div>
+      </div>
+      <div class="line-item-footer">
+        <label class="li-material-toggle">
+          <input type="checkbox" ${item.materialsIncluded ? 'checked' : ''} onchange="updateItem(${i},'mat',this.checked)">
+          <span>${t('mat_included')}</span>
+        </label>
+        <div class="li-total">$${money(lineTotal)}</div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateItem(i, field, val) {
+  if (field === 'desc') lineItems[i].description = val;
+  if (field === 'qty') lineItems[i].quantity = Math.max(1, parseInt(val) || 1);
+  if (field === 'price') lineItems[i].unit_price = Math.max(0, parseFloat(val) || 0);
+  if (field === 'mat') lineItems[i].materialsIncluded = val;
+  renderLineItems();
+}
+
+function removeLineItem(i) {
+  lineItems.splice(i, 1);
+  renderLineItems();
+}
+
+function addLineItem() {
+  lineItems.push({
+    description: lang === 'fr' ? 'Nouveau poste' : 'New item',
+    quantity: 1,
+    unit_price: 0,
+    materialsIncluded: materialsIncluded
+  });
+  renderLineItems();
+  // Scroll to bottom
+  const container = document.getElementById('line-items-container');
+  const lastItem = container.lastElementChild;
+  if (lastItem) lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ============================================
+// PRICING & TAXES
+// ============================================
+
+function updatePricing() {
+  const container = document.getElementById('pricing-items');
+  container.innerHTML = '';
+
+  lineItems.forEach(item => {
+    const total = item.quantity * item.unit_price;
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.padding = '14px 20px';
+
+    const matBadge = item.materialsIncluded
+      ? `<span style="font-size:11px;background:var(--green-light);color:var(--green);padding:2px 8px;border-radius:12px;font-weight:600;">${lang === 'fr' ? 'Mat. inclus' : 'Mat. included'}</span>`
+      : `<span style="font-size:11px;background:var(--orange-light);color:var(--orange);padding:2px 8px;border-radius:12px;font-weight:600;">${lang === 'fr' ? 'Mat. exclus' : 'Mat. excluded'}</span>`;
+
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;margin-bottom:4px;">${esc(item.description)}</div>
+          ${matBadge}
+        </div>
+        <span style="font-weight:700;font-size:15px;white-space:nowrap;color:var(--text-primary);">$${money(total)}</span>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  const subtotal = calcSubtotal();
+  const gst = round2(subtotal * 0.05);
+  const qst = round2(subtotal * 0.09975);
+  const total = round2(subtotal + gst + qst);
+
+  document.getElementById('tx-subtotal').textContent = '$' + money(subtotal);
+  document.getElementById('tx-gst').textContent = '$' + money(gst);
+  document.getElementById('tx-qst').textContent = '$' + money(qst);
+  document.getElementById('tx-total').textContent = '$' + money(total);
+}
+
+function calcSubtotal() {
+  return lineItems.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
+}
+
+// ============================================
+// PAYMENT OPTIONS
+// ============================================
+
+function buildPaymentOptions() {
+  const container = document.getElementById('payment-options-container');
+  container.innerHTML = '';
+
+  PAYMENT_OPTIONS_DATA.forEach(opt => {
+    const div = document.createElement('div');
+    div.className = 'option-card' + (selectedPaymentOption === opt.key ? ' selected' : '');
+    div.onclick = () => { selectedPaymentOption = opt.key; buildPaymentOptions(); };
+    div.innerHTML = `
+      <div class="option-radio"></div>
+      <div class="option-body">
+        <div class="option-title">${opt[lang].title}</div>
+        <div class="option-desc">${opt[lang].desc.replace(/\n/g, '<br>')}</div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ============================================
+// FINAL QUOTE
+// ============================================
+
+function renderQuote() {
+  const name = val('f-client-name') || '[—]';
+  const address = val('f-client-address') || '[—]';
+  const email = val('f-client-email');
+  const phone = val('f-client-phone');
+  const date = val('f-date');
+  const title = val('f-project-title');
+  const desc = val('f-project-desc');
+  const duration = val('f-duration') || '2';
+  const matBudget = val('f-mat-budget') || '0';
+  const methods = val('f-payment-methods');
+  const notes = val('f-notes');
+
+  const num = 'Q-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+
+  const subtotal = calcSubtotal();
+  const gst = round2(subtotal * 0.05);
+  const qst = round2(subtotal * 0.09975);
+  const total = round2(subtotal + gst + qst);
+
+  const fr = lang === 'fr';
+  const payOpt = PAYMENT_OPTIONS_DATA.find(o => o.key === selectedPaymentOption);
+
+  let h = '<div class="quote-preview">';
 
   // Header
-  html += '<div class="doc-header">';
-  html += `<div class="doc-header-left"><h1>MLP Reno &amp; Design</h1><p style="font-size:13px;color:#64748b;">Construction &amp; R&eacute;novation</p></div>`;
-  html += `<div class="doc-header-right">
-    <strong>${L(lang, 'SOUMISSION', 'QUOTE')}</strong><br>
-    ${data.number}<br>
-    ${formatDate(data.date, lang)}
-  </div>`;
-  html += '</div>';
+  h += '<div class="qp-header"><div>';
+  h += '<h1>MLP Reno &amp; Design</h1>';
+  h += '<div class="qp-subtitle">Construction &amp; Rénovation</div>';
+  h += `<div class="qp-subtitle">${fr ? 'Licence RBQ' : 'RBQ Licence'}: 5847-0378-01</div>`;
+  h += `<div class="qp-subtitle">${fr ? 'Assurance responsabilité civile : 5 000 000 $' : 'Liability Insurance: $5,000,000'}</div>`;
+  h += '</div><div class="qp-header-right">';
+  h += `<strong>${fr ? 'SOUMISSION' : 'QUOTE'}</strong><br>${esc(num)}<br>${formatDate(date)}`;
+  h += '</div></div>';
 
-  // Client info
-  html += '<div class="doc-meta">';
-  html += `<div class="doc-meta-block"><label>${L(lang, 'Client', 'Client')}</label><p>${escHtml(data.client_name)}</p>`;
-  if (data.client_email) html += `<p>${escHtml(data.client_email)}</p>`;
-  if (data.client_phone) html += `<p>${escHtml(data.client_phone)}</p>`;
-  html += '</div>';
-  html += `<div class="doc-meta-block"><label>${L(lang, 'Adresse du projet', 'Project Address')}</label><p>${escHtml(data.address)}</p>`;
-  if (data.project_title) html += `<p style="margin-top:8px;"><strong>${escHtml(data.project_title)}</strong></p>`;
-  html += '</div></div>';
+  // Client
+  h += '<div class="qp-meta"><div>';
+  h += `<div class="qp-meta-label">Client</div>`;
+  h += `<div class="qp-meta-value">${esc(name)}</div>`;
+  if (email) h += `<div class="qp-meta-value">${esc(email)}</div>`;
+  if (phone) h += `<div class="qp-meta-value">${esc(phone)}</div>`;
+  h += '</div><div>';
+  h += `<div class="qp-meta-label">${fr ? 'Adresse du projet' : 'Project Address'}</div>`;
+  h += `<div class="qp-meta-value">${esc(address)}</div>`;
+  h += '</div></div>';
 
-  // Non-options mode
-  if (!data.options_mode || !data.options.length) {
-    // Scope
-    if (data.scope) {
-      html += `<h2>${L(lang, 'Port\u00e9e des travaux', 'Scope of Work')}</h2>`;
-      html += '<div>' + nl2br(escHtml(data.scope)) + '</div>';
-    }
-
-    // Line items
-    if (data.line_items.length) {
-      html += `<h2>${L(lang, 'D\u00e9tail des co\u00fbts', 'Pricing Breakdown')}</h2>`;
-      html += renderItemsTable(data.line_items, lang);
-
-      const subtotal = data.line_items.reduce((s, i) => s + parseFloat(i.total_price || 0), 0);
-      const taxes = calcTaxes(subtotal, data.include_taxes);
-      html += renderTotals(taxes, lang);
-    }
-  } else {
-    // Options mode
-    if (data.scope) {
-      html += `<h2>${L(lang, 'Port\u00e9e g\u00e9n\u00e9rale', 'General Scope')}</h2>`;
-      html += '<div>' + nl2br(escHtml(data.scope)) + '</div>';
-    }
-
-    // Common line items if any
-    if (data.line_items.length) {
-      html += `<h2>${L(lang, 'Travaux communs', 'Common Work')}</h2>`;
-      html += renderItemsTable(data.line_items, lang);
-    }
-
-    data.options.forEach(opt => {
-      html += '<div class="option-section">';
-      html += `<span class="option-label">${escHtml(opt.label)}</span>`;
-      html += `<h3>${escHtml(opt.title)}</h3>`;
-      if (opt.scope) html += '<div style="margin-bottom:8px;">' + nl2br(escHtml(opt.scope)) + '</div>';
-      if (opt.items.length) {
-        html += renderItemsTable(opt.items, lang);
-        const subtotal = opt.items.reduce((s, i) => s + parseFloat(i.total_price || 0), 0);
-        const taxes = calcTaxes(subtotal, data.include_taxes);
-        html += renderTotals(taxes, lang);
-      }
-      html += '</div>';
-    });
+  // Project
+  if (title) {
+    h += `<h2>${fr ? 'Projet' : 'Project'}</h2>`;
+    h += `<div style="margin-bottom:8px;"><strong>${esc(title)}</strong></div>`;
+  }
+  if (desc) {
+    h += `<div style="font-size:13px;color:#3c4043;white-space:pre-line;margin-bottom:8px;">${esc(desc)}</div>`;
   }
 
-  // Notes
-  if (data.include_notes && data.notes_text) {
-    html += `<h2>${L(lang, 'Notes et exclusions', 'Notes & Exclusions')}</h2>`;
-    html += '<div class="notes-section">' + nl2br(escHtml(data.notes_text)) + '</div>';
+  // Duration
+  h += `<div style="font-size:13px;color:#3c4043;margin-bottom:4px;">`;
+  h += `<strong>${fr ? 'Durée estimée' : 'Estimated Duration'}:</strong> ${esc(duration)} ${fr ? 'semaines' : 'weeks'}`;
+  h += '</div>';
+  h += `<div style="font-size:12px;color:#9aa0a6;margin-bottom:12px;">`;
+  h += fr
+    ? 'Les délais sont estimés en jours ouvrables / semaines. Selon l\'entente, certains travaux peuvent être effectués la fin de semaine.'
+    : 'Project timelines are estimated in business days/weeks. Depending on the agreement, some work may be done on weekends.';
+  h += '</div>';
+
+  // Materials
+  h += `<h2>${fr ? 'Matériaux' : 'Materials'}</h2>`;
+  // Check if any item has materials, any doesn't
+  const hasMatItems = lineItems.some(i => i.materialsIncluded);
+  const hasNoMatItems = lineItems.some(i => !i.materialsIncluded);
+
+  if (materialsIncluded && !hasNoMatItems) {
+    h += `<span class="qp-badge included">${fr ? 'Inclus' : 'Included'}</span>`;
+    if (parseFloat(matBudget) > 0) {
+      h += ` <span style="font-size:13px;color:#3c4043;">— Budget: $${money(matBudget)}</span>`;
+    }
+  } else if (!materialsIncluded && !hasMatItems) {
+    h += `<span class="qp-badge excluded">${fr ? 'Exclus' : 'Excluded'}</span>`;
+    h += `<div style="font-size:13px;color:#3c4043;margin-top:6px;">`;
+    h += fr
+      ? 'Les matériaux sont exclus. Le client est responsable de fournir les matériaux nécessaires.'
+      : 'Materials are excluded. The client is responsible for providing necessary materials.';
+    h += '</div>';
+  } else {
+    h += `<div style="font-size:13px;color:#3c4043;">`;
+    h += fr ? 'Matériaux inclus selon le poste (voir tableau ci-dessous).' : 'Materials included per item (see table below).';
+    h += '</div>';
+    if (materialsIncluded && parseFloat(matBudget) > 0) {
+      h += `<div style="font-size:13px;color:#3c4043;margin-top:4px;">Budget: $${money(matBudget)}</div>`;
+    }
+  }
+
+  // Line Items
+  if (lineItems.length) {
+    h += `<h2>${fr ? 'Détail des coûts' : 'Pricing Breakdown'}</h2>`;
+    h += '<table><thead><tr>';
+    h += `<th>Description</th>`;
+    h += `<th class="r">${fr ? 'Qté' : 'Qty'}</th>`;
+    h += `<th class="r">${fr ? 'Prix unit.' : 'Unit $'}</th>`;
+    h += `<th class="r">Total</th>`;
+    if (hasMatItems || hasNoMatItems) {
+      h += `<th class="r">${fr ? 'Mat.' : 'Mat.'}</th>`;
+    }
+    h += '</tr></thead><tbody>';
+
+    lineItems.forEach(item => {
+      const lt = item.quantity * item.unit_price;
+      h += '<tr>';
+      h += `<td>${esc(item.description)}</td>`;
+      h += `<td class="r">${item.quantity}</td>`;
+      h += `<td class="r">$${money(item.unit_price)}</td>`;
+      h += `<td class="r">$${money(lt)}</td>`;
+      if (hasMatItems || hasNoMatItems) {
+        h += `<td class="r">${item.materialsIncluded ? (fr ? 'Oui' : 'Yes') : (fr ? 'Non' : 'No')}</td>`;
+      }
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+
+    // Totals
+    h += '<div class="qp-totals">';
+    h += `<div class="qp-total-row"><span>${fr ? 'Sous-total' : 'Subtotal'}</span><span>$${money(subtotal)}</span></div>`;
+    h += `<div class="qp-total-row"><span>TPS / GST (5%)</span><span>$${money(gst)}</span></div>`;
+    h += `<div class="qp-total-row"><span>TVQ / QST (9.975%)</span><span>$${money(qst)}</span></div>`;
+    h += `<div class="qp-total-row qp-grand-total"><span>${fr ? 'Total avec taxes' : 'Total with taxes'}</span><span>$${money(total)}</span></div>`;
+    h += '</div>';
   }
 
   // Payment terms
-  if (data.include_payment && data.payment_text) {
-    html += `<h2>${L(lang, 'Modalit\u00e9s de paiement', 'Payment Terms')}</h2>`;
-    html += '<div class="notes-section">' + nl2br(escHtml(data.payment_text)) + '</div>';
-  }
+  h += `<h2>${fr ? 'Modalités de paiement' : 'Payment Terms'}</h2>`;
+  h += `<div class="qp-section">${payOpt[lang].desc}</div>`;
 
-  // Timeline
-  if (data.include_timeline && data.timeline_text) {
-    html += `<h2>${L(lang, '\u00c9ch\u00e9ancier', 'Timeline')}</h2>`;
-    html += '<div class="notes-section">' + nl2br(escHtml(data.timeline_text)) + '</div>';
-  }
-
-  // Closing
-  html += `<div class="closing-msg">${L(lang,
-    'Merci de votre confiance. N\'h\u00e9sitez pas \u00e0 nous contacter pour toute question.',
-    'Thank you for your trust. Do not hesitate to contact us with any questions.'
-  )}</div>`;
-
-  html += '</div>';
-  return html;
-}
-
-// ============================================
-// INVOICE GENERATION
-// ============================================
-function generateInvoice() {
-  const data = collectInvoiceData();
-  const html = renderInvoicePreview(data);
-  document.getElementById('i-preview-content').innerHTML = html;
-  showToast('Invoice generated!', 'success');
-}
-
-async function generateInvoiceAI() {
-  showToast('AI polishing in progress...', 'info');
-  try {
-    const data = collectInvoiceData();
-    const [polishedItems, polishedExtras] = await Promise.all([
-      aiPolishLineItemsGPT(data.line_items, data.lang),
-      aiPolishLineItemsGPT(data.extras.map(e => ({ description: e.description })), data.lang)
-    ]);
-    data.line_items = polishedItems;
-    data.extras = data.extras.map((e, i) => ({
-      ...e,
-      description: polishedExtras[i]?.description || e.description
-    }));
-    const html = renderInvoicePreview(data);
-    document.getElementById('i-preview-content').innerHTML = html;
-    showToast('AI-polished invoice generated!', 'success');
-  } catch (err) {
-    console.error('AI Invoice Error:', err);
-    showToast('AI error: ' + err.message + ' — falling back to local polish.', 'error');
-    generateInvoice();
-  }
-}
-
-function collectInvoiceData() {
-  return {
-    lang: document.getElementById('i-lang').value,
-    number: document.getElementById('i-number').value || '[TO COMPLETE]',
-    date: document.getElementById('i-date').value || '[TO COMPLETE]',
-    quote_ref: document.getElementById('i-quote-ref').value || '',
-    client_name: document.getElementById('i-client-name').value || '[TO COMPLETE]',
-    client_email: document.getElementById('i-client-email').value || '',
-    client_phone: document.getElementById('i-client-phone').value || '',
-    address: document.getElementById('i-address').value || '[TO COMPLETE]',
-    line_items: getLineItems('i-line-items'),
-    extras: getExtras(),
-    payments: getPayments(),
-    include_taxes: document.getElementById('i-taxes').checked,
-    notes: document.getElementById('i-notes').value || '',
-  };
-}
-
-function renderInvoicePreview(data) {
-  const lang = data.lang;
-  let html = '<div class="preview-doc">';
-
-  // Header
-  html += '<div class="doc-header">';
-  html += '<div class="doc-header-left"><h1>MLP Reno &amp; Design</h1><p style="font-size:13px;color:#64748b;">Construction &amp; R&eacute;novation</p></div>';
-  html += `<div class="doc-header-right">
-    <strong>${L(lang, 'FACTURE', 'INVOICE')}</strong><br>
-    ${escHtml(data.number)}<br>
-    ${formatDate(data.date, lang)}`;
-  if (data.quote_ref) html += `<br><span style="font-size:12px;">${L(lang, 'R\u00e9f. soumission', 'Ref. Quote')}: ${escHtml(data.quote_ref)}</span>`;
-  html += '</div></div>';
-
-  // Client
-  html += '<div class="doc-meta">';
-  html += `<div class="doc-meta-block"><label>${L(lang, 'Client', 'Client')}</label><p>${escHtml(data.client_name)}</p>`;
-  if (data.client_email) html += `<p>${escHtml(data.client_email)}</p>`;
-  if (data.client_phone) html += `<p>${escHtml(data.client_phone)}</p>`;
-  html += '</div>';
-  html += `<div class="doc-meta-block"><label>${L(lang, 'Adresse du projet', 'Project Address')}</label><p>${escHtml(data.address)}</p></div>`;
-  html += '</div>';
-
-  // Line items
-  let itemsSubtotal = 0;
-  if (data.line_items.length) {
-    html += `<h2>${L(lang, 'Travaux factur\u00e9s', 'Billed Work')}</h2>`;
-    html += renderItemsTable(data.line_items, lang);
-    itemsSubtotal = data.line_items.reduce((s, i) => s + parseFloat(i.total_price || 0), 0);
-  }
-
-  // Extras
-  let extrasTotal = 0;
-  if (data.extras.length && data.extras.some(e => e.description)) {
-    html += `<h2>${L(lang, 'Travaux suppl\u00e9mentaires', 'Additional Work')}</h2>`;
-    html += '<table><thead><tr><th>Description</th><th class="text-right">' + L(lang, 'Montant', 'Amount') + '</th></tr></thead><tbody>';
-    data.extras.forEach(e => {
-      if (e.description) {
-        const amt = parseFloat(e.amount || 0);
-        extrasTotal += amt;
-        html += `<tr><td>${escHtml(e.description)}</td><td class="text-right">${money(amt)} $</td></tr>`;
-      }
-    });
-    html += '</tbody></table>';
-  }
-
-  // Totals
-  const grandSubtotal = itemsSubtotal + extrasTotal;
-  const taxes = calcTaxes(grandSubtotal, data.include_taxes);
-  html += renderTotals(taxes, lang);
-
-  // Payments
-  let paymentsTotal = 0;
-  if (data.payments.length && data.payments.some(p => p.description)) {
-    html += `<h2>${L(lang, 'Paiements re\u00e7us', 'Payments Received')}</h2>`;
-    html += '<table><thead><tr><th>Description</th><th class="text-right">' + L(lang, 'Montant', 'Amount') + '</th></tr></thead><tbody>';
-    data.payments.forEach(p => {
-      if (p.description) {
-        const amt = parseFloat(p.amount || 0);
-        paymentsTotal += amt;
-        html += `<tr><td>${escHtml(p.description)}</td><td class="text-right">- ${money(amt)} $</td></tr>`;
-      }
-    });
-    html += '</tbody></table>';
-  }
-
-  // Balance due
-  const balance = taxes.total - paymentsTotal;
-  html += '<div class="totals-section">';
-  if (paymentsTotal > 0) {
-    html += `<div class="total-row"><span>${L(lang, 'Total facture', 'Invoice Total')}</span><span>${money(taxes.total)} $</span></div>`;
-    html += `<div class="total-row"><span>${L(lang, 'Paiements re\u00e7us', 'Payments Received')}</span><span>- ${money(paymentsTotal)} $</span></div>`;
-  }
-  html += `<div class="total-row balance-due"><span>${L(lang, 'SOLDE D\u00db', 'BALANCE DUE')}</span><span>${money(balance)} $</span></div>`;
-  html += '</div>';
+  // Payment methods
+  h += `<h2>${fr ? 'Méthodes de paiement' : 'Payment Methods'}</h2>`;
+  h += `<div class="qp-section">${esc(methods)}</div>`;
 
   // Notes
-  if (data.notes) {
-    html += `<h2>${L(lang, 'Notes', 'Notes')}</h2>`;
-    html += '<div class="notes-section">' + nl2br(escHtml(data.notes)) + '</div>';
+  if (notes) {
+    h += `<h2>${fr ? 'Notes importantes' : 'Important Notes'}</h2>`;
+    h += `<div class="qp-section">${esc(notes)}</div>`;
   }
 
-  html += `<div class="closing-msg">${L(lang,
-    'Merci pour votre confiance. Pour toute question, contactez-nous \u00e0 info@mlprenodesign.ca',
-    'Thank you for your business. For any questions, contact us at info@mlprenodesign.ca'
-  )}</div>`;
+  // Signature
+  h += '<div class="qp-signature">';
+  h += `<div><div class="qp-sig-line">${fr ? 'Signature — MLP Reno & Design' : 'Signature — MLP Reno & Design'}</div></div>`;
+  h += `<div><div class="qp-sig-line">${fr ? 'Signature — Client' : 'Signature — Client'}</div></div>`;
+  h += '</div>';
 
-  html += '</div>';
-  return html;
+  // Closing
+  h += `<div class="qp-closing">${fr
+    ? 'Merci de votre confiance. N\'hésitez pas à nous contacter pour toute question.'
+    : 'Thank you for your trust. Do not hesitate to contact us with any questions.'
+  }</div>`;
+
+  h += '</div>';
+  document.getElementById('quote-output').innerHTML = h;
 }
 
 // ============================================
-// EMAIL GENERATION
+// ACTIONS
 // ============================================
-function generateEmail() {
-  const data = collectEmailData();
-  const result = buildEmail(data);
-  document.getElementById('e-preview-content').innerHTML = renderEmailPreview(data, result);
-  showToast('Email generated!', 'success');
-}
 
-async function generateEmailAI() {
-  showToast('AI polishing email...', 'info');
-  try {
-    const data = collectEmailData();
-    const baseResult = buildEmail(data);
-    const polished = await aiPolishEmailGPT(baseResult.subject, baseResult.body, data.lang, data.purpose, data.context);
-    document.getElementById('e-preview-content').innerHTML = renderEmailPreview(data, polished);
-    showToast('AI email generated!', 'success');
-  } catch (err) {
-    console.error('AI Email Error:', err);
-    showToast('AI error: ' + err.message + ' — falling back to template.', 'error');
-    generateEmail();
-  }
-}
-
-function collectEmailData() {
-  return {
-    purpose: document.getElementById('e-purpose').value,
-    lang: document.getElementById('e-lang').value,
-    client_name: document.getElementById('e-client-name').value || '[Client]',
-    client_email: document.getElementById('e-client-email').value || '',
-    ref: document.getElementById('e-ref').value || '',
-    attach: document.getElementById('e-attach').value,
-    context: document.getElementById('e-context').value || '',
-  };
-}
-
-function buildEmail(data, aiPolish = false) {
-  const lang = data.lang;
-  const firstName = data.client_name.split(' ')[0];
-  const templates = {
-    'send-quote': {
-      fr: {
-        subject: `Soumission ${data.ref} — MLP Reno & Design`,
-        body: `Bonjour ${firstName},\n\nSuite \u00e0 notre discussion, veuillez trouver ci-joint notre soumission ${data.ref} pour les travaux \u00e0 r\u00e9aliser.\n\n${data.context ? data.context + '\n\n' : ''}N'h\u00e9sitez pas \u00e0 nous contacter si vous avez des questions ou souhaitez discuter des d\u00e9tails.\n\nAu plaisir de collaborer avec vous.\n\nCordialement,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      },
-      en: {
-        subject: `Quote ${data.ref} — MLP Reno & Design`,
-        body: `Hi ${firstName},\n\nFollowing our discussion, please find attached our quote ${data.ref} for the proposed work.\n\n${data.context ? data.context + '\n\n' : ''}Please don't hesitate to reach out if you have any questions or would like to discuss the details.\n\nLooking forward to working with you.\n\nBest regards,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      }
-    },
-    'send-invoice': {
-      fr: {
-        subject: `Facture ${data.ref} — MLP Reno & Design`,
-        body: `Bonjour ${firstName},\n\nVeuillez trouver ci-joint la facture ${data.ref} pour les travaux r\u00e9alis\u00e9s.\n\n${data.context ? data.context + '\n\n' : ''}Le paiement peut \u00eatre effectu\u00e9 par ch\u00e8que ou virement Interac \u00e0 info@mlprenodesign.ca.\n\nN'h\u00e9sitez pas \u00e0 nous contacter pour toute question.\n\nCordialement,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      },
-      en: {
-        subject: `Invoice ${data.ref} — MLP Reno & Design`,
-        body: `Hi ${firstName},\n\nPlease find attached invoice ${data.ref} for the completed work.\n\n${data.context ? data.context + '\n\n' : ''}Payment can be made by cheque or e-Transfer to info@mlprenodesign.ca.\n\nPlease don't hesitate to contact us with any questions.\n\nBest regards,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      }
-    },
-    'follow-up': {
-      fr: {
-        subject: `Suivi — Soumission ${data.ref} — MLP Reno & Design`,
-        body: `Bonjour ${firstName},\n\nJe fais suite \u00e0 la soumission ${data.ref} que nous vous avons transmise r\u00e9cemment.\n\n${data.context ? data.context + '\n\n' : ''}Avez-vous eu l'occasion de la consulter? N'h\u00e9sitez pas \u00e0 nous faire part de vos questions ou commentaires.\n\nNous sommes disponibles pour en discuter \u00e0 votre convenance.\n\nCordialement,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      },
-      en: {
-        subject: `Follow-up — Quote ${data.ref} — MLP Reno & Design`,
-        body: `Hi ${firstName},\n\nI'm following up on quote ${data.ref} that we recently sent over.\n\n${data.context ? data.context + '\n\n' : ''}Have you had a chance to review it? Feel free to share any questions or feedback.\n\nWe're available to discuss at your convenience.\n\nBest regards,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      }
-    },
-    'approval': {
-      fr: {
-        subject: `Confirmation requise — ${data.ref} — MLP Reno & Design`,
-        body: `Bonjour ${firstName},\n\nNous aimerions obtenir votre approbation pour la soumission ${data.ref} afin de planifier le d\u00e9but des travaux.\n\n${data.context ? data.context + '\n\n' : ''}Pourriez-vous nous confirmer votre accord? Un d\u00e9p\u00f4t de 10% sera requis pour r\u00e9server la date.\n\nN'h\u00e9sitez pas \u00e0 nous contacter pour toute question.\n\nCordialement,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      },
-      en: {
-        subject: `Approval Needed — ${data.ref} — MLP Reno & Design`,
-        body: `Hi ${firstName},\n\nWe'd like to get your approval on quote ${data.ref} so we can schedule the start of work.\n\n${data.context ? data.context + '\n\n' : ''}Could you please confirm your agreement? A 10% deposit will be required to reserve the date.\n\nPlease don't hesitate to reach out with any questions.\n\nBest regards,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      }
-    },
-    'payment-reminder': {
-      fr: {
-        subject: `Rappel de paiement — Facture ${data.ref} — MLP Reno & Design`,
-        body: `Bonjour ${firstName},\n\nNous souhaitons faire un suivi amical concernant la facture ${data.ref}.\n\n${data.context ? data.context + '\n\n' : ''}Pourriez-vous nous confirmer la r\u00e9ception et pr\u00e9voir le paiement \u00e0 votre convenance?\n\nLe paiement peut \u00eatre effectu\u00e9 par ch\u00e8que ou virement Interac \u00e0 info@mlprenodesign.ca.\n\nMerci et bonne journ\u00e9e!\n\nCordialement,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      },
-      en: {
-        subject: `Payment Reminder — Invoice ${data.ref} — MLP Reno & Design`,
-        body: `Hi ${firstName},\n\nThis is a friendly reminder regarding invoice ${data.ref}.\n\n${data.context ? data.context + '\n\n' : ''}Could you please confirm receipt and arrange payment at your earliest convenience?\n\nPayment can be made by cheque or e-Transfer to info@mlprenodesign.ca.\n\nThank you and have a great day!\n\nBest regards,\nMLP Reno & Design\n(450) 500-8936\ninfo@mlprenodesign.ca`
-      }
-    }
-  };
-
-  const tmpl = templates[data.purpose]?.[lang] || templates['send-quote'][lang];
-  return { subject: tmpl.subject, body: tmpl.body };
-}
-
-function renderEmailPreview(data, result) {
-  const attachLabel = {
-    'none': '',
-    'quote': data.lang === 'fr' ? 'Soumission jointe' : 'Quote attached',
-    'invoice': data.lang === 'fr' ? 'Facture jointe' : 'Invoice attached',
-    'both': data.lang === 'fr' ? 'Soumission et facture jointes' : 'Quote and invoice attached',
-  };
-  let html = '<div class="preview-email">';
-  html += '<div class="preview-email-header">';
-  html += `<div class="email-field"><label>To:</label><span>${escHtml(data.client_name)} &lt;${escHtml(data.client_email)}&gt;</span></div>`;
-  html += `<div class="email-field"><label>From:</label><span>MLP Reno &amp; Design &lt;info@mlprenodesign.ca&gt;</span></div>`;
-  html += `<div class="email-field"><label>Subject:</label><span><strong>${escHtml(result.subject)}</strong></span></div>`;
-  if (attachLabel[data.attach]) {
-    html += `<div class="email-field"><label>Attach:</label><span>&#128206; ${escHtml(attachLabel[data.attach])}</span></div>`;
-  }
-  html += '</div>';
-  html += `<div class="preview-email-body">${escHtml(result.body)}</div>`;
-  html += '</div>';
-  return html;
-}
-
-// ============================================
-// SHARED RENDERERS
-// ============================================
-function renderItemsTable(items, lang) {
-  let html = '<table><thead><tr>';
-  html += `<th>Description</th><th class="text-right">${L(lang, 'Qté', 'Qty')}</th><th class="text-right">${L(lang, 'Prix unit.', 'Unit Price')}</th><th class="text-right">Total</th>`;
-  html += '</tr></thead><tbody>';
-  items.forEach(item => {
-    const desc = item.description || '[TO COMPLETE]';
-    const total = parseFloat(item.total_price || 0);
-    html += `<tr>
-      <td>${escHtml(desc)}</td>
-      <td class="text-right">${item.quantity || '-'}</td>
-      <td class="text-right">${item.unit_price ? money(item.unit_price) + ' $' : '-'}</td>
-      <td class="text-right">${total ? money(total) + ' $' : '[PRICE TO COMPLETE]'}</td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  return html;
-}
-
-function renderTotals(taxes, lang) {
-  let html = '<div class="totals-section">';
-  html += `<div class="total-row"><span>${L(lang, 'Sous-total', 'Subtotal')}</span><span>${money(taxes.subtotal)} $</span></div>`;
-  if (taxes.gst > 0) {
-    html += `<div class="total-row"><span>TPS / GST (5%)</span><span>${money(taxes.gst)} $</span></div>`;
-    html += `<div class="total-row"><span>TVQ / QST (9.975%)</span><span>${money(taxes.qst)} $</span></div>`;
-  }
-  html += `<div class="total-row grand-total"><span>TOTAL</span><span>${money(taxes.total)} $</span></div>`;
-  html += '</div>';
-  return html;
-}
-
-function formatDate(dateStr, lang) {
-  if (!dateStr || dateStr === '[TO COMPLETE]') return '[TO COMPLETE]';
-  const d = new Date(dateStr + 'T00:00:00');
-  if (lang === 'fr') {
-    const months = ['janvier','f\u00e9vrier','mars','avril','mai','juin','juillet','ao\u00fbt','septembre','octobre','novembre','d\u00e9cembre'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  }
-  return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-// ============================================
-// AI GENERATE LINE ITEMS FROM PROMPT
-// ============================================
-async function aiGenerateLineItems(section) {
-  const isQuote = section === 'quote';
-  const promptEl = isQuote ? document.getElementById('q-scope') : document.getElementById('i-scope-prompt');
-  const prompt = promptEl.value.trim();
-  if (!prompt) {
-    showToast('Enter a project description first.', 'error');
-    return;
-  }
-  const lang = document.getElementById(isQuote ? 'q-lang' : 'i-lang').value;
-  showToast('AI is generating line items...', 'info');
-
-  try {
-    const result = await aiGenerateLineItemsGPT(prompt, lang);
-
-    // Populate scope (quote only)
-    if (isQuote && result.scope) {
-      document.getElementById('q-scope').value = result.scope;
-    }
-
-    // Clear existing line items and populate with AI-generated ones
-    const tbodyId = isQuote ? 'q-line-items' : 'i-line-items';
-    document.getElementById(tbodyId).innerHTML = '';
-    const addFn = isQuote ? addQuoteLineItem : addInvoiceLineItem;
-
-    if (result.line_items && result.line_items.length) {
-      result.line_items.forEach(item => {
-        addFn(
-          item.description || '',
-          String(item.quantity || 1),
-          String(item.unit_price || ''),
-          String(item.total_price || '')
-        );
-      });
-      showToast(`AI generated ${result.line_items.length} line items!`, 'success');
-    } else {
-      addFn();
-      showToast('AI could not determine line items from your description.', 'error');
-    }
-  } catch (err) {
-    console.error('AI Generate Line Items Error:', err);
-    showToast('AI error: ' + err.message, 'error');
-  }
-}
-
-// ---- Clear & Regenerate Quote with AI ----
-function clearAndRegenerateQuote() {
-  const scope = document.getElementById('q-scope').value.trim();
-  if (!scope) {
-    showToast('Enter a project description first.', 'error');
-    return;
-  }
-  // Clear line items, scope, notes, preview
-  document.getElementById('q-line-items').innerHTML = '';
-  document.getElementById('q-scope').value = '';
-  document.getElementById('q-notes-text').value = '';
-  document.getElementById('q-payment-text').value = '';
-  document.getElementById('q-timeline-text').value = '';
-  document.getElementById('q-preview-content').innerHTML = '<p style="color:var(--mlp-text-muted);">Regenerating with AI...</p>';
-  // Re-set scope and trigger AI generation
-  document.getElementById('q-scope').value = scope;
-  aiGenerateLineItems('quote');
-}
-
-// ============================================
-// AI POLISH (LOCAL STAGING — pattern-based)
-// ============================================
-// In staging, this uses local rewriting rules.
-// In production, wire these to the ChatGPT API.
-
-function aiPolishScope(text, lang) {
-  if (!text) return '';
-  // Split into lines, clean up each, capitalize
-  const lines = text.split('\n').filter(l => l.trim());
-  const polished = lines.map(line => {
-    let l = line.trim();
-    // Remove leading dashes/bullets
-    l = l.replace(/^[-•*]\s*/, '');
-    // Capitalize first letter
-    l = l.charAt(0).toUpperCase() + l.slice(1);
-    // Add period if missing
-    if (!/[.!?]$/.test(l)) l += '.';
-    return l;
-  });
-
-  if (lang === 'fr') {
-    return polished.map(l => '\u2022 ' + l).join('\n');
-  }
-  return polished.map(l => '\u2022 ' + l).join('\n');
-}
-
-function aiPolishLineItem(desc, lang) {
-  if (!desc) return '';
-  let d = desc.trim();
-  // Capitalize
-  d = d.charAt(0).toUpperCase() + d.slice(1);
-  // Common rewrites
-  const rewrites = {
-    'demo': lang === 'fr' ? 'D\u00e9molition et retrait' : 'Demolition and removal',
-    'install': lang === 'fr' ? 'Installation' : 'Installation',
-    'paint': lang === 'fr' ? 'Peinture' : 'Painting',
-    'tile': lang === 'fr' ? 'Pose de c\u00e9ramique' : 'Tile installation',
-    'plumbing': lang === 'fr' ? 'Travaux de plomberie' : 'Plumbing work',
-    'electrical': lang === 'fr' ? 'Travaux d\'\u00e9lectricit\u00e9' : 'Electrical work',
-    'drywall': lang === 'fr' ? 'Pose de gypse et tirage de joints' : 'Drywall installation and finishing',
-    'flooring': lang === 'fr' ? 'Pose de rev\u00eatement de sol' : 'Flooring installation',
-    'framing': lang === 'fr' ? 'Charpente et structure' : 'Framing and structural work',
-    'cleanup': lang === 'fr' ? 'Nettoyage et remise en \u00e9tat du chantier' : 'Site cleanup and restoration',
-  };
-
-  // Try partial matches
-  const lower = d.toLowerCase();
-  for (const [key, val] of Object.entries(rewrites)) {
-    if (lower.startsWith(key) && lower.length < key.length + 15) {
-      return val;
-    }
-  }
-
-  return d;
-}
-
-// ============================================
-// CONVERT QUOTE TO INVOICE
-// ============================================
-function convertQuoteToInvoice() {
-  const data = collectQuoteData();
-  switchSection('invoices');
-  document.getElementById('i-quote-ref').value = data.number;
-  document.getElementById('i-client-name').value = data.client_name;
-  document.getElementById('i-client-email').value = data.client_email;
-  document.getElementById('i-client-phone').value = data.client_phone;
-  document.getElementById('i-address').value = data.address;
-  document.getElementById('i-lang').value = data.lang;
-  document.getElementById('i-taxes').checked = data.include_taxes;
-
-  // Clear and populate items
-  document.getElementById('i-line-items').innerHTML = '';
-  const items = data.options_mode && data.options.length
-    ? data.options.flatMap(o => o.items)
-    : data.line_items;
-
-  items.forEach(item => {
-    addInvoiceLineItem(item.description, item.quantity, item.unit_price, item.total_price);
-  });
-  if (!items.length) addInvoiceLineItem();
-
-  showToast('Quote converted to invoice!', 'success');
-}
-
-function generateEmailFromInvoice() {
-  const data = collectInvoiceData();
-  switchSection('emails');
-  document.getElementById('e-purpose').value = 'send-invoice';
-  document.getElementById('e-lang').value = data.lang;
-  document.getElementById('e-client-name').value = data.client_name;
-  document.getElementById('e-client-email').value = data.client_email;
-  document.getElementById('e-ref').value = data.number;
-  document.getElementById('e-attach').value = 'invoice';
-  showToast('Invoice info loaded into email form', 'success');
-}
-
-// ============================================
-// SAVE / LOAD DRAFTS
-// ============================================
-function saveQuoteDraft() {
-  const data = collectQuoteData();
-  const drafts = JSON.parse(localStorage.getItem('mlp-drafts') || '[]');
-  drafts.push({
-    type: 'quote',
-    id: 'draft-' + Date.now(),
-    label: data.number + ' — ' + data.client_name,
-    date: new Date().toISOString(),
-    data
-  });
-  localStorage.setItem('mlp-drafts', JSON.stringify(drafts));
-  renderDrafts();
-  showToast('Quote draft saved!', 'success');
-}
-
-function saveInvoiceDraft() {
-  const data = collectInvoiceData();
-  const drafts = JSON.parse(localStorage.getItem('mlp-drafts') || '[]');
-  drafts.push({
-    type: 'invoice',
-    id: 'draft-' + Date.now(),
-    label: data.number + ' — ' + data.client_name,
-    date: new Date().toISOString(),
-    data
-  });
-  localStorage.setItem('mlp-drafts', JSON.stringify(drafts));
-  renderDrafts();
-  showToast('Invoice draft saved!', 'success');
-}
-
-function renderDrafts() {
-  const drafts = JSON.parse(localStorage.getItem('mlp-drafts') || '[]');
-  const container = document.getElementById('drafts-list');
-  if (!drafts.length) {
-    container.innerHTML = '<p style="font-size:13px; color:var(--mlp-text-muted);">No saved drafts yet.</p>';
-    return;
-  }
-  let html = '<div class="sample-data-grid">';
-  drafts.forEach((d, idx) => {
-    const tag = d.type === 'quote' ? 'tag-quote' : 'tag-invoice';
-    html += `<div class="sample-card" onclick="loadDraft(${idx})">
-      <h4>${escHtml(d.label)}</h4>
-      <p>${new Date(d.date).toLocaleDateString()}</p>
-      <span class="sample-tag ${tag}">${d.type}</span>
-      <button class="btn btn-danger btn-sm" style="float:right;margin-top:-20px;" onclick="event.stopPropagation();deleteDraft(${idx})">Delete</button>
-    </div>`;
-  });
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-function loadDraft(idx) {
-  const drafts = JSON.parse(localStorage.getItem('mlp-drafts') || '[]');
-  const draft = drafts[idx];
-  if (!draft) return;
-  if (draft.type === 'quote') {
-    loadQuoteData(draft.data);
-    switchSection('quotes');
-  } else {
-    loadInvoiceData(draft.data);
-    switchSection('invoices');
-  }
-  showToast('Draft loaded!', 'success');
-}
-
-function deleteDraft(idx) {
-  const drafts = JSON.parse(localStorage.getItem('mlp-drafts') || '[]');
-  drafts.splice(idx, 1);
-  localStorage.setItem('mlp-drafts', JSON.stringify(drafts));
-  renderDrafts();
-  showToast('Draft deleted', 'success');
-}
-
-function loadQuoteData(data) {
-  document.getElementById('q-number').value = data.number || '';
-  document.getElementById('q-date').value = data.date || '';
-  document.getElementById('q-lang').value = data.lang || 'fr';
-  document.getElementById('q-project-title').value = data.project_title || '';
-  document.getElementById('q-client-name').value = data.client_name || '';
-  document.getElementById('q-client-email').value = data.client_email || '';
-  document.getElementById('q-client-phone').value = data.client_phone || '';
-  document.getElementById('q-address').value = data.address || '';
-  document.getElementById('q-scope').value = data.scope || '';
-  document.getElementById('q-taxes').checked = data.include_taxes !== false;
-  document.getElementById('q-payment-terms').checked = data.include_payment !== false;
-  document.getElementById('q-timeline').checked = data.include_timeline !== false;
-  document.getElementById('q-notes').checked = data.include_notes !== false;
-  document.getElementById('q-payment-text').value = data.payment_text || '';
-  document.getElementById('q-timeline-text').value = data.timeline_text || '';
-  document.getElementById('q-notes-text').value = data.notes_text || '';
-
-  // Line items
-  document.getElementById('q-line-items').innerHTML = '';
-  (data.line_items || []).forEach(item => {
-    addQuoteLineItem(item.description, item.quantity, item.unit_price, item.total_price);
-  });
-  if (!(data.line_items || []).length) addQuoteLineItem();
-
-  // Options
-  document.getElementById('q-options-mode').checked = data.options_mode || false;
-  toggleOptionsMode();
-  if (data.options_mode && data.options) {
-    document.getElementById('q-options-blocks').innerHTML = '';
-    optionCounter = 0;
-    data.options.forEach(opt => {
-      addOptionBlock(opt.label);
-      const block = document.getElementById('opt-' + optionCounter);
-      block.querySelector('.opt-title').value = opt.title || '';
-      block.querySelector('.opt-scope').value = opt.scope || '';
-      block.querySelector('.opt-items').innerHTML = '';
-      (opt.items || []).forEach(item => {
-        addOptLineItem('opt-' + optionCounter, item.description, item.quantity, item.unit_price, item.total_price);
-      });
-    });
-  }
-}
-
-function loadInvoiceData(data) {
-  document.getElementById('i-number').value = data.number || '';
-  document.getElementById('i-date').value = data.date || '';
-  document.getElementById('i-lang').value = data.lang || 'fr';
-  document.getElementById('i-quote-ref').value = data.quote_ref || '';
-  document.getElementById('i-client-name').value = data.client_name || '';
-  document.getElementById('i-client-email').value = data.client_email || '';
-  document.getElementById('i-client-phone').value = data.client_phone || '';
-  document.getElementById('i-address').value = data.address || '';
-  document.getElementById('i-taxes').checked = data.include_taxes !== false;
-  document.getElementById('i-notes').value = data.notes || '';
-
-  document.getElementById('i-line-items').innerHTML = '';
-  (data.line_items || []).forEach(item => {
-    addInvoiceLineItem(item.description, item.quantity, item.unit_price, item.total_price);
-  });
-  if (!(data.line_items || []).length) addInvoiceLineItem();
-
-  document.getElementById('i-extras').innerHTML = '';
-  (data.extras || []).forEach(e => addExtra(e.description, e.amount));
-  if (!(data.extras || []).length) addExtra();
-
-  document.getElementById('i-payments').innerHTML = '';
-  (data.payments || []).forEach(p => addPayment(p.description, p.amount));
-  if (!(data.payments || []).length) addPayment();
-}
-
-// ============================================
-// COPY PREVIEW
-// ============================================
-function copyPreview(containerId) {
-  const el = document.getElementById(containerId);
+function copyQuote() {
+  const el = document.getElementById('quote-output');
   const text = el.innerText || el.textContent;
   navigator.clipboard.writeText(text).then(() => {
-    showToast('Copied to clipboard!', 'success');
+    showToast(lang === 'fr' ? 'Copié!' : 'Copied!', 'success');
   }).catch(() => {
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = text;
     document.body.appendChild(ta);
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('Copied to clipboard!', 'success');
+    showToast(lang === 'fr' ? 'Copié!' : 'Copied!', 'success');
   });
 }
 
-// ============================================
-// SAMPLE DATA
-// ============================================
-const SAMPLES = [
-  {
-    id: 'sample-q1',
-    type: 'quote',
-    tag: 'tag-quote',
-    title: 'Bathroom Renovation — Laval',
-    desc: 'Simple quote, French, with taxes',
-    data: {
-      lang: 'fr',
-      number: 'Q-2026-001',
-      date: '2026-03-29',
-      project_title: 'R\u00e9novation de salle de bain compl\u00e8te',
-      client_name: 'Jean Tremblay',
-      client_email: 'jean.tremblay@test.com',
-      client_phone: '(450) 555-1234',
-      address: '456 Boul. des Laurentides, Laval QC H7G 2T1',
-      scope: 'D\u00e9molition compl\u00e8te de la salle de bain existante\nInstallation nouvelle douche en c\u00e9ramique\nNouveau vanit\u00e9 60 pouces\nPose de c\u00e9ramique plancher et murs\nPlomberie et raccordements\nPeinture et finitions\nNettoyage final',
-      line_items: [
-        { description: 'D\u00e9molition et retrait des mat\u00e9riaux', quantity: '1', unit_price: '1500', total_price: '1500' },
-        { description: 'Plomberie — raccordement douche et vanit\u00e9', quantity: '1', unit_price: '2800', total_price: '2800' },
-        { description: 'Pose de c\u00e9ramique (plancher et murs douche)', quantity: '1', unit_price: '3500', total_price: '3500' },
-        { description: 'Installation vanit\u00e9 et miroir', quantity: '1', unit_price: '1200', total_price: '1200' },
-        { description: 'Peinture et finitions', quantity: '1', unit_price: '800', total_price: '800' },
-        { description: 'Nettoyage de chantier', quantity: '1', unit_price: '300', total_price: '300' },
-      ],
-      include_taxes: true,
-      options_mode: false, options: [],
-      include_payment: true,
-      payment_text: '10% d\u00e9p\u00f4t pour r\u00e9server la date\n40% avant le d\u00e9but des travaux\n40% \u00e0 mi-projet\n10% le jour final',
-      include_timeline: true,
-      timeline_text: 'Les travaux prendront environ 2 \u00e0 3 semaines selon la disponibilit\u00e9 des mat\u00e9riaux. Un pr\u00e9avis de 2 semaines est requis pour mobiliser l\'\u00e9quipe.',
-      include_notes: true,
-      notes_text: 'Le client devrait pr\u00e9voir environ 5% \u00e0 15% pour les impr\u00e9vus.\nLes frais de permis, si applicables, ne sont pas inclus dans cette soumission.',
-    }
-  },
-  {
-    id: 'sample-q2',
-    type: 'quote',
-    tag: 'tag-quote',
-    title: 'Kitchen Renovation — Longueuil',
-    desc: 'English quote with taxes',
-    data: {
-      lang: 'en',
-      number: 'Q-2026-002',
-      date: '2026-03-29',
-      project_title: 'Complete Kitchen Renovation',
-      client_name: 'Sarah Mitchell',
-      client_email: 'sarah.mitchell@test.com',
-      client_phone: '(514) 555-6789',
-      address: '789 Chemin de Chambly, Longueuil QC J4H 3M2',
-      scope: 'Full demolition of existing kitchen\nNew custom cabinetry installation\nGranite countertop installation\nNew backsplash tiling\nPlumbing for new sink and dishwasher\nElectrical for new fixtures and outlets\nFlooring installation\nPainting and finishing',
-      line_items: [
-        { description: 'Demolition and disposal', quantity: '1', unit_price: '2000', total_price: '2000' },
-        { description: 'Custom cabinetry supply and install', quantity: '1', unit_price: '8500', total_price: '8500' },
-        { description: 'Granite countertop supply and install', quantity: '1', unit_price: '4200', total_price: '4200' },
-        { description: 'Backsplash tile installation', quantity: '1', unit_price: '1800', total_price: '1800' },
-        { description: 'Plumbing work', quantity: '1', unit_price: '2500', total_price: '2500' },
-        { description: 'Electrical work', quantity: '1', unit_price: '1800', total_price: '1800' },
-        { description: 'Flooring installation', quantity: '1', unit_price: '2200', total_price: '2200' },
-        { description: 'Painting and finishing', quantity: '1', unit_price: '1200', total_price: '1200' },
-      ],
-      include_taxes: true,
-      options_mode: false, options: [],
-      include_payment: true,
-      payment_text: '10% deposit to reserve date\n40% before start of work\n40% mid-project\n10% on final day',
-      include_timeline: true,
-      timeline_text: 'Work may take approximately 3 to 4 weeks depending on scope and material availability. A 2-week heads-up may be required to mobilize the team.',
-      include_notes: true,
-      notes_text: 'Client should plan approximately 5% to 15% for unforeseen circumstances.\nPermit fees, if applicable, are not included in this quote.\nAppliances are not included — client to supply.',
-    }
-  },
-  {
-    id: 'sample-q3',
-    type: 'quote',
-    tag: 'tag-options',
-    title: 'Basement — Options A/B/C',
-    desc: 'French quote with 3 options',
-    data: {
-      lang: 'fr',
-      number: 'Q-2026-003',
-      date: '2026-03-29',
-      project_title: 'Am\u00e9nagement du sous-sol',
-      client_name: 'Marc-Antoine Bergeron',
-      client_email: 'marc.bergeron@test.com',
-      client_phone: '(450) 555-9876',
-      address: '321 Rue du Parc, Terrebonne QC J6W 1P2',
-      scope: 'Am\u00e9nagement complet du sous-sol. Trois options propos\u00e9es selon le niveau de finition souhait\u00e9.',
-      line_items: [],
-      include_taxes: true,
-      options_mode: true,
-      options: [
-        {
-          label: 'Option A',
-          title: 'Finition de base',
-          scope: 'Isolation, gypse, plancher flottant, peinture, \u00e9clairage de base.',
-          items: [
-            { description: 'Isolation et pare-vapeur', quantity: '1', unit_price: '3000', total_price: '3000' },
-            { description: 'Gypse et tirage de joints', quantity: '1', unit_price: '4500', total_price: '4500' },
-            { description: 'Plancher flottant', quantity: '1', unit_price: '2500', total_price: '2500' },
-            { description: 'Peinture', quantity: '1', unit_price: '1500', total_price: '1500' },
-            { description: '\u00c9clairage de base', quantity: '1', unit_price: '800', total_price: '800' },
-          ]
-        },
-        {
-          label: 'Option B',
-          title: 'Finition standard avec salle de bain',
-          scope: 'Tout de l\'Option A + salle de bain compl\u00e8te + plafond suspendu.',
-          items: [
-            { description: 'Travaux Option A (base)', quantity: '1', unit_price: '12300', total_price: '12300' },
-            { description: 'Salle de bain compl\u00e8te (douche, toilette, vanit\u00e9)', quantity: '1', unit_price: '8500', total_price: '8500' },
-            { description: 'Plafond suspendu', quantity: '1', unit_price: '2800', total_price: '2800' },
-          ]
-        },
-        {
-          label: 'Option C',
-          title: 'Finition haut de gamme avec cin\u00e9ma maison',
-          scope: 'Tout de l\'Option B + salle cin\u00e9ma maison + bar.',
-          items: [
-            { description: 'Travaux Option B (standard)', quantity: '1', unit_price: '23600', total_price: '23600' },
-            { description: 'Salle cin\u00e9ma maison (insonorisation, \u00e9clairage, c\u00e2blage)', quantity: '1', unit_price: '7500', total_price: '7500' },
-            { description: 'Bar avec comptoir et rangement', quantity: '1', unit_price: '5200', total_price: '5200' },
-          ]
-        },
-      ],
-      include_payment: true,
-      payment_text: '10% d\u00e9p\u00f4t pour r\u00e9server la date\n40% avant le d\u00e9but des travaux\n40% \u00e0 mi-projet\n10% le jour final',
-      include_timeline: true,
-      timeline_text: 'Option A: environ 2 semaines\nOption B: environ 3-4 semaines\nOption C: environ 5-6 semaines',
-      include_notes: true,
-      notes_text: 'Le client devrait pr\u00e9voir environ 5% \u00e0 15% pour les impr\u00e9vus.\nLes frais de permis ne sont pas inclus.\nLe mobilier et l\'\u00e9lectrom\u00e9nager ne sont pas inclus.',
-    }
-  },
-  {
-    id: 'sample-i1',
-    type: 'invoice',
-    tag: 'tag-invoice',
-    title: 'Invoice — Bathroom (Tremblay)',
-    desc: 'Invoice from quote Q-2026-001 with deposit',
-    data: {
-      lang: 'fr',
-      number: 'INV-2026-001',
-      date: '2026-03-29',
-      quote_ref: 'Q-2026-001',
-      client_name: 'Jean Tremblay',
-      client_email: 'jean.tremblay@test.com',
-      client_phone: '(450) 555-1234',
-      address: '456 Boul. des Laurentides, Laval QC H7G 2T1',
-      line_items: [
-        { description: 'D\u00e9molition et retrait des mat\u00e9riaux', quantity: '1', unit_price: '1500', total_price: '1500' },
-        { description: 'Plomberie — raccordement douche et vanit\u00e9', quantity: '1', unit_price: '2800', total_price: '2800' },
-        { description: 'Pose de c\u00e9ramique (plancher et murs douche)', quantity: '1', unit_price: '3500', total_price: '3500' },
-        { description: 'Installation vanit\u00e9 et miroir', quantity: '1', unit_price: '1200', total_price: '1200' },
-        { description: 'Peinture et finitions', quantity: '1', unit_price: '800', total_price: '800' },
-        { description: 'Nettoyage de chantier', quantity: '1', unit_price: '300', total_price: '300' },
-      ],
-      extras: [
-        { description: 'Remplacement du ventilateur de salle de bain (ajout)', amount: '450' },
-      ],
-      payments: [
-        { description: 'D\u00e9p\u00f4t initial (10%)', amount: '1010' },
-        { description: 'Paiement avant d\u00e9but (40%)', amount: '4040' },
-      ],
-      include_taxes: true,
-      notes: 'Paiement par ch\u00e8que ou virement Interac \u00e0 info@mlprenodesign.ca',
-    }
-  },
-  {
-    id: 'sample-i2',
-    type: 'invoice',
-    tag: 'tag-invoice',
-    title: 'Invoice — Kitchen (Mitchell)',
-    desc: 'English invoice, no extras, partial payment',
-    data: {
-      lang: 'en',
-      number: 'INV-2026-002',
-      date: '2026-03-29',
-      quote_ref: 'Q-2026-002',
-      client_name: 'Sarah Mitchell',
-      client_email: 'sarah.mitchell@test.com',
-      client_phone: '(514) 555-6789',
-      address: '789 Chemin de Chambly, Longueuil QC J4H 3M2',
-      line_items: [
-        { description: 'Demolition and disposal', quantity: '1', unit_price: '2000', total_price: '2000' },
-        { description: 'Custom cabinetry supply and install', quantity: '1', unit_price: '8500', total_price: '8500' },
-        { description: 'Granite countertop supply and install', quantity: '1', unit_price: '4200', total_price: '4200' },
-        { description: 'Backsplash tile installation', quantity: '1', unit_price: '1800', total_price: '1800' },
-        { description: 'Plumbing work', quantity: '1', unit_price: '2500', total_price: '2500' },
-        { description: 'Electrical work', quantity: '1', unit_price: '1800', total_price: '1800' },
-        { description: 'Flooring installation', quantity: '1', unit_price: '2200', total_price: '2200' },
-        { description: 'Painting and finishing', quantity: '1', unit_price: '1200', total_price: '1200' },
-      ],
-      extras: [],
-      payments: [
-        { description: 'Deposit (10%)', amount: '2420' },
-      ],
-      include_taxes: true,
-      notes: 'Payment by cheque or e-Transfer to info@mlprenodesign.ca',
-    }
-  },
-  {
-    id: 'sample-e1',
-    type: 'email',
-    tag: 'tag-email',
-    title: 'Email — Send Quote (FR)',
-    desc: 'French email to send quote',
-    data: {
-      purpose: 'send-quote',
-      lang: 'fr',
-      client_name: 'Jean Tremblay',
-      client_email: 'jean.tremblay@test.com',
-      ref: 'Q-2026-001',
-      attach: 'quote',
-      context: 'Suite \u00e0 notre visite du 25 mars pour la r\u00e9novation de la salle de bain.',
-    }
-  },
-  {
-    id: 'sample-e2',
-    type: 'email',
-    tag: 'tag-email',
-    title: 'Email — Payment Reminder (EN)',
-    desc: 'English payment reminder',
-    data: {
-      purpose: 'payment-reminder',
-      lang: 'en',
-      client_name: 'Sarah Mitchell',
-      client_email: 'sarah.mitchell@test.com',
-      ref: 'INV-2026-002',
-      attach: 'invoice',
-      context: 'The mid-project payment of $9,680 is now due.',
-    }
-  },
-];
-
-function renderSampleData() {
-  const grid = document.getElementById('sample-grid');
-  let html = '';
-  SAMPLES.forEach(s => {
-    html += `<div class="sample-card" onclick="loadSample('${s.id}')">
-      <h4>${escHtml(s.title)}</h4>
-      <p>${escHtml(s.desc)}</p>
-      <span class="sample-tag ${s.tag}">${s.type}</span>
-    </div>`;
-  });
-  grid.innerHTML = html;
+function printQuote() {
+  const content = document.getElementById('quote-output').innerHTML;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Soumission MLP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      * { margin:0;padding:0;box-sizing:border-box; }
+      body { font-family:'Inter',sans-serif;padding:24px;color:#202124;font-size:14px;line-height:1.65; }
+      h1 { font-size:22px;font-weight:800;color:#c8a45a;margin-bottom:2px; }
+      h2 { font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#202124;margin-top:24px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #c8a45a; }
+      table { width:100%;border-collapse:collapse;margin:8px 0; }
+      th { background:#f8f9fa;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#5f6368;text-align:left;padding:10px 12px;border-bottom:2px solid #e8eaed; }
+      th.r{text-align:right;} td{padding:10px 12px;border-bottom:1px solid #f1f3f4;font-size:13px;} td.r{text-align:right;}
+      .qp-subtitle{font-size:13px;color:#5f6368;}
+      .qp-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid #c8a45a;margin-bottom:20px;}
+      .qp-header-right{text-align:right;font-size:13px;color:#5f6368;} .qp-header-right strong{color:#202124;font-size:15px;}
+      .qp-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+      .qp-meta-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9aa0a6;}
+      .qp-meta-value{font-size:13px;color:#3c4043;}
+      .qp-totals{margin-top:16px;border-top:2px solid #e8eaed;padding-top:10px;}
+      .qp-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;}
+      .qp-grand-total{font-size:18px;font-weight:800;color:#c8a45a;border-top:3px solid #c8a45a;padding-top:10px;margin-top:6px;}
+      .qp-section{padding:16px;background:#f8f9fa;border-radius:10px;border-left:4px solid #c8a45a;font-size:13px;color:#3c4043;line-height:1.7;white-space:pre-line;margin-top:8px;}
+      .qp-signature{margin-top:44px;display:grid;grid-template-columns:1fr 1fr;gap:32px;}
+      .qp-sig-line{border-top:1px solid #dadce0;padding-top:8px;font-size:12px;color:#9aa0a6;}
+      .qp-closing{margin-top:28px;text-align:center;font-style:italic;color:#5f6368;font-size:13px;}
+      .qp-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+      .qp-badge.included{background:#e6f4ea;color:#1e8e3e;} .qp-badge.excluded{background:#fef7e0;color:#e37400;}
+      @media print{body{padding:12px;}}
+    </style></head><body>${content}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
 }
 
-function loadSample(id) {
-  const sample = SAMPLES.find(s => s.id === id);
-  if (!sample) return;
+// ============================================
+// UTILITIES
+// ============================================
 
-  if (sample.type === 'quote') {
-    loadQuoteData(sample.data);
-    switchSection('quotes');
-    showToast('Sample quote loaded!', 'success');
-  } else if (sample.type === 'invoice') {
-    loadInvoiceData(sample.data);
-    switchSection('invoices');
-    showToast('Sample invoice loaded!', 'success');
-  } else if (sample.type === 'email') {
-    document.getElementById('e-purpose').value = sample.data.purpose;
-    document.getElementById('e-lang').value = sample.data.lang;
-    document.getElementById('e-client-name').value = sample.data.client_name;
-    document.getElementById('e-client-email').value = sample.data.client_email;
-    document.getElementById('e-ref').value = sample.data.ref;
-    document.getElementById('e-attach').value = sample.data.attach;
-    document.getElementById('e-context').value = sample.data.context;
-    switchSection('emails');
-    showToast('Sample email loaded!', 'success');
+function val(id) { return document.getElementById(id).value.trim(); }
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function money(n) {
+  return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return dateStr;
+  if (lang === 'fr') {
+    const m = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    return d.getDate() + ' ' + m[d.getMonth()] + ' ' + d.getFullYear();
   }
+  return d.toLocaleDateString('en-CA', { year:'numeric', month:'long', day:'numeric' });
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(() => t.className = 'toast', 3000);
 }
