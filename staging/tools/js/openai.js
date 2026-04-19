@@ -45,9 +45,12 @@ Your message field MUST echo specific values the contractor gave, so they can se
 ALWAYS POPULATE "options"
 The "options" array must NEVER be empty. Even on the very first message, even if you're asking clarifying questions, return at least one option with your best current understanding. If the contractor hasn't given numbers yet, use realistic Quebec residential pricing as placeholders and note them in "assumptions".
 
-OPTIONS / PRICING TIERS
-- If the contractor asks for multiple tiers ("3 options", "basique / standard / premium", "good/better/best"), return 2–3 options with materially different scopes. Each option's total is the sum of ITS OWN line_items — never merged.
-- Otherwise return exactly one option.
+OPTIONS / PRICING TIERS — HARD LIMITS
+- MAXIMUM 3 OPTIONS. NEVER return more than 3 items in the "options" array. If the contractor asks for "4 options" or more, return 3 and note the limit in "assumptions".
+- If the contractor asks for multiple tiers ("basique/standard/premium", "good/better/best", "2 ou 3 options"), return 2 or 3 options with materially different scopes.
+- Otherwise return exactly ONE option.
+- Each option's total is the sum of its OWN line_items — never merged across options.
+- Option keys must be "A", "B", "C" in that order — never D, E, F.
 
 EDIT SEMANTICS
 - "Ajoute X" / "Add X" → add.
@@ -104,9 +107,11 @@ function normalizeOption(o, idx) {
   };
 }
 
+const MAX_OPTIONS = 3;
+
 function normalizeDraft(raw) {
   const options = Array.isArray(raw.options) && raw.options.length
-    ? raw.options.map(normalizeOption)
+    ? raw.options.slice(0, MAX_OPTIONS).map(normalizeOption)
     : [];
   return {
     project_title: String(raw.project_title || ''),

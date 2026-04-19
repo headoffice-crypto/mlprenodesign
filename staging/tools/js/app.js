@@ -285,11 +285,30 @@ function renderChat() {
   box.scrollTop = box.scrollHeight;
 }
 
+function setChatError(msg) {
+  const b = document.getElementById('chat-error-banner');
+  if (!b) return;
+  if (!msg) { b.style.display = 'none'; b.textContent = ''; return; }
+  b.textContent = '⚠️ ' + msg;
+  b.style.display = '';
+}
+
 async function sendChatMessage() {
   if (chatBusy) return;
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text) return;
+
+  setChatError('');
+
+  if (typeof OPENAI_API_KEY !== 'string' || !OPENAI_API_KEY.startsWith('sk-')) {
+    setChatError('OpenAI API key is missing or invalid. Check js/config.js.');
+    return;
+  }
+  if (typeof callGPTChatWithDraft !== 'function') {
+    setChatError('callGPTChatWithDraft is not loaded. The page has a script load problem — hard-refresh with Ctrl+Shift+R.');
+    return;
+  }
 
   chatHistory.push({ role: 'user', content: text });
   input.value = '';
@@ -331,6 +350,7 @@ async function sendChatMessage() {
     }
   } catch (err) {
     console.error('[sendChatMessage error]', err);
+    setChatError('GPT call failed: ' + (err.message || err));
     chatHistory.push({
       role: 'assistant',
       content: 'error',
@@ -527,9 +547,13 @@ function removeItem(key, idx) {
 }
 
 function addOption() {
+  if (quoteState.options.length >= 3) {
+    showToast(lang === 'fr' ? 'Maximum 3 options.' : 'Maximum 3 options.');
+    return;
+  }
   const usedKeys = new Set(quoteState.options.map(o => o.key));
   let key;
-  for (let code = 65; code <= 90; code++) {
+  for (let code = 65; code <= 67; code++) {
     const k = String.fromCharCode(code);
     if (!usedKeys.has(k)) { key = k; break; }
   }

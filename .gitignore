@@ -1,2 +1,5 @@
 # API keys
 staging/tools/js/config.js
+
+# Windows shortcuts
+*.lnk
