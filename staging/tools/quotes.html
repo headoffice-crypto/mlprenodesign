@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mes soumissions — MLP Reno & Design</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="css/tools.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">M</div>
+    <h1>MLP Reno &amp; Design</h1>
+  </div>
+  <a href="index.html" class="btn btn-primary btn-sm" style="width:auto;text-decoration:none;">
+    <span class="material-icons-round" style="font-size:18px">add</span>
+    <span>Nouvelle soumission</span>
+  </a>
+</div>
+
+<div class="main" id="main">
+  <div class="step active">
+    <div class="step-header">
+      <div class="step-icon gold"><span class="material-icons-round">folder</span></div>
+      <div class="step-title">Mes soumissions</div>
+      <div class="step-subtitle">Toutes les soumissions enregistrées, triées par date</div>
+    </div>
+
+    <div id="list-root">
+      <div style="text-align:center;padding:40px;color:var(--text-secondary);">
+        <div class="spinner-ring" style="width:28px;height:28px;border-width:3px;margin-bottom:12px;"></div>
+        <div>Chargement…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+(async function() {
+  const root = document.getElementById('list-root');
+  try {
+    const quotes = await listQuotes();
+    if (!quotes.length) {
+      root.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--text-secondary);">
+        <div style="font-size:48px;margin-bottom:8px;">📋</div>
+        <div style="font-weight:600;color:var(--text-primary);margin-bottom:6px;">Aucune soumission</div>
+        <div style="font-size:14px;">Cliquez sur « Nouvelle soumission » pour commencer.</div>
+      </div>`;
+      return;
+    }
+    root.innerHTML = '<div class="quotes-list">' + quotes.map(q => rowHtml(q)).join('') + '</div>';
+  } catch (err) {
+    root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
+  }
+})();
+
+function rowHtml(q) {
+  const options = Array.isArray(q.options) ? q.options : [];
+  const acceptedOpt = q.accepted_option_key ? options.find(o => o.key === q.accepted_option_key) : null;
+  const total = acceptedOpt
+    ? acceptedOpt.total
+    : (options.length ? Math.max(...options.map(o => o.total || 0)) : 0);
+  const totalLabel = options.length > 1 && !acceptedOpt
+    ? `De $${money(Math.min(...options.map(o => o.total || 0)))} à $${money(total)}`
+    : '$' + money(total);
+  const statusText = {
+    draft: 'Brouillon', sent: 'Envoyée', viewed: 'Consultée', signed: 'Signée', declined: 'Refusée', expired: 'Expirée'
+  }[q.status] || q.status;
+  const date = q.created_at ? new Date(q.created_at).toLocaleDateString('fr-CA') : '';
+  const link = q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : null;
+  return `<div class="quote-row" onclick="openRow('${q.id}', '${link || ''}')">
+    <div class="quote-row-main">
+      <div class="quote-row-title">${esc(q.project_title || q.quote_number)}</div>
+      <div class="quote-row-sub">${esc(q.client_name || '—')} · ${date}</div>
+    </div>
+    <div class="quote-row-right">
+      <div class="quote-row-total">${totalLabel}</div>
+      <span class="status-pill ${q.status}">${statusText}</span>
+    </div>
+  </div>`;
+}
+
+function openRow(id, link) {
+  if (link) window.open(link, '_blank');
+}
+
+function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+</script>
+
+</body>
+</html>

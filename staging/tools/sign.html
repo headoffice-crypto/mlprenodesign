@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signer la soumission — MLP Reno & Design</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="css/tools.css">
+  <style>
+    body { padding-bottom: 40px; }
+    .container { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+    .loading, .error-box {
+      text-align: center; padding: 48px 20px;
+      background: #fff; border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      color: var(--text-secondary);
+    }
+    .error-box { color: var(--red); }
+    .option-choose-card {
+      border: 2px solid var(--outline);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .option-choose-card:hover { border-color: var(--accent); }
+    .option-choose-card.selected {
+      border-color: var(--accent);
+      background: #fffaf0;
+      box-shadow: 0 2px 8px rgba(200,164,90,0.15);
+    }
+    .option-choose-header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 12px; margin-bottom: 10px;
+    }
+    .option-choose-title {
+      font-size: 16px; font-weight: 800;
+      color: var(--accent-dark);
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .option-choose-total { font-size: 18px; font-weight: 800; color: var(--text-primary); }
+    .option-choose-scope { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; white-space: pre-wrap; }
+    .option-choose-meta { font-size: 12px; color: var(--text-hint); }
+    .sign-block {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--outline-light);
+      margin-top: 20px;
+    }
+    .sign-block h3 { font-size: 18px; margin-bottom: 6px; }
+    .sign-block p { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; }
+    .success-card {
+      background: var(--green-light);
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .success-card .icon {
+      width: 64px; height: 64px;
+      background: var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px; color: #fff;
+    }
+    .success-card .icon .material-icons-round { font-size: 36px; }
+    .success-card h2 {
+      font-size: 20px; color: var(--green);
+      margin-bottom: 8px; border: none; padding: 0;
+      text-transform: none; letter-spacing: 0;
+    }
+    @media print {
+      .header, .sign-block, .success-card .btn { display: none; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">M</div>
+    <h1>MLP Reno &amp; Design</h1>
+  </div>
+</div>
+
+<div class="container" id="root">
+  <div class="loading">
+    <div class="spinner-ring" style="width:40px;height:40px;border-width:3px;margin-bottom:16px;"></div>
+    <div>Chargement…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/signature-pad.js"></script>
+<script>
+let currentQuote = null;
+let selectedOptionKey = null;
+let customerPad = null;
+
+(async function() {
+  const root = document.getElementById('root');
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (!token) { root.innerHTML = '<div class="error-box">Lien invalide.</div>'; return; }
+
+  let q;
+  try { q = await getQuoteByToken(token); }
+  catch (err) { root.innerHTML = `<div class="error-box">Erreur: ${err.message}</div>`; return; }
+  if (!q) { root.innerHTML = '<div class="error-box">Soumission introuvable.</div>'; return; }
+
+  currentQuote = q;
+  const alreadySigned = !!q.customer_signed_at;
+  if (!alreadySigned) markQuoteViewed(token).catch(() => {});
+
+  const options = Array.isArray(q.options) ? q.options : [];
+  const multi = options.length > 1;
+
+  // default selected = first, or the accepted one if already signed
+  selectedOptionKey = q.accepted_option_key || options[0]?.key || null;
+
+  renderPage();
+})();
+
+function renderPage() {
+  const q = currentQuote;
+  const fr = q.language !== 'en';
+  const options = Array.isArray(q.options) ? q.options : [];
+  const multi = options.length > 1;
+  const alreadySigned = !!q.customer_signed_at;
+
+  let h = '';
+
+  // Header block
+  h += `<div class="quote-preview">`;
+  h += '<div class="qp-header"><div>';
+  h += '<h1>MLP Reno &amp; Design</h1>';
+  h += '<div class="qp-subtitle">Construction &amp; Rénovation</div>';
+  h += `<div class="qp-subtitle">${fr ? 'Licence RBQ' : 'RBQ Licence'}: 5847-0378-01</div>`;
+  h += `<div class="qp-subtitle">${fr ? 'Assurance responsabilité civile : 5 000 000 $' : 'Liability Insurance: $5,000,000'}</div>`;
+  h += '</div><div class="qp-header-right">';
+  h += `<strong>${fr ? 'SOUMISSION' : 'QUOTE'}</strong><br>${esc(q.quote_number)}<br>${formatDate(q.quote_date, fr)}`;
+  h += '</div></div>';
+
+  h += '<div class="qp-meta"><div>';
+  h += `<div class="qp-meta-label">Client</div>`;
+  h += `<div class="qp-meta-value">${esc(q.client_name)}</div>`;
+  if (q.client_email) h += `<div class="qp-meta-value">${esc(q.client_email)}</div>`;
+  if (q.client_phone) h += `<div class="qp-meta-value">${esc(q.client_phone)}</div>`;
+  h += '</div><div>';
+  h += `<div class="qp-meta-label">${fr ? 'Adresse du projet' : 'Project Address'}</div>`;
+  h += `<div class="qp-meta-value">${esc(q.client_address)}</div>`;
+  h += '</div></div>';
+
+  if (q.project_title) {
+    h += `<h2>${fr ? 'Projet' : 'Project'}</h2>`;
+    h += `<div style="margin-bottom:8px;"><strong>${esc(q.project_title)}</strong></div>`;
+  }
+
+  // Options (view-only, detailed)
+  h += `<h2>${multi ? (fr ? 'Options proposées' : 'Proposed options') : (fr ? 'Détail de la soumission' : 'Quote details')}</h2>`;
+  options.forEach(opt => {
+    const accepted = q.accepted_option_key === opt.key;
+    h += `<div class="qp-option-block${accepted ? ' accepted' : ''}">`;
+    h += '<div class="qp-option-head">';
+    h += `<div class="qp-option-title">${esc(opt.title || opt.key)}${accepted ? (fr ? ' ✓ Signée' : ' ✓ Signed') : ''}</div>`;
+    h += `<div class="qp-option-total">$${money(opt.total)}</div>`;
+    h += '</div>';
+    if (opt.scope_summary) h += `<div style="font-size:13px;color:#3c4043;white-space:pre-line;margin-bottom:10px;">${esc(opt.scope_summary)}</div>`;
+    h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
+    h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${opt.duration_weeks} ${fr ? 'semaines' : 'weeks'} · `;
+    h += `${opt.materials_included ? `<span class="qp-badge included">${fr ? 'Matériaux inclus' : 'Materials included'}</span>` : `<span class="qp-badge excluded">${fr ? 'Matériaux exclus' : 'Materials excluded'}</span>`}`;
+    h += '</div>';
+    if (opt.line_items && opt.line_items.length) {
+      h += '<table><thead><tr>';
+      h += `<th>Description</th><th class="r">${fr ? 'Qté' : 'Qty'}</th><th class="r">${fr ? 'Prix' : 'Price'}</th><th class="r">Total</th>`;
+      h += '</tr></thead><tbody>';
+      opt.line_items.forEach(it => {
+        const lt = it.quantity * it.unit_price;
+        h += `<tr><td>${esc(it.description)}</td><td class="r">${it.quantity}</td><td class="r">$${money(it.unit_price)}</td><td class="r">$${money(lt)}</td></tr>`;
+      });
+      h += '</tbody></table>';
+    }
+    h += '<div class="qp-totals">';
+    h += `<div class="qp-total-row"><span>${fr ? 'Sous-total' : 'Subtotal'}</span><span>$${money(opt.subtotal)}</span></div>`;
+    h += `<div class="qp-total-row"><span>TPS 5%</span><span>$${money(opt.gst)}</span></div>`;
+    h += `<div class="qp-total-row"><span>TVQ 9.975%</span><span>$${money(opt.qst)}</span></div>`;
+    h += `<div class="qp-total-row qp-grand-total"><span>${fr ? 'Total avec taxes' : 'Total with taxes'}</span><span>$${money(opt.total)}</span></div>`;
+    h += '</div>';
+    h += '</div>';
+  });
+
+  const payDesc = {
+    A: { fr: '10% dépôt\n40% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '10% deposit\n40% before work begins\n40% mid-project\n10% upon completion' },
+    B: { fr: '20% dépôt\n30% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n30% before work begins\n40% mid-project\n10% upon completion' },
+    C: { fr: '20% dépôt\n40% avant le début des travaux\n30% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n40% before work begins\n30% mid-project\n10% upon completion' }
+  };
+  h += `<h2>${fr ? 'Modalités de paiement' : 'Payment Terms'}</h2>`;
+  h += `<div class="qp-section">${esc(payDesc[q.payment_option || 'A'][fr ? 'fr' : 'en'])}</div>`;
+  if (q.payment_methods) {
+    h += `<h2>${fr ? 'Méthodes de paiement' : 'Payment Methods'}</h2>`;
+    h += `<div class="qp-section">${esc(q.payment_methods)}</div>`;
+  }
+  if (q.notes) {
+    h += `<h2>${fr ? 'Notes importantes' : 'Important Notes'}</h2>`;
+    h += `<div class="qp-section">${esc(q.notes)}</div>`;
+  }
+
+  h += '<div class="qp-signature">';
+  h += '<div>';
+  if (q.contractor_signature) h += `<img src="${q.contractor_signature}" style="max-height:60px;margin-bottom:4px;">`;
+  h += `<div class="qp-sig-line">${fr ? 'Signature — MLP Reno & Design' : 'Signature — MLP Reno & Design'}</div>`;
+  h += '</div><div>';
+  if (q.customer_signature) {
+    h += `<img src="${q.customer_signature}" style="max-height:60px;margin-bottom:4px;">`;
+    h += `<div style="font-size:12px;color:#3c4043;">${esc(q.customer_signer_name || '')}</div>`;
+  }
+  h += `<div class="qp-sig-line">${fr ? 'Signature — Client' : 'Signature — Client'}</div>`;
+  h += '</div></div>';
+  h += '</div>'; // .quote-preview
+
+  if (alreadySigned) {
+    h += renderAlreadySigned(q, fr);
+  } else {
+    h += renderSignBlock(q, fr, options, multi);
+  }
+
+  document.getElementById('root').innerHTML = h;
+
+  if (!alreadySigned) {
+    setupSigning(q, fr, multi);
+  }
+}
+
+function renderSignBlock(q, fr, options, multi) {
+  let h = '<div class="sign-block" id="sign-block">';
+  h += `<h3>${fr ? 'Signer cette soumission' : 'Sign this quote'}</h3>`;
+
+  if (multi) {
+    h += `<p>${fr ? 'Sélectionnez l\'option que vous acceptez, puis signez ci-dessous.' : 'Select the option you accept, then sign below.'}</p>`;
+    options.forEach(opt => {
+      h += `<div class="option-choose-card${opt.key === selectedOptionKey ? ' selected' : ''}" onclick="selectOption('${opt.key}')">`;
+      h += '<div class="option-choose-header">';
+      h += `<div class="option-choose-title">${esc(opt.title || opt.key)}</div>`;
+      h += `<div class="option-choose-total">$${money(opt.total)}</div>`;
+      h += '</div>';
+      if (opt.scope_summary) h += `<div class="option-choose-scope">${esc(opt.scope_summary)}</div>`;
+      h += `<div class="option-choose-meta">${opt.duration_weeks} ${fr ? 'semaines' : 'weeks'} · ${opt.materials_included ? (fr ? 'Matériaux inclus' : 'Materials included') : (fr ? 'Matériaux exclus' : 'Materials excluded')}</div>`;
+      h += '</div>';
+    });
+  } else {
+    h += `<p>${fr ? 'Vérifiez les détails ci-dessus, puis signez ci-dessous pour accepter.' : 'Review the details above, then sign below to accept.'}</p>`;
+  }
+
+  h += `<div class="form-group"><label class="form-label">${fr ? 'Votre nom complet' : 'Your full name'}</label><input type="text" id="signer-name" class="form-input"></div>`;
+  h += `<div class="form-group"><label class="form-label">${fr ? 'Votre signature' : 'Your signature'}</label>`;
+  h += '<div class="sig-canvas-box"><canvas id="customer-sig-canvas"></canvas>';
+  h += `<div class="sig-placeholder" id="sig-placeholder">${fr ? 'Signez ici' : 'Sign here'}</div></div>`;
+  h += `<button class="sig-clear" type="button" id="sig-clear-btn"><span class="material-icons-round" style="font-size:14px;vertical-align:middle;">refresh</span> ${fr ? 'Effacer' : 'Clear'}</button>`;
+  h += '</div>';
+
+  h += `<button class="btn btn-primary" id="sign-submit"><span class="material-icons-round">check_circle</span><span>${fr ? 'Accepter et signer' : 'Accept & sign'}</span></button>`;
+  h += '</div>';
+  return h;
+}
+
+function renderAlreadySigned(q, fr) {
+  const acceptedOpt = (q.options || []).find(o => o.key === q.accepted_option_key);
+  let h = '<div class="success-card">';
+  h += `<div class="icon"><span class="material-icons-round">check</span></div>`;
+  h += `<h2>${fr ? 'Soumission signée' : 'Quote signed'}</h2>`;
+  h += `<p style="margin-bottom:6px;color:#5f6368;">${fr ? 'Signée par' : 'Signed by'} <strong>${esc(q.customer_signer_name || '—')}</strong></p>`;
+  h += `<p style="margin-bottom:14px;color:#5f6368;">${formatDate((q.customer_signed_at || '').split('T')[0], fr)}</p>`;
+  if (acceptedOpt) {
+    h += `<p style="margin-bottom:14px;"><strong>${esc(acceptedOpt.title)}</strong> — $${money(acceptedOpt.total)}</p>`;
+  }
+  h += `<button class="btn btn-secondary" onclick="window.print()"><span class="material-icons-round">picture_as_pdf</span><span>${fr ? 'Télécharger une copie PDF' : 'Download PDF copy'}</span></button>`;
+  h += '</div>';
+  return h;
+}
+
+function selectOption(key) {
+  selectedOptionKey = key;
+  // Update UI without full re-render
+  document.querySelectorAll('.option-choose-card').forEach(el => el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+}
+
+function setupSigning(quote, fr, multi) {
+  const canvas = document.getElementById('customer-sig-canvas');
+  const placeholder = document.getElementById('sig-placeholder');
+  customerPad = new SignaturePad(canvas, { onStart: () => { placeholder.style.display = 'none'; } });
+
+  document.getElementById('sig-clear-btn').addEventListener('click', () => {
+    customerPad.clear();
+    placeholder.style.display = '';
+  });
+
+  document.getElementById('sign-submit').addEventListener('click', async () => {
+    const nameEl = document.getElementById('signer-name');
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); alert(fr ? 'Veuillez entrer votre nom.' : 'Please enter your name.'); return; }
+    if (customerPad.isEmpty()) { alert(fr ? 'Veuillez signer avant de soumettre.' : 'Please sign before submitting.'); return; }
+    if (multi && !selectedOptionKey) { alert(fr ? 'Veuillez sélectionner une option.' : 'Please select an option.'); return; }
+
+    const btn = document.getElementById('sign-submit');
+    btn.disabled = true;
+    btn.innerHTML = `<span>${fr ? 'Enregistrement…' : 'Saving…'}</span>`;
+
+    try {
+      const token = new URLSearchParams(location.search).get('token');
+      await saveCustomerSignature(token, {
+        signature: customerPad.toDataURL(),
+        signerName: name,
+        acceptedOptionKey: selectedOptionKey
+      });
+      currentQuote.customer_signature = customerPad.toDataURL();
+      currentQuote.customer_signer_name = name;
+      currentQuote.customer_signed_at = new Date().toISOString();
+      currentQuote.accepted_option_key = selectedOptionKey;
+      renderPage();
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    } catch (err) {
+      alert((fr ? 'Erreur : ' : 'Error: ') + err.message);
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-icons-round">check_circle</span><span>${fr ? 'Accepter et signer' : 'Accept & sign'}</span>`;
+    }
+  });
+}
+
+/* utils */
+function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function formatDate(dateStr, fr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + (dateStr.length === 10 ? 'T00:00:00' : ''));
+  if (isNaN(d)) return dateStr;
+  if (fr) {
+    const m = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    return d.getDate() + ' ' + m[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  return d.toLocaleDateString('en-CA', { year:'numeric', month:'long', day:'numeric' });
+}
+</script>
+
+</body>
+</html>
