@@ -641,8 +641,12 @@ body {
   line-height: 1.7;
   white-space: pre-line;
 }
-.qp-signature { margin-top: 44px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.qp-signature { margin-top: 44px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; }
+.qp-sig-col { display: flex; flex-direction: column; justify-content: flex-end; }
+.qp-sig-img { min-height: 64px; display: flex; align-items: flex-end; margin-bottom: 4px; }
+.qp-sig-img img { max-height: 60px; display: block; }
 .qp-sig-line { border-top: 1px solid #dadce0; padding-top: 8px; font-size: 12px; color: #9aa0a6; }
+.qp-sig-meta { font-size: 12px; color: #3c4043; margin-top: 4px; line-height: 1.4; }
 .qp-closing { margin-top: 28px; text-align: center; font-style: italic; color: #5f6368; font-size: 13px; }
 .qp-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .qp-badge.included { background: #e6f4ea; color: #1e8e3e; }

@@ -219,15 +219,15 @@ function renderPage() {
   }
 
   h += '<div class="qp-signature">';
-  h += '<div>';
-  if (q.contractor_signature) h += `<img src="${q.contractor_signature}" style="max-height:60px;margin-bottom:4px;">`;
+  h += '<div class="qp-sig-col">';
+  h += `<div class="qp-sig-img">${q.contractor_signature ? `<img src="${q.contractor_signature}">` : ''}</div>`;
   h += `<div class="qp-sig-line">${fr ? 'Signature — MLP Reno & Design' : 'Signature — MLP Reno & Design'}</div>`;
-  h += '</div><div>';
-  if (q.customer_signature) {
-    h += `<img src="${q.customer_signature}" style="max-height:60px;margin-bottom:4px;">`;
-    h += `<div style="font-size:12px;color:#3c4043;">${esc(q.customer_signer_name || '')}</div>`;
-  }
+  h += `<div class="qp-sig-meta">MLP Reno &amp; Design</div>`;
+  h += '</div>';
+  h += '<div class="qp-sig-col">';
+  h += `<div class="qp-sig-img">${q.customer_signature ? `<img src="${q.customer_signature}">` : ''}</div>`;
   h += `<div class="qp-sig-line">${fr ? 'Signature — Client' : 'Signature — Client'}</div>`;
+  if (q.customer_signer_name) h += `<div class="qp-sig-meta">${esc(q.customer_signer_name)}</div>`;
   h += '</div></div>';
   h += '</div>'; // .quote-preview
 

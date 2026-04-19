@@ -748,15 +748,17 @@ function renderFinalQuote() {
   }
 
   h += '<div class="qp-signature">';
-  h += '<div>';
-  if (contractorSignatureData) h += `<img src="${contractorSignatureData}" style="max-height:60px;margin-bottom:4px;">`;
+  h += '<div class="qp-sig-col">';
+  h += `<div class="qp-sig-img">${contractorSignatureData ? `<img src="${contractorSignatureData}">` : ''}</div>`;
   h += `<div class="qp-sig-line">${fr ? 'Signature — MLP Reno & Design' : 'Signature — MLP Reno & Design'}</div>`;
-  h += '</div><div>';
-  if (savedQuote?.customer_signature) {
-    h += `<img src="${savedQuote.customer_signature}" style="max-height:60px;margin-bottom:4px;">`;
-    h += `<div style="font-size:12px;color:#3c4043;">${esc(savedQuote.customer_signer_name || '')}</div>`;
-  }
+  h += `<div class="qp-sig-meta">${esc(CONTRACTOR.name)}</div>`;
+  h += '</div>';
+  h += '<div class="qp-sig-col">';
+  h += `<div class="qp-sig-img">${savedQuote?.customer_signature ? `<img src="${savedQuote.customer_signature}">` : ''}</div>`;
   h += `<div class="qp-sig-line">${fr ? 'Signature — Client' : 'Signature — Client'}</div>`;
+  if (savedQuote?.customer_signer_name) {
+    h += `<div class="qp-sig-meta">${esc(savedQuote.customer_signer_name)}</div>`;
+  }
   h += '</div></div>';
 
   h += `<div class="qp-closing">${fr ? 'Merci de votre confiance. N\'hésitez pas à nous contacter pour toute question.' : 'Thank you for your trust. Do not hesitate to contact us with any questions.'}</div>`;
