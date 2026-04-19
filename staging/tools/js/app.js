@@ -324,7 +324,11 @@ async function sendChatMessage() {
   };
 
   try {
-    const { message, draft } = await callGPTChatWithDraft(chatHistory, context);
+    const currentDraftForGPT = {
+      project_title: quoteState.project_title,
+      options: quoteState.options
+    };
+    const { message, draft } = await callGPTChatWithDraft(chatHistory, context, currentDraftForGPT);
     chatHistory.push({
       role: 'assistant',
       content: JSON.stringify({ message, draft }),

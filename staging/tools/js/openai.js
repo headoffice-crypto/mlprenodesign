@@ -68,20 +68,47 @@ async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonM
   };
   if (jsonMode) body.response_format = { type: 'json_object' };
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error: ${res.status}`);
+  const bodyStr = JSON.stringify(body);
+  console.log('[openai] payload bytes:', bodyStr.length, '| messages:', messages.length);
+
+  let lastErr;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: bodyStr,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error('[openai] HTTP error', res.status, errBody);
+        let msg = `OpenAI HTTP ${res.status}`;
+        try { msg = JSON.parse(errBody)?.error?.message || msg; } catch {}
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      return data.choices[0].message.content.trim();
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[openai] attempt ${attempt} failed:`, err.name, err.message);
+      if (err.name === 'AbortError') throw new Error('OpenAI timed out after 45s. Try a shorter message.');
+      // Only retry on network-level failures (TypeError "Failed to fetch"), not HTTP errors
+      if (attempt === 1 && err instanceof TypeError) {
+        await new Promise(r => setTimeout(r, 500));
+        continue;
+      }
+      throw err;
+    }
   }
-  const data = await res.json();
-  return data.choices[0].message.content.trim();
+  throw lastErr;
 }
 
 function stripFences(s) {
@@ -122,7 +149,7 @@ function normalizeDraft(raw) {
 }
 
 /* ---------- Main: single-call chat WITH live draft ---------- */
-async function callGPTChatWithDraft(conversation, context) {
+async function callGPTChatWithDraft(conversation, context, currentDraft) {
   const contextBlock = `CURRENT QUOTE CONTEXT
 - Client: ${context.clientName || '(not provided)'}
 - Address: ${context.clientAddress || '(not provided)'}
@@ -130,10 +157,44 @@ async function callGPTChatWithDraft(conversation, context) {
 - Phone: ${context.clientPhone || '(not provided)'}
 - Quote date: ${context.quoteDate || new Date().toISOString().split('T')[0]}`;
 
+  // Conversation shape sent to GPT:
+  //   - user messages: as typed
+  //   - assistant messages: their NATURAL-LANGUAGE reply only (displayText), not the full JSON draft
+  //   - filter out error / system-warning pseudo-messages so they never pollute GPT's context
+  const chatMsgs = conversation
+    .filter(m => {
+      if (m.role === 'user') return !!m.content?.trim();
+      if (m.role === 'assistant') return m.content !== 'error' && m.content !== 'system-warning';
+      return false;
+    })
+    .map(m => ({
+      role: m.role,
+      content: m.role === 'assistant'
+        ? (m.displayText || '(draft updated)')
+        : m.content
+    }));
+
+  // Summarize the current draft so GPT can build on it without seeing its own JSON echoed back
+  let draftBlock = '';
+  if (currentDraft && currentDraft.options && currentDraft.options.length) {
+    draftBlock = 'CURRENT DRAFT STATE — PRESERVE UNLESS THE CONTRACTOR CHANGES IT:\n';
+    draftBlock += `Project: ${currentDraft.project_title || '(none)'}\n`;
+    currentDraft.options.forEach(opt => {
+      const total = opt.line_items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+      draftBlock += `\nOption ${opt.key} — ${opt.title} ($${total})`;
+      draftBlock += `\n  Duration: ${opt.duration_weeks}w | Materials ${opt.materials_included ? 'included' : 'excluded'}`;
+      draftBlock += `\n  Scope: ${opt.scope_summary}`;
+      opt.line_items.forEach(i => {
+        draftBlock += `\n  - ${i.description} x${i.quantity} @ $${i.unit_price}`;
+      });
+    });
+  }
+
   const messages = [
     { role: 'system', content: CHAT_WITH_DRAFT_SYSTEM },
     { role: 'system', content: contextBlock },
-    ...conversation.map(m => ({ role: m.role, content: m.content }))
+    ...(draftBlock ? [{ role: 'system', content: draftBlock }] : []),
+    ...chatMsgs
   ];
 
   const raw = await openaiChat({ messages, temperature: 0.15, maxTokens: 3500, jsonMode: true });
