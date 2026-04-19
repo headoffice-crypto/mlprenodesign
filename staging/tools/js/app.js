@@ -312,14 +312,25 @@ async function sendChatMessage() {
       displayText: message
     });
 
+    console.log('[draft from GPT]', draft);
     if (draft.options.length) {
       quoteState.project_title = draft.project_title || quoteState.project_title;
       quoteState.options = draft.options;
       quoteState.activeOptionKey = quoteState.activeOptionKey || draft.options[0]?.key;
       quoteState.assumptions = draft.assumptions;
       quoteState.questions = draft.questions;
+    } else {
+      // Surface this visibly instead of silently ignoring — tells us GPT is misbehaving
+      chatHistory.push({
+        role: 'assistant',
+        content: 'system-warning',
+        displayText: (lang === 'fr'
+          ? '⚠️ L\'IA n\'a pas retourné d\'options. Reformulez votre demande ou ajoutez plus de détails.'
+          : '⚠️ The AI did not return any options. Rephrase your request or add more details.')
+      });
     }
   } catch (err) {
+    console.error('[sendChatMessage error]', err);
     chatHistory.push({
       role: 'assistant',
       content: 'error',

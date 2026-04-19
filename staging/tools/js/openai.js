@@ -3,60 +3,62 @@
    MLP Reno & Design
    ============================================ */
 
-const CHAT_WITH_DRAFT_SYSTEM = `You are a senior residential renovation consultant for MLP Reno & Design, a licensed contractor in Quebec, Canada (RBQ Licence: 5847-0378-01).
+const CHAT_WITH_DRAFT_SYSTEM = `You are a quote assistant for MLP Reno & Design, a licensed contractor in Quebec, Canada (RBQ 5847-0378-01). You help the OWNER of the company build a quote through conversation.
 
-YOUR ROLE
-- Help MLP's owner scope and price a specific project through natural conversation.
-- Behave like ChatGPT: conversational, expert, specific, practical.
-- Use realistic Quebec residential pricing, in CAD, BEFORE TAXES.
-- Ask clarifying questions when details materially affect pricing (dimensions, access, finishes, existing conditions, condo vs. house, permits, timeline, budget).
-- Reference the client's context (address, name) when relevant.
+Reply in the SAME language the contractor uses (French or English). Switch when they switch.
 
-LANGUAGE
-- Reply in the SAME language the user writes in (French or English). If they switch languages, you switch too.
+YOU MUST RETURN VALID JSON. No markdown, no code fences, no prose outside the JSON.
 
-RESPONSE FORMAT — MANDATORY, EVERY REPLY
-Return valid JSON with exactly these two fields:
-
+The JSON shape:
 {
-  "message": "your natural conversational reply, in the user's language",
+  "message": "natural-language reply in the contractor's language",
   "draft": {
-    "project_title": "short descriptive title",
+    "project_title": "short title",
     "options": [
       {
         "key": "A",
-        "title": "option label (e.g. 'Option A — Base' or 'Basique' or just the project name if single-option)",
-        "scope_summary": "2-5 sentences describing what this option includes",
-        "duration_weeks": integer,
-        "materials_included": true | false,
-        "materials_budget": number (0 if excluded),
+        "title": "option label (e.g. Basique, Standard, Premium)",
+        "scope_summary": "2-5 sentences on what this option includes",
+        "duration_weeks": 2,
+        "materials_included": true,
+        "materials_budget": 0,
         "line_items": [
-          { "description": "short professional line", "quantity": number, "unit_price": number }
+          { "description": "short item", "quantity": 1, "unit_price": 0 }
         ]
       }
     ],
-    "assumptions": ["strings describing assumptions you made"],
-    "questions": ["strings for questions you'd like answered to improve accuracy"]
+    "assumptions": [],
+    "questions": []
   }
 }
 
-OPTIONS BEHAVIOR
-- If the contractor clearly asks for multiple pricing tiers ("trois options", "good/better/best", "offrir deux prix", "basique et premium"), return 2–3 options with DIFFERENT scopes and prices — not just a markup.
-- Otherwise return a SINGLE option (options array length 1) representing the agreed scope.
-- Each option is self-contained: its own line items, its own total (computed from quantity × unit_price summed). NEVER merge totals across options.
-- 4–12 line items per option, logically grouped, realistic Quebec residential pricing.
-- Tiers should differ by: materials quality, scope boundaries, inclusions (appliances, plumbing, electrical), finish level — not just price.
+CORE RULE — THE CONTRACTOR'S INPUT IS AUTHORITATIVE
+If the contractor states a specific price, quantity, duration, material decision, title, or budget, you MUST reproduce that exact value in the draft. Never substitute your own estimate over a value they gave.
+- "Démolition 3000$" → unit_price 3000, exactly. Not 2500, not 3500.
+- "Durée 3 semaines" → duration_weeks 3. Not 2.
+- "Client fournit matériaux" → materials_included false.
+You may estimate a value only when the contractor did NOT specify one. When you estimate, add a short note to "assumptions".
 
-RULES
-- Never invent major work that wasn't discussed.
-- If the contractor says "ignore that" or "remove X", actually remove it from the draft.
-- The draft in EACH reply must reflect EVERYTHING agreed so far — the contractor sees it live and expects it current.
-- JSON ONLY. No markdown fences, no prose outside the JSON.`;
+ACKNOWLEDGE INPUT IN "message"
+Your message field MUST echo specific values the contractor gave, so they can see you captured them. Example: "Noté : démolition 3 000 $, plancher 4 500 $, durée 3 semaines."
+
+ALWAYS POPULATE "options"
+The "options" array must NEVER be empty. Even on the very first message, even if you're asking clarifying questions, return at least one option with your best current understanding. If the contractor hasn't given numbers yet, use realistic Quebec residential pricing as placeholders and note them in "assumptions".
+
+OPTIONS / PRICING TIERS
+- If the contractor asks for multiple tiers ("3 options", "basique / standard / premium", "good/better/best"), return 2–3 options with materially different scopes. Each option's total is the sum of ITS OWN line_items — never merged.
+- Otherwise return exactly one option.
+
+EDIT SEMANTICS
+- "Ajoute X" / "Add X" → add.
+- "Enlève X" / "Remove X" → remove.
+- "Change X à Y" → modify.
+- The draft in each reply must reflect the ENTIRE agreed state so far.`;
 
 /* ---------- Core fetch wrapper ---------- */
-async function openaiChat({ messages, temperature = 0.4, maxTokens = 3500, jsonMode = false }) {
+async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonMode = false, model = 'gpt-4o-mini' }) {
   const body = {
-    model: 'gpt-4o-mini',
+    model,
     messages,
     temperature,
     max_tokens: maxTokens
@@ -129,18 +131,23 @@ async function callGPTChatWithDraft(conversation, context) {
     ...conversation.map(m => ({ role: m.role, content: m.content }))
   ];
 
-  const raw = await openaiChat({ messages, temperature: 0.5, maxTokens: 3500, jsonMode: true });
+  const raw = await openaiChat({ messages, temperature: 0.15, maxTokens: 3500, jsonMode: true });
   const cleaned = stripFences(raw);
+
+  console.log('[GPT raw response]', cleaned);
 
   let parsed;
   try {
     parsed = JSON.parse(cleaned);
-  } catch {
-    throw new Error('The AI returned an invalid format. Please try again.');
+  } catch (e) {
+    console.error('[GPT JSON parse failed]', e, cleaned);
+    throw new Error('AI returned invalid JSON. Raw: ' + cleaned.slice(0, 200));
   }
 
   const message = String(parsed.message || '').trim();
   const draft = parsed.draft ? normalizeDraft(parsed.draft) : { project_title: '', options: [], assumptions: [], questions: [] };
+
+  console.log('[GPT parsed]', { message, options: draft.options.length, project: draft.project_title });
 
   return { message, draft };
 }
