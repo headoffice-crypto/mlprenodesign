@@ -238,7 +238,7 @@ function goToStep(n) {
   if (n === 2) { renderClientContext(); renderChat(); }
   if (n === 3) renderOptionsEditor();
   if (n === 6) initContractorSignaturePad();
-  if (n === 7) renderFinalQuote();
+  if (n === 7) { renderFinalQuote(); ensureShareBoxVisible(); }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1008,6 +1008,37 @@ async function saveAndSendForSignature() {
 function buildShareLink(token) {
   const base = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
   return `${base}sign.html?token=${encodeURIComponent(token)}`;
+}
+
+function ensureShareBoxVisible() {
+  if (!savedQuote?.share_token) return;
+
+  const link = buildShareLink(savedQuote.share_token);
+  document.getElementById('share-link-input').value = link;
+  document.getElementById('share-box').style.display = '';
+
+  const clientName = val('f-client-name');
+  const clientEmail = val('f-client-email');
+  const subject = encodeURIComponent((lang === 'fr' ? 'Votre soumission MLP Reno & Design — ' : 'Your MLP Reno & Design quote — ') + savedQuote.quote_number);
+  const body = encodeURIComponent(
+    lang === 'fr'
+      ? `Bonjour ${clientName},\n\nVoici votre soumission. Vous pouvez la consulter et la signer en ligne :\n${link}\n\nMerci,\nMLP Reno & Design`
+      : `Hi ${clientName},\n\nHere is your quote. You can view and sign it online:\n${link}\n\nThank you,\nMLP Reno & Design`
+  );
+  const emailEl = document.getElementById('share-email');
+  if (emailEl) emailEl.href = `mailto:${clientEmail || ''}?subject=${subject}&body=${body}`;
+
+  document.getElementById('quote-status-card').style.display = '';
+  document.getElementById('quote-number-display').textContent = savedQuote.quote_number;
+  const pill = document.getElementById('quote-status-pill');
+  const statusText = {
+    draft: lang === 'fr' ? 'Brouillon' : 'Draft',
+    sent: lang === 'fr' ? 'Envoyée' : 'Sent',
+    viewed: lang === 'fr' ? 'Consultée' : 'Viewed',
+    signed: lang === 'fr' ? 'Signée' : 'Signed'
+  }[savedQuote.status] || savedQuote.status;
+  pill.textContent = statusText;
+  pill.className = 'status-pill ' + savedQuote.status;
 }
 
 function copyShareLink() {
