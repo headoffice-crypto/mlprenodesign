@@ -183,12 +183,13 @@ async function listCustomersWithStats() {
   const { data: customers, error } = await sb.from('customers').select('*').order('updated_at', { ascending: false });
   if (error) throw error;
 
-  // Aggregate quotes per customer
   const { data: quotes } = await sb.from('quotes').select('customer_id, status, options, accepted_option_key');
+  const { data: projects } = await sb.from('projects').select('id, customer_id, status');
+
   const stats = new Map();
   (quotes || []).forEach(q => {
     if (!q.customer_id) return;
-    const s = stats.get(q.customer_id) || { quotes: 0, signed: 0, revenue: 0 };
+    const s = stats.get(q.customer_id) || { quotes: 0, signed: 0, revenue: 0, project_id: null, active_project: false };
     s.quotes += 1;
     if (q.status === 'signed') {
       s.signed += 1;
@@ -198,9 +199,20 @@ async function listCustomersWithStats() {
     stats.set(q.customer_id, s);
   });
 
+  (projects || []).forEach(p => {
+    if (!p.customer_id) return;
+    const s = stats.get(p.customer_id) || { quotes: 0, signed: 0, revenue: 0, project_id: null, active_project: false };
+    // Prefer the most recently active project
+    if (!s.project_id || ['active', 'planning'].includes(p.status)) {
+      s.project_id = p.id;
+      s.active_project = ['active', 'planning'].includes(p.status);
+    }
+    stats.set(p.customer_id, s);
+  });
+
   return (customers || []).map(c => ({
     ...c,
-    stats: stats.get(c.id) || { quotes: 0, signed: 0, revenue: 0 }
+    stats: stats.get(c.id) || { quotes: 0, signed: 0, revenue: 0, project_id: null, active_project: false }
   }));
 }
 

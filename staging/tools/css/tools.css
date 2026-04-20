@@ -690,6 +690,59 @@ body {
   .option-editor-head { grid-template-columns: 1fr; }
 }
 
+/* Customer cards */
+.customer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+.customer-card {
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.customer-card:hover { box-shadow: var(--shadow-md); border-color: var(--accent); transform: translateY(-2px); }
+.cc-head { display: flex; align-items: flex-start; gap: 12px; }
+.cc-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -0.3px;
+}
+.cc-name { font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.2px; line-height: 1.3; }
+.cc-since { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+.cc-contact { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.cc-contact a, .cc-contact span { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); text-decoration: none; min-width: 0; }
+.cc-contact a:hover { color: var(--accent-dark); }
+.cc-contact .material-icons-round { font-size: 16px; flex-shrink: 0; color: var(--accent-dark); }
+.cc-contact .cc-val {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  padding: 10px;
+  background: var(--surface-dim);
+  border-radius: var(--radius-xs);
+}
+.cc-stat { text-align: center; }
+.cc-stat-v { font-size: 15px; font-weight: 800; color: var(--accent-dark); }
+.cc-stat-l { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+.cc-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.cc-actions .btn { flex: 1; min-width: 0; padding: 10px 12px; font-size: 13px; width: auto; }
+.cc-actions .btn .material-icons-round { font-size: 16px; }
+
 /* Quotes dashboard */
 .quotes-list { background: var(--surface); border: 1px solid var(--outline-light); border-radius: var(--radius); overflow: hidden; }
 .quote-row {
