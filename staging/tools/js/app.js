@@ -315,7 +315,23 @@ async function saveDraft() {
   draftSaveInFlight = true;
   updateDraftStatus('saving');
   try {
+    // Ensure a customer exists and is linked to the quote
+    let customerId = savedQuote?.customer_id || null;
+    try {
+      const newId = await upsertCustomer({
+        name: clientName,
+        email: val('f-client-email'),
+        phone: val('f-client-phone'),
+        address: val('f-client-address')
+      });
+      if (newId) customerId = newId;
+    } catch (err) {
+      console.warn('[upsertCustomer during draft] failed', err);
+    }
+
     const record = buildQuoteRecord(savedQuote?.status && savedQuote.status !== 'draft' ? savedQuote.status : 'draft');
+    record.customer_id = customerId;
+
     const saved = await saveQuote(record);
     savedQuote = saved;
     lastSavedAt = new Date();
