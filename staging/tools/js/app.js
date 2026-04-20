@@ -1006,6 +1006,9 @@ async function saveAndSendForSignature() {
 }
 
 function buildShareLink(token) {
+  if (typeof PUBLIC_APP_URL === 'string' && PUBLIC_APP_URL) {
+    return `${PUBLIC_APP_URL}/sign.html?token=${encodeURIComponent(token)}`;
+  }
   const base = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
   return `${base}sign.html?token=${encodeURIComponent(token)}`;
 }
