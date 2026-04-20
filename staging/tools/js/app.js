@@ -877,17 +877,21 @@ function copyShareLink() {
   navigator.clipboard.writeText(input.value).then(() => showToast(t('link_copied')));
 }
 
-async function sendSmsNow() {
-  const btn = document.getElementById('btn-send-sms');
-  const status = document.getElementById('sms-status');
+async function sendVia(channel) {
+  const btn = document.getElementById(channel === 'sms' ? 'btn-send-sms' : 'btn-send-email');
+  const status = document.getElementById('send-status');
 
   if (!savedQuote?.id) {
     showToast(lang === 'fr' ? 'Enregistrez d\'abord la soumission.' : 'Save the quote first.', 'error');
     return;
   }
-  const phone = val('f-client-phone');
-  if (!phone) {
+  if (channel === 'sms' && !val('f-client-phone')) {
     showToast(lang === 'fr' ? 'Téléphone client manquant.' : 'Client phone is missing.', 'error');
+    goToStep(1);
+    return;
+  }
+  if (channel === 'email' && !val('f-client-email')) {
+    showToast(lang === 'fr' ? 'Courriel client manquant.' : 'Client email is missing.', 'error');
     goToStep(1);
     return;
   }
@@ -906,18 +910,25 @@ async function sendSmsNow() {
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
       },
-      body: JSON.stringify({ quote_id: savedQuote.id, channel: 'sms' })
+      body: JSON.stringify({ quote_id: savedQuote.id, channel })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
 
     status.style.color = 'var(--green)';
-    status.innerHTML = '✓ ' + (lang === 'fr'
-      ? `SMS envoyé au ${data.to}. SID Twilio : ${data.sid}`
-      : `SMS sent to ${data.to}. Twilio SID: ${data.sid}`);
-    showToast(lang === 'fr' ? 'SMS envoyé !' : 'SMS sent!');
+    if (channel === 'sms') {
+      status.innerHTML = '✓ ' + (lang === 'fr'
+        ? `SMS envoyé au ${data.to} (SID ${data.sid}).`
+        : `SMS sent to ${data.to} (SID ${data.sid}).`);
+      showToast(lang === 'fr' ? 'SMS envoyé !' : 'SMS sent!');
+    } else {
+      status.innerHTML = '✓ ' + (lang === 'fr'
+        ? `Courriel envoyé à ${data.to}.`
+        : `Email sent to ${data.to}.`);
+      showToast(lang === 'fr' ? 'Courriel envoyé !' : 'Email sent!');
+    }
   } catch (err) {
-    console.error('[sendSmsNow]', err);
+    console.error('[sendVia ' + channel + ']', err);
     status.style.color = 'var(--red)';
     status.textContent = '⚠️ ' + (err.message || err);
     showToast((lang === 'fr' ? 'Erreur : ' : 'Error: ') + (err.message || err), 'error');
@@ -926,6 +937,9 @@ async function sendSmsNow() {
     btn.innerHTML = originalHtml;
   }
 }
+
+function sendSmsNow()   { return sendVia('sms'); }
+function sendEmailNow() { return sendVia('email'); }
 
 /* ============================================
    COPY / PRINT

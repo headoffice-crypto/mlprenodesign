@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=8">
+  <link rel="stylesheet" href="css/tools.css?v=9">
 </head>
 <body>
 
@@ -17,7 +17,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v8</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v9</span></h1>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Toutes les soumissions">
@@ -223,16 +223,16 @@
         </button>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        <a id="share-email" href="#" class="btn btn-secondary btn-sm" style="flex:1;text-decoration:none;">
+        <button id="btn-send-email" class="btn btn-primary btn-sm" style="flex:1;" onclick="sendEmailNow()">
           <span class="material-icons-round" style="font-size:18px">mail</span>
-          <span data-i18n="send_email">Envoyer par courriel</span>
-        </a>
+          <span data-i18n="send_email_now">Envoyer courriel au client</span>
+        </button>
         <button id="btn-send-sms" class="btn btn-primary btn-sm" style="flex:1;" onclick="sendSmsNow()">
           <span class="material-icons-round" style="font-size:18px">sms</span>
           <span data-i18n="send_sms_now">Envoyer SMS au client</span>
         </button>
       </div>
-      <div id="sms-status" style="font-size:12px;color:var(--text-secondary);margin-top:8px;"></div>
+      <div id="send-status" style="font-size:12px;color:var(--text-secondary);margin-top:8px;"></div>
       <div class="share-hint" data-i18n="share_hint">Copiez ce lien ou utilisez les boutons ci-dessus. Le client pourra choisir une option et signer. Vous serez notifié dans le tableau des soumissions une fois signée.</div>
     </div>
 
@@ -256,10 +256,10 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="js/config.js?v=8"></script>
-<script src="js/supabase-client.js?v=8"></script>
-<script src="js/signature-pad.js?v=8"></script>
-<script src="js/openai.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/supabase-client.js?v=9"></script>
+<script src="js/signature-pad.js?v=9"></script>
+<script src="js/openai.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>
