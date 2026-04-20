@@ -690,6 +690,76 @@ body {
   .option-editor-head { grid-template-columns: 1fr; }
 }
 
+/* Action items with progress */
+.action-item-pro {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--outline-light);
+}
+.action-item-pro:last-child { border-bottom: none; }
+.action-item-pro > .a-body { min-width: 0; }
+.action-item-pro input[type="text"] {
+  width: 100%;
+  background: none; border: none;
+  font-size: 14px; color: var(--text-primary); font-family: inherit;
+  padding: 4px 0;
+}
+.action-item-pro input[type="text"]:focus { outline: none; background: var(--surface-dim); border-radius: 4px; padding: 4px; }
+.action-progress {
+  height: 6px;
+  background: var(--surface-dim);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.action-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.action-progress-fill.done { background: var(--green); }
+.action-pct-select {
+  min-width: 70px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--outline);
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--white);
+  cursor: pointer;
+  font-family: inherit;
+}
+.action-pct-select.done { background: var(--green-light); color: var(--green); border-color: var(--green); }
+
+.overall-progress-card {
+  background: linear-gradient(135deg, var(--accent-light), #fffaf0);
+  border: 1px solid #ecd9a9;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 14px;
+}
+.overall-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.overall-progress-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-dark); }
+.overall-progress-pct { font-size: 24px; font-weight: 800; color: var(--accent-dark); letter-spacing: -0.5px; }
+.overall-progress-bar { height: 10px; background: rgba(0,0,0,0.08); border-radius: 5px; overflow: hidden; }
+.overall-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  border-radius: 5px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.overall-progress-bar-fill.done { background: var(--green); }
+
 /* Customer cards */
 .customer-grid {
   display: grid;

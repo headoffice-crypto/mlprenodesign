@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=17">
+  <link rel="stylesheet" href="css/tools.css?v=18">
   <style>
     .project-head {
       background: var(--surface);
@@ -178,12 +178,61 @@ let activePhotoCat = 'before';
     invoices = await getOrGenerateInvoicesForProject(project, quote);
     photos = await listProjectPhotos(project.id);
 
+    // Migrate old {text, done} action items to new {id, text, pct} format
+    // AND auto-populate from accepted option line items if empty
+    project = await ensureActionItems(project, quote);
+
     render();
   } catch (err) {
     console.error(err);
     root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
   }
 })();
+
+async function ensureActionItems(proj, q) {
+  let items = Array.isArray(proj.action_items) ? proj.action_items : [];
+  let changed = false;
+
+  // Migrate legacy shape: {text, done} -> {id, text, pct}
+  items = items.map((it, idx) => {
+    if ('pct' in it) return it;
+    changed = true;
+    return {
+      id: it.id || ('mig-' + idx),
+      text: it.text || '',
+      pct: it.done ? 100 : 0,
+      updated_at: it.done_at || new Date().toISOString()
+    };
+  });
+
+  // If still empty and the quote has an accepted option with line items, generate from those
+  if (items.length === 0) {
+    const opts = Array.isArray(q.options) ? q.options : [];
+    const accepted = opts.find(o => o.key === q.accepted_option_key) || opts[0];
+    if (accepted && Array.isArray(accepted.line_items) && accepted.line_items.length) {
+      items = accepted.line_items.map((li, idx) => ({
+        id: 'gen-' + idx,
+        text: li.description || '',
+        pct: 0,
+        updated_at: new Date().toISOString()
+      }));
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    const updated = await updateProject(proj.id, { action_items: items });
+    return updated;
+  }
+  return proj;
+}
+
+function computeOverallProgress() {
+  const items = project.action_items || [];
+  if (!items.length) return 0;
+  const sum = items.reduce((s, it) => s + (Number(it.pct) || 0), 0);
+  return Math.round(sum / items.length);
+}
 
 function render() {
   const root = document.getElementById('root');
@@ -192,6 +241,7 @@ function render() {
   const totalSigned = accepted ? accepted.total : 0;
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount_total || 0), 0);
   const totalOutstanding = totalSigned - totalPaid;
+  const overallPct = computeOverallProgress();
 
   let h = '';
 
@@ -223,6 +273,19 @@ function render() {
     </select>
   </div>`;
 
+  // OVERALL PROGRESS
+  h += `<div class="overall-progress-card">
+    <div class="overall-progress-head">
+      <div class="overall-progress-label">Avancement global</div>
+      <div class="overall-progress-pct">${overallPct}%</div>
+    </div>
+    <div class="overall-progress-bar"><div class="overall-progress-bar-fill ${overallPct === 100 ? 'done' : ''}" style="width:${overallPct}%;"></div></div>
+    <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:12px;" onclick="sendProgressUpdate('email', this)">
+      <span class="material-icons-round">send</span>
+      <span>Envoyer une mise à jour au client</span>
+    </button>
+  </div>`;
+
   // INVOICES
   h += '<div class="section-title">Facturation</div>';
   h += '<div class="card-flat">';
@@ -230,7 +293,7 @@ function render() {
   h += '</div>';
 
   // ACTION ITEMS
-  h += '<div class="section-title">Tâches</div>';
+  h += '<div class="section-title">Avancement par tâche</div>';
   h += '<div class="card-flat" id="action-items-box">';
   (project.action_items || []).forEach((item, idx) => h += actionItemRow(item, idx));
   h += '</div>';
@@ -299,10 +362,17 @@ function invoiceRow(inv) {
 }
 
 function actionItemRow(item, idx) {
-  return `<div class="action-item ${item.done ? 'done' : ''}" data-idx="${idx}">
-    <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleAction(${idx}, this.checked)">
-    <input type="text" value="${esc(item.text || '')}" onchange="updateActionText(${idx}, this.value)" placeholder="Tâche">
-    <button class="action-remove" onclick="removeAction(${idx})"><span class="material-icons-round" style="font-size:18px;">close</span></button>
+  const pct = Number(item.pct) || 0;
+  const done = pct === 100;
+  return `<div class="action-item-pro" data-idx="${idx}">
+    <div class="a-body">
+      <input type="text" value="${esc(item.text || '')}" onchange="updateActionText(${idx}, this.value)" placeholder="Tâche">
+      <div class="action-progress"><div class="action-progress-fill ${done ? 'done' : ''}" style="width:${pct}%;"></div></div>
+    </div>
+    <select class="action-pct-select ${done ? 'done' : ''}" onchange="updateActionPct(${idx}, this.value)">
+      ${[0,10,25,50,75,90,100].map(v => `<option value="${v}" ${v === pct ? 'selected' : ''}>${v}%</option>`).join('')}
+    </select>
+    <button class="action-remove" onclick="removeAction(${idx})" title="Supprimer"><span class="material-icons-round" style="font-size:18px;">close</span></button>
   </div>`;
 }
 
@@ -358,16 +428,16 @@ function wireUp() {
 
 /* ---- Action item handlers ---- */
 function addActionItem() {
-  const items = project.action_items || [];
-  items.push({ id: Math.random().toString(36).slice(2, 9), text: '', done: false });
+  const items = [...(project.action_items || [])];
+  items.push({ id: 'new-' + Math.random().toString(36).slice(2, 9), text: '', pct: 0, updated_at: new Date().toISOString() });
   saveActionItems(items);
 }
 
-async function toggleAction(idx, done) {
+async function updateActionPct(idx, pct) {
   const items = [...(project.action_items || [])];
   if (!items[idx]) return;
-  items[idx].done = done;
-  items[idx].done_at = done ? new Date().toISOString() : null;
+  items[idx].pct = Number(pct) || 0;
+  items[idx].updated_at = new Date().toISOString();
   await saveActionItems(items);
 }
 
@@ -375,6 +445,7 @@ async function updateActionText(idx, text) {
   const items = [...(project.action_items || [])];
   if (!items[idx]) return;
   items[idx].text = text;
+  items[idx].updated_at = new Date().toISOString();
   await saveActionItems(items, false);
 }
 
@@ -389,6 +460,33 @@ async function saveActionItems(items, rerender = true) {
     project = await updateProject(project.id, { action_items: items });
     if (rerender) render();
   } catch (err) { showToast('Erreur : ' + err.message); }
+}
+
+/* ---- Send progress update to client ---- */
+async function sendProgressUpdate(channel, btn) {
+  if (!confirm('Envoyer la mise à jour du projet au client par courriel ?')) return;
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-ring"></span><span>Envoi…</span>';
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ project_id: project.id, channel, type: 'progress' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    showToast(channel === 'email' ? `Mise à jour envoyée à ${data.to}` : `Mise à jour SMS envoyée`);
+  } catch (err) {
+    showToast('Erreur : ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
 }
 
 /* ---- Photo handlers ---- */

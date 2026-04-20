@@ -106,6 +106,7 @@
 <script src="js/signature-pad.js"></script>
 <script>
 let currentQuote = null;
+let currentProject = null;
 let selectedOptionKey = null;
 let customerPad = null;
 
@@ -128,8 +129,13 @@ let customerPad = null;
   const options = Array.isArray(q.options) ? q.options : [];
   const multi = options.length > 1;
 
-  // default selected = first, or the accepted one if already signed
   selectedOptionKey = q.accepted_option_key || options[0]?.key || null;
+
+  // Load the project (if the quote has been signed and a project exists)
+  if (alreadySigned) {
+    const { data } = await sb.from('projects').select('*').eq('quote_id', q.id).maybeSingle();
+    currentProject = data;
+  }
 
   renderPage();
 })();
@@ -233,6 +239,7 @@ function renderPage() {
 
   if (alreadySigned) {
     h += renderAlreadySigned(q, fr);
+    if (currentProject) h += renderProgress(currentProject, fr);
   } else {
     h += renderSignBlock(q, fr, options, multi);
   }
@@ -272,6 +279,48 @@ function renderSignBlock(q, fr, options, multi) {
   h += '</div>';
 
   h += `<button class="btn btn-primary" id="sign-submit"><span class="material-icons-round">check_circle</span><span>${fr ? 'Accepter et signer' : 'Accept & sign'}</span></button>`;
+  h += '</div>';
+  return h;
+}
+
+function renderProgress(project, fr) {
+  const items = Array.isArray(project.action_items) ? project.action_items : [];
+  if (!items.length) return '';
+  const overall = Math.round(items.reduce((s, it) => s + (Number(it.pct) || 0), 0) / items.length);
+
+  let h = '<div style="background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid var(--outline-light);margin-top:20px;">';
+  h += `<h2 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#202124;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid var(--accent);">${fr ? "Avancement du projet" : "Project progress"}</h2>`;
+
+  // Overall
+  h += `<div style="background:linear-gradient(135deg,#f5edda,#fffaf0);border:1px solid #ecd9a9;border-radius:12px;padding:18px;margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+      <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent-dark);">${fr ? "Avancement global" : "Overall progress"}</span>
+      <span style="font-size:26px;font-weight:800;color:var(--accent-dark);">${overall}%</span>
+    </div>
+    <div style="height:10px;background:rgba(0,0,0,0.08);border-radius:5px;overflow:hidden;">
+      <div style="height:100%;width:${overall}%;background:${overall === 100 ? 'var(--green)' : 'linear-gradient(90deg,var(--accent),var(--accent-dark))'};border-radius:5px;transition:width 0.4s;"></div>
+    </div>
+  </div>`;
+
+  // Per-task
+  items.forEach(it => {
+    const pct = Number(it.pct) || 0;
+    const done = pct === 100;
+    h += `<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:5px;">
+        <span>${esc(it.text || "")}</span>
+        <strong style="color:${done ? "var(--green)" : "var(--accent-dark)"};">${pct}%${done ? " ✓" : ""}</strong>
+      </div>
+      <div style="height:6px;background:#f1f3f4;border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${done ? "var(--green)" : "var(--accent)"};border-radius:3px;"></div>
+      </div>
+    </div>`;
+  });
+
+  if (project.notes) {
+    h += `<div style="background:#f8f9fa;border-left:4px solid var(--accent);padding:14px;border-radius:10px;font-size:13px;color:#3c4043;line-height:1.6;white-space:pre-line;margin-top:20px;">${esc(project.notes)}</div>`;
+  }
+
   h += '</div>';
   return h;
 }

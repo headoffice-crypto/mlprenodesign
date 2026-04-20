@@ -137,20 +137,161 @@ ${escHtml(quote.payment_methods || "")}</div>
   </div></body></html>`;
 }
 
+function buildProgressEmailHtml(project, quote, lang) {
+  const fr = lang === "fr";
+  const items = Array.isArray(project.action_items) ? project.action_items : [];
+  const overall = items.length
+    ? Math.round(items.reduce((s, it) => s + (Number(it.pct) || 0), 0) / items.length)
+    : 0;
+
+  let tasksBlock = "";
+  items.forEach((it) => {
+    const pct = Number(it.pct) || 0;
+    const done = pct === 100;
+    const barColor = done ? "#1e8e3e" : "#c8a45a";
+    tasksBlock += `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:4px;">
+          <span>${escHtml(it.text || "")}</span>
+          <strong style="color:${done ? "#1e8e3e" : "#c8a45a"};">${pct}%${done ? " ✓" : ""}</strong>
+        </div>
+        <div style="height:8px;background:#f1f3f4;border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;"></div>
+        </div>
+      </div>`;
+  });
+
+  const greeting = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const intro = fr
+    ? `Voici une mise à jour de l'avancement de votre projet <strong>${escHtml(quote.project_title || quote.quote_number)}</strong>.`
+    : `Here is a progress update on your project <strong>${escHtml(quote.project_title || quote.quote_number)}</strong>.`;
+  const overallLabel = fr ? "Avancement global" : "Overall progress";
+  const tasksLabel = fr ? "Détail par tâche" : "Task breakdown";
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#202124;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;padding:32px 28px;">
+    <div style="border-bottom:3px solid #c8a45a;padding-bottom:12px;margin-bottom:20px;">
+      <div style="font-size:22px;font-weight:800;color:#c8a45a;">MLP Reno &amp; Design</div>
+      <div style="font-size:13px;color:#5f6368;">${fr ? "Mise à jour du projet" : "Project update"}</div>
+    </div>
+
+    <p style="font-size:16px;margin:0 0 12px;">${greeting}</p>
+    <p style="font-size:14px;color:#3c4043;line-height:1.6;margin:0 0 20px;">${intro}</p>
+
+    <div style="background:linear-gradient(135deg,#f5edda,#fffaf0);border:1px solid #ecd9a9;border-radius:10px;padding:18px;margin:16px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#a68a3e;">${overallLabel}</span>
+        <span style="font-size:26px;font-weight:800;color:#a68a3e;">${overall}%</span>
+      </div>
+      <div style="height:10px;background:rgba(0,0,0,0.08);border-radius:5px;overflow:hidden;">
+        <div style="height:100%;width:${overall}%;background:linear-gradient(90deg,#c8a45a,#a68a3e);border-radius:5px;"></div>
+      </div>
+    </div>
+
+    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:#202124;margin:24px 0 14px;padding-bottom:6px;border-bottom:2px solid #c8a45a;">${tasksLabel}</h3>
+    ${tasksBlock || `<div style="color:#9aa0a6;font-style:italic;">${fr ? "Aucune tâche à afficher." : "No tasks yet."}</div>`}
+
+    ${project.notes ? `<div style="background:#f8f9fa;border-left:4px solid #c8a45a;padding:14px;border-radius:10px;font-size:13px;color:#3c4043;line-height:1.6;white-space:pre-line;margin-top:20px;">${escHtml(project.notes)}</div>` : ""}
+
+    <p style="font-size:13px;color:#5f6368;line-height:1.6;margin-top:20px;">${fr ? "N'hésitez pas à nous contacter si vous avez des questions." : "Please reach out if you have any questions."}</p>
+    <p style="font-size:14px;color:#3c4043;margin:18px 0 0;">${fr ? "Merci," : "Thanks,"}<br><strong>MLP Reno &amp; Design</strong></p>
+    <div style="border-top:1px solid #e8eaed;margin-top:28px;padding-top:16px;font-size:11px;color:#9aa0a6;line-height:1.6;">
+      MLP Reno &amp; Design — (450) 500-8936 — headoffice@mlpexperience.com
+    </div>
+  </div></body></html>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { quote_id, invoice_id, channel = "sms", to, message } = body;
+    const { quote_id, invoice_id, project_id, channel = "sms", type, to, message } = body;
 
-    if (!quote_id && !invoice_id) return jsonResp({ error: "quote_id or invoice_id required" }, 400);
+    if (!quote_id && !invoice_id && !project_id) return jsonResp({ error: "quote_id, invoice_id, or project_id required" }, 400);
     if (!["sms", "email"].includes(channel)) return jsonResp({ error: "channel must be 'sms' or 'email'" }, 400);
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const APP_BASE_URL = Deno.env.get("APP_BASE_URL") ?? "http://localhost:8000/staging/tools";
     if (!SUPABASE_URL || !SUPABASE_KEY) return jsonResp({ error: "Supabase env missing" }, 500);
+
+    // ---------- PROJECT PROGRESS PATH ----------
+    if (project_id) {
+      const pArr = await sbGet(`${SUPABASE_URL}/rest/v1/projects?id=eq.${encodeURIComponent(project_id)}&select=*`, SUPABASE_KEY);
+      const proj = pArr?.[0];
+      if (!proj) return jsonResp({ error: "project not found" }, 404);
+
+      const qArr = await sbGet(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${encodeURIComponent(proj.quote_id)}&select=*`, SUPABASE_KEY);
+      const quote = qArr?.[0];
+      if (!quote) return jsonResp({ error: "related quote not found" }, 404);
+
+      const lang = quote.language === "en" ? "en" : "fr";
+      const items = Array.isArray(proj.action_items) ? proj.action_items : [];
+      const overall = items.length
+        ? Math.round(items.reduce((s, it) => s + (Number(it.pct) || 0), 0) / items.length)
+        : 0;
+
+      if (channel === "sms") {
+        const TWILIO_SID = Deno.env.get("TWILIO_SID") ?? "";
+        const TWILIO_TOKEN = Deno.env.get("TWILIO_TOKEN") ?? "";
+        const TWILIO_FROM = Deno.env.get("TWILIO_FROM") ?? "";
+        if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) return jsonResp({ error: "Twilio env missing" }, 500);
+
+        const raw = String(to || quote.client_phone || "");
+        const digits = raw.replace(/\D/g, "");
+        if (!digits) return jsonResp({ error: "no phone number" }, 400);
+        const to_e164 = raw.startsWith("+") ? raw : (digits.length === 10 ? `+1${digits}` : `+${digits}`);
+
+        const body = message || (lang === "fr"
+          ? `MLP Reno & Design — Mise à jour du projet ${quote.project_title || quote.quote_number} : ${overall}% terminé.`
+          : `MLP Reno & Design — Project update for ${quote.project_title || quote.quote_number}: ${overall}% complete.`);
+
+        const auth = btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
+        const form = new URLSearchParams({ From: TWILIO_FROM, To: to_e164, Body: body });
+        const twRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
+          method: "POST",
+          headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
+          body: form.toString(),
+        });
+        const twData = await twRes.json();
+        if (!twRes.ok) return jsonResp({ error: twData.message || "Twilio error", code: twData.code }, 500);
+
+        return jsonResp({ ok: true, channel: "sms", sid: twData.sid, to: to_e164 });
+      }
+
+      // Project progress — email
+      const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+      const FROM = Deno.env.get("EMAIL_FROM") ?? "MLP Reno & Design <onboarding@resend.dev>";
+      const REPLY_TO = Deno.env.get("EMAIL_REPLY_TO") ?? "";
+      if (!RESEND_KEY) return jsonResp({ error: "Resend env missing" }, 500);
+
+      const emailTo = (to || quote.client_email || "").trim();
+      if (!emailTo) return jsonResp({ error: "no email address" }, 400);
+
+      const subject = lang === "fr"
+        ? `Mise à jour de projet — ${quote.project_title || quote.quote_number} (${overall}%)`
+        : `Project update — ${quote.project_title || quote.quote_number} (${overall}%)`;
+
+      const payload = {
+        from: FROM,
+        to: [emailTo],
+        subject,
+        html: buildProgressEmailHtml(proj, quote, lang),
+      };
+      if (REPLY_TO) payload.reply_to = REPLY_TO;
+
+      const rRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const rData = await rRes.json();
+      if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
+
+      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, overall });
+    }
 
     // ---------- INVOICE PATH ----------
     if (invoice_id) {
