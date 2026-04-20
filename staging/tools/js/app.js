@@ -139,7 +139,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (draftId) {
     await loadDraftById(draftId);
   } else {
+    // Prefill from customer.html "new quote for this customer" link
+    const prefill = ['client_name', 'client_email', 'client_phone', 'client_address'];
+    prefill.forEach(key => {
+      const v = params.get(key);
+      if (v) {
+        const el = document.getElementById('f-' + key.replace('_', '-'));
+        if (el) el.value = v;
+      }
+    });
     goToStep(1);
+    renderClientContext();
   }
 
   // Chat: Enter to send, Shift+Enter for newline

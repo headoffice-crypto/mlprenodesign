@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client — MLP Reno & Design</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="css/tools.css?v=15">
+  <style>
+    .customer-head {
+      background: var(--surface);
+      border: 1px solid var(--outline-light);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .customer-name { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 6px; }
+    .customer-contact { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
+    .customer-contact a { color: var(--text-secondary); text-decoration: none; }
+    .customer-contact a:hover { color: var(--accent-dark); }
+    .customer-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-top: 16px;
+    }
+    .stat-card {
+      background: var(--surface-dim);
+      border-radius: var(--radius-xs);
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-val { font-size: 20px; font-weight: 800; color: var(--accent-dark); }
+    .stat-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <a href="customers.html" style="color:inherit;text-decoration:none;" class="header-link">
+      <span class="material-icons-round">arrow_back</span>
+    </a>
+    <div class="header-logo">M</div>
+    <h1>MLP Reno &amp; Design</h1>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a href="index.html" class="btn btn-primary btn-sm" id="btn-new-for-customer" style="width:auto;text-decoration:none;">
+      <span class="material-icons-round" style="font-size:18px">add</span>
+      <span>Nouvelle soumission</span>
+    </a>
+  </div>
+</div>
+
+<div class="main">
+  <div id="root">
+    <div style="text-align:center;padding:40px;color:var(--text-secondary);">
+      <div class="spinner-ring" style="width:28px;height:28px;border-width:3px;margin-bottom:12px;"></div>
+      <div>Chargement…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+let currentCustomer = null;
+
+(async function() {
+  const root = document.getElementById('root');
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  if (!id) { root.innerHTML = '<div class="card" style="color:var(--red);">ID client manquant.</div>'; return; }
+
+  try {
+    const [customer, quotes] = await Promise.all([
+      getCustomerById(id),
+      getCustomerQuotes(id)
+    ]);
+    if (!customer) { root.innerHTML = '<div class="card" style="color:var(--red);">Client introuvable.</div>'; return; }
+    currentCustomer = customer;
+
+    const totalRevenue = quotes
+      .filter(q => q.status === 'signed')
+      .reduce((s, q) => {
+        const accepted = (q.options || []).find(o => o.key === q.accepted_option_key);
+        return s + (accepted ? Number(accepted.total || 0) : 0);
+      }, 0);
+    const totalQuotes = quotes.length;
+    const totalSigned = quotes.filter(q => q.status === 'signed').length;
+
+    root.innerHTML = renderHead(customer, { totalRevenue, totalQuotes, totalSigned })
+      + renderQuotes(quotes)
+      + renderNotes(customer);
+
+    // Prefill "new quote" button to start with this customer's info
+    document.getElementById('btn-new-for-customer').href =
+      'index.html?client_name=' + encodeURIComponent(customer.name || '') +
+      '&client_email=' + encodeURIComponent(customer.email || '') +
+      '&client_phone=' + encodeURIComponent(customer.phone || '') +
+      '&client_address=' + encodeURIComponent(customer.address || '');
+
+    // Wire up notes save
+    const notesEl = document.getElementById('customer-notes');
+    let notesTimer = null;
+    notesEl.addEventListener('input', () => {
+      clearTimeout(notesTimer);
+      notesTimer = setTimeout(async () => {
+        try {
+          await updateCustomer(customer.id, { notes: notesEl.value });
+          showToast('Notes enregistrées');
+        } catch (err) { showToast('Erreur : ' + err.message); }
+      }, 800);
+    });
+  } catch (err) {
+    root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
+  }
+})();
+
+function renderHead(c, stats) {
+  const contactLines = [];
+  if (c.email) contactLines.push(`<a href="mailto:${esc(c.email)}"><span class="material-icons-round" style="font-size:14px;vertical-align:-3px;">mail</span> ${esc(c.email)}</a>`);
+  if (c.phone) contactLines.push(`<a href="tel:${esc(c.phone)}"><span class="material-icons-round" style="font-size:14px;vertical-align:-3px;">phone</span> ${esc(c.phone)}</a>`);
+  if (c.address) contactLines.push(`<span><span class="material-icons-round" style="font-size:14px;vertical-align:-3px;">place</span> ${esc(c.address)}</span>`);
+
+  return `<div class="customer-head">
+    <div class="customer-name">${esc(c.name)}</div>
+    <div class="customer-contact">${contactLines.join('')}</div>
+    <div class="customer-stats">
+      <div class="stat-card"><div class="stat-val">${stats.totalQuotes}</div><div class="stat-label">Soumissions</div></div>
+      <div class="stat-card"><div class="stat-val">${stats.totalSigned}</div><div class="stat-label">Signées</div></div>
+      <div class="stat-card"><div class="stat-val">$${money(stats.totalRevenue)}</div><div class="stat-label">Revenu signé</div></div>
+    </div>
+  </div>`;
+}
+
+function renderQuotes(quotes) {
+  let h = '<div class="section-title">Soumissions</div>';
+  if (!quotes.length) {
+    h += '<div class="card" style="text-align:center;color:var(--text-secondary);padding:30px;">Aucune soumission pour ce client.</div>';
+    return h;
+  }
+  h += '<div class="quotes-list">';
+  quotes.forEach(q => {
+    const options = q.options || [];
+    const accepted = q.accepted_option_key ? options.find(o => o.key === q.accepted_option_key) : null;
+    const total = accepted ? accepted.total : (options.length ? Math.max(...options.map(o => o.total || 0)) : 0);
+    const date = new Date(q.created_at).toLocaleDateString('fr-CA');
+    const statusText = { draft: 'Brouillon', sent: 'Envoyée', viewed: 'Consultée', signed: 'Signée' }[q.status] || q.status;
+
+    const target = q.status === 'signed' ? `project.html?quote_id=${encodeURIComponent(q.id)}`
+      : q.status === 'draft' ? `index.html?draft=${encodeURIComponent(q.id)}`
+      : (q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : '#');
+
+    h += `<div class="quote-row" onclick="location.href='${target}'">
+      <div class="quote-row-main">
+        <div class="quote-row-title">${esc(q.project_title || q.quote_number)}</div>
+        <div class="quote-row-sub">${esc(q.quote_number)} · ${date}</div>
+      </div>
+      <div class="quote-row-right">
+        <div class="quote-row-total">$${money(total)}</div>
+        <span class="status-pill ${q.status}">${statusText}</span>
+      </div>
+    </div>`;
+  });
+  h += '</div>';
+  return h;
+}
+
+function renderNotes(c) {
+  return `<div class="section-title">Notes internes</div>
+    <div class="card">
+      <textarea class="form-textarea" id="customer-notes" rows="5" placeholder="Notes sur ce client (visibles seulement par vous)">${esc(c.notes || '')}</textarea>
+      <div class="form-helper">Les notes sont enregistrées automatiquement.</div>
+    </div>`;
+}
+
+function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show'; setTimeout(() => t.className = 'toast', 2500); }
+</script>
+</body>
+</html>

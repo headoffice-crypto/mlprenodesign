@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projet — MLP Reno & Design</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="css/tools.css?v=15">
+  <style>
+    .project-head {
+      background: var(--surface);
+      border: 1px solid var(--outline-light);
+      border-radius: var(--radius);
+      padding: 22px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .project-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
+    .project-sub { font-size: 13px; color: var(--text-secondary); }
+    .pj-status-select {
+      font-size: 12px; font-weight: 600;
+      padding: 6px 10px; border-radius: 16px;
+      border: 1.5px solid var(--outline);
+      background: var(--white);
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .invoice-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; gap: 12px;
+      border-bottom: 1px solid var(--outline-light);
+    }
+    .invoice-row:last-child { border-bottom: none; }
+    .invoice-main { flex: 1; min-width: 0; }
+    .invoice-title { font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 2px; }
+    .invoice-sub { font-size: 12px; color: var(--text-secondary); }
+    .invoice-amount { font-size: 15px; font-weight: 700; color: var(--accent-dark); white-space: nowrap; }
+    .invoice-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .inv-status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .inv-status-pending { background: var(--surface-dim); color: var(--text-secondary); }
+    .inv-status-sent    { background: var(--blue-light);  color: var(--blue); }
+    .inv-status-paid    { background: var(--green-light); color: var(--green); }
+    .inv-status-overdue { background: var(--red-light);   color: var(--red); }
+
+    .action-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--outline-light);
+    }
+    .action-item:last-child { border-bottom: none; }
+    .action-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+    .action-item input[type="text"] {
+      flex: 1; background: none; border: none;
+      font-size: 14px; color: var(--text-primary); font-family: inherit;
+      padding: 4px;
+    }
+    .action-item input[type="text"]:focus { outline: none; background: var(--surface-dim); border-radius: 4px; }
+    .action-item.done input[type="text"] { text-decoration: line-through; color: var(--text-hint); }
+    .action-remove { background: none; border: none; color: var(--text-hint); cursor: pointer; padding: 4px; border-radius: 4px; }
+    .action-remove:hover { background: var(--red-light); color: var(--red); }
+
+    /* Photos */
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .photo-card {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface-dim);
+      cursor: pointer;
+    }
+    .photo-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-card .cap {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: #fff; font-size: 11px; padding: 20px 8px 6px;
+    }
+    .photo-card .rm {
+      position: absolute; top: 6px; right: 6px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(0,0,0,0.5); color: #fff;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .photo-card:hover .rm { opacity: 1; }
+    .photo-category-tabs {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .photo-cat {
+      padding: 8px 14px; font-size: 13px; font-weight: 600;
+      background: var(--white); border: 1.5px solid var(--outline);
+      border-radius: 16px; cursor: pointer; color: var(--text-secondary);
+      transition: var(--transition);
+    }
+    .photo-cat.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .photo-upload-area {
+      border: 2px dashed var(--outline);
+      border-radius: var(--radius-xs);
+      padding: 20px;
+      text-align: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      margin-bottom: 12px;
+    }
+    .photo-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
+
+    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <a href="customers.html" class="header-link" style="color:inherit;"><span class="material-icons-round">arrow_back</span></a>
+    <div class="header-logo">M</div>
+    <h1>MLP Reno &amp; Design</h1>
+  </div>
+</div>
+
+<div class="main">
+  <div id="root">
+    <div style="text-align:center;padding:40px;color:var(--text-secondary);">
+      <div class="spinner-ring" style="width:28px;height:28px;border-width:3px;margin-bottom:12px;"></div>
+      <div>Chargement du projet…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+let project = null;
+let quote = null;
+let invoices = [];
+let photos = [];
+let activePhotoCat = 'before';
+
+(async function() {
+  const root = document.getElementById('root');
+  const params = new URLSearchParams(location.search);
+  const quoteId = params.get('quote_id');
+  const projectId = params.get('id');
+
+  try {
+    if (projectId) {
+      project = await getProject(projectId);
+      if (!project) throw new Error('Projet introuvable');
+      quote = await sb.from('quotes').select('*').eq('id', project.quote_id).maybeSingle().then(r => r.data);
+    } else if (quoteId) {
+      quote = await sb.from('quotes').select('*').eq('id', quoteId).maybeSingle().then(r => r.data);
+      if (!quote) throw new Error('Soumission introuvable');
+      project = await getProjectByQuoteId(quoteId);
+      // Auto-create project if none exists (e.g. trigger hasn't fired for a manual signed quote)
+      if (!project) {
+        const { data, error } = await sb.from('projects').insert({ quote_id: quote.id, customer_id: quote.customer_id }).select('*').single();
+        if (error) throw error;
+        project = data;
+      }
+    } else {
+      throw new Error('quote_id ou id requis');
+    }
+
+    // Load invoices (auto-generate if none)
+    invoices = await getOrGenerateInvoicesForProject(project, quote);
+    photos = await listProjectPhotos(project.id);
+
+    render();
+  } catch (err) {
+    console.error(err);
+    root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
+  }
+})();
+
+function render() {
+  const root = document.getElementById('root');
+  const opts = quote.options || [];
+  const accepted = opts.find(o => o.key === quote.accepted_option_key) || opts[0];
+  const totalSigned = accepted ? accepted.total : 0;
+  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount_total || 0), 0);
+  const totalOutstanding = totalSigned - totalPaid;
+
+  let h = '';
+
+  // HEAD
+  h += `<div class="project-head">
+    <div class="project-title">${esc(quote.project_title || quote.quote_number)}</div>
+    <div class="project-sub">
+      Client : <a href="customer.html?id=${encodeURIComponent(quote.customer_id)}" style="color:var(--accent-dark);">${esc(quote.client_name || '—')}</a>
+      · ${esc(quote.client_address || '')}
+    </div>
+    <div class="customer-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;">
+      <div class="stat-card" style="background:var(--surface-dim);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:var(--accent-dark);">$${money(totalSigned)}</div>
+        <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Valeur du projet</div>
+      </div>
+      <div class="stat-card" style="background:var(--green-light);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:var(--green);">$${money(totalPaid)}</div>
+        <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Encaissé</div>
+      </div>
+      <div class="stat-card" style="background:${totalOutstanding > 0 ? 'var(--orange-light)' : 'var(--surface-dim)'};border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:${totalOutstanding > 0 ? 'var(--orange)' : 'var(--text-secondary)'};">$${money(totalOutstanding)}</div>
+        <div style="font-size:11px;color:${totalOutstanding > 0 ? 'var(--orange)' : 'var(--text-secondary)'};text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">À recevoir</div>
+      </div>
+    </div>
+    <select class="pj-status-select" id="project-status">
+      ${['planning','active','on_hold','completed','cancelled'].map(s =>
+        `<option value="${s}" ${project.status === s ? 'selected' : ''}>${statusFr(s)}</option>`
+      ).join('')}
+    </select>
+  </div>`;
+
+  // INVOICES
+  h += '<div class="section-title">Facturation</div>';
+  h += '<div class="card-flat">';
+  invoices.forEach(inv => h += invoiceRow(inv));
+  h += '</div>';
+
+  // ACTION ITEMS
+  h += '<div class="section-title">Tâches</div>';
+  h += '<div class="card-flat" id="action-items-box">';
+  (project.action_items || []).forEach((item, idx) => h += actionItemRow(item, idx));
+  h += '</div>';
+  h += '<button class="btn-add" onclick="addActionItem()">+ Ajouter une tâche</button>';
+
+  // PHOTOS
+  h += '<div class="section-title">Photos</div>';
+  h += `<div class="card">
+    <div class="photo-category-tabs">
+      <button class="photo-cat ${activePhotoCat === 'before' ? 'active' : ''}" onclick="setPhotoCat('before')">Avant</button>
+      <button class="photo-cat ${activePhotoCat === 'during' ? 'active' : ''}" onclick="setPhotoCat('during')">Pendant</button>
+      <button class="photo-cat ${activePhotoCat === 'after' ? 'active' : ''}" onclick="setPhotoCat('after')">Après</button>
+    </div>
+    <label class="photo-upload-area" for="photo-upload">
+      <span class="material-icons-round" style="font-size:32px;color:var(--accent);">add_a_photo</span>
+      <div style="font-weight:600;margin-top:6px;">Téléverser une photo ${activePhotoCat === 'before' ? 'avant' : activePhotoCat === 'after' ? 'après' : 'pendant'} les travaux</div>
+      <div style="font-size:12px;">Cliquez ou faites glisser une image (JPEG/PNG, max 10 Mo)</div>
+    </label>
+    <input type="file" id="photo-upload" accept="image/*" style="display:none;">
+    <div class="photo-grid" id="photo-grid">${renderPhotos()}</div>
+  </div>`;
+
+  // PROJECT NOTES
+  h += '<div class="section-title">Notes du projet</div>';
+  h += `<div class="card"><textarea class="form-textarea" id="project-notes" rows="5" placeholder="Notes internes sur l'avancement, les imprévus, etc.">${esc(project.notes || '')}</textarea></div>`;
+
+  // QUOTE LINK
+  h += `<div class="section-title">Soumission liée</div>
+    <a href="sign.html?token=${encodeURIComponent(quote.share_token || '')}" target="_blank" class="card" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:inherit;">
+      <div>
+        <div style="font-weight:600;">${esc(quote.quote_number)}</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">Voir la soumission signée</div>
+      </div>
+      <span class="material-icons-round" style="color:var(--accent-dark);">open_in_new</span>
+    </a>`;
+
+  root.innerHTML = h;
+  wireUp();
+}
+
+function invoiceRow(inv) {
+  const due = inv.due_date ? new Date(inv.due_date).toLocaleDateString('fr-CA') : '';
+  return `<div class="invoice-row">
+    <div class="invoice-main">
+      <div class="invoice-title">${esc(inv.label)} <span style="color:var(--text-hint);font-weight:400;">· ${inv.pct_of_total}%</span></div>
+      <div class="invoice-sub">${esc(inv.invoice_number)}${inv.paid_at ? ' · Payée ' + new Date(inv.paid_at).toLocaleDateString('fr-CA') : ''}${inv.sent_at && !inv.paid_at ? ' · Envoyée ' + new Date(inv.sent_at).toLocaleDateString('fr-CA') : ''}</div>
+      <div class="invoice-actions">
+        ${inv.status !== 'paid' ? `
+          <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendInvoice('${inv.id}', 'email', this)">
+            <span class="material-icons-round" style="font-size:14px">mail</span> Courriel
+          </button>
+          <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendInvoice('${inv.id}', 'sms', this)">
+            <span class="material-icons-round" style="font-size:14px">sms</span> SMS
+          </button>
+          <button class="btn btn-primary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="markPaid('${inv.id}', ${inv.amount_total})">
+            <span class="material-icons-round" style="font-size:14px">check</span> Payée
+          </button>
+        ` : ''}
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="invoice-amount">$${money(inv.amount_total)}</div>
+      <span class="inv-status-pill inv-status-${inv.status}">${invStatusFr(inv.status)}</span>
+    </div>
+  </div>`;
+}
+
+function actionItemRow(item, idx) {
+  return `<div class="action-item ${item.done ? 'done' : ''}" data-idx="${idx}">
+    <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleAction(${idx}, this.checked)">
+    <input type="text" value="${esc(item.text || '')}" onchange="updateActionText(${idx}, this.value)" placeholder="Tâche">
+    <button class="action-remove" onclick="removeAction(${idx})"><span class="material-icons-round" style="font-size:18px;">close</span></button>
+  </div>`;
+}
+
+function renderPhotos() {
+  const inCat = photos.filter(p => p.category === activePhotoCat);
+  if (!inCat.length) return '<div style="grid-column:1/-1;text-align:center;color:var(--text-hint);font-size:13px;padding:20px;">Aucune photo dans cette catégorie</div>';
+  return inCat.map(p => `<div class="photo-card" onclick="window.open('${p.public_url}', '_blank')">
+    <img src="${p.public_url}" alt="${esc(p.caption || '')}">
+    ${p.caption ? `<div class="cap">${esc(p.caption)}</div>` : ''}
+    <button class="rm" onclick="event.stopPropagation();removePhoto('${p.id}','${p.storage_path}')" title="Supprimer">
+      <span class="material-icons-round" style="font-size:16px">close</span>
+    </button>
+  </div>`).join('');
+}
+
+function wireUp() {
+  // Project status
+  document.getElementById('project-status').addEventListener('change', async (e) => {
+    try { project = await updateProject(project.id, { status: e.target.value }); showToast('Statut mis à jour'); }
+    catch (err) { showToast('Erreur : ' + err.message); }
+  });
+
+  // Notes (debounced)
+  const notesEl = document.getElementById('project-notes');
+  let timer = null;
+  notesEl.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try { project = await updateProject(project.id, { notes: notesEl.value }); showToast('Notes enregistrées'); }
+      catch (err) { showToast('Erreur : ' + err.message); }
+    }, 800);
+  });
+
+  // Photo upload
+  const photoInput = document.getElementById('photo-upload');
+  photoInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const caption = prompt('Légende (optionnelle) :', '') || null;
+    try {
+      showToast('Téléversement…');
+      const photo = await uploadProjectPhoto(project.id, file, activePhotoCat, caption);
+      photos.unshift(photo);
+      document.getElementById('photo-grid').innerHTML = renderPhotos();
+      showToast('Photo ajoutée');
+    } catch (err) {
+      showToast('Erreur : ' + err.message);
+    } finally {
+      photoInput.value = '';
+    }
+  });
+}
+
+/* ---- Action item handlers ---- */
+function addActionItem() {
+  const items = project.action_items || [];
+  items.push({ id: Math.random().toString(36).slice(2, 9), text: '', done: false });
+  saveActionItems(items);
+}
+
+async function toggleAction(idx, done) {
+  const items = [...(project.action_items || [])];
+  if (!items[idx]) return;
+  items[idx].done = done;
+  items[idx].done_at = done ? new Date().toISOString() : null;
+  await saveActionItems(items);
+}
+
+async function updateActionText(idx, text) {
+  const items = [...(project.action_items || [])];
+  if (!items[idx]) return;
+  items[idx].text = text;
+  await saveActionItems(items, false);
+}
+
+async function removeAction(idx) {
+  const items = [...(project.action_items || [])];
+  items.splice(idx, 1);
+  await saveActionItems(items);
+}
+
+async function saveActionItems(items, rerender = true) {
+  try {
+    project = await updateProject(project.id, { action_items: items });
+    if (rerender) render();
+  } catch (err) { showToast('Erreur : ' + err.message); }
+}
+
+/* ---- Photo handlers ---- */
+function setPhotoCat(cat) { activePhotoCat = cat; render(); }
+
+async function removePhoto(photoId, path) {
+  if (!confirm('Supprimer cette photo ?')) return;
+  try {
+    await deleteProjectPhoto(photoId, path);
+    photos = photos.filter(p => p.id !== photoId);
+    document.getElementById('photo-grid').innerHTML = renderPhotos();
+    showToast('Photo supprimée');
+  } catch (err) { showToast('Erreur : ' + err.message); }
+}
+
+/* ---- Invoice handlers ---- */
+async function sendInvoice(invoiceId, channel, btn) {
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-ring" style="width:12px;height:12px;border-width:2px;"></span> …';
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ invoice_id: invoiceId, channel })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    // refresh invoices
+    invoices = await sb.from('invoices').select('*').eq('project_id', project.id).order('sequence').then(r => r.data || []);
+    render();
+    showToast(channel === 'sms' ? `SMS envoyé à ${data.to}` : `Courriel envoyé à ${data.to}`);
+  } catch (err) {
+    showToast('Erreur : ' + err.message);
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
+async function markPaid(invoiceId, total) {
+  const amount = prompt('Montant reçu :', total);
+  if (amount === null) return;
+  const method = prompt('Méthode (interac / cheque / card / cash / other) :', 'interac');
+  if (method === null) return;
+  try {
+    await markInvoicePaid(invoiceId, parseFloat(amount), method);
+    invoices = await sb.from('invoices').select('*').eq('project_id', project.id).order('sequence').then(r => r.data || []);
+    render();
+    showToast('Marquée comme payée');
+  } catch (err) { showToast('Erreur : ' + err.message); }
+}
+
+function statusFr(s) {
+  return { planning: 'Planification', active: 'En cours', on_hold: 'En pause', completed: 'Terminé', cancelled: 'Annulé' }[s] || s;
+}
+function invStatusFr(s) {
+  return { pending: 'En attente', sent: 'Envoyée', paid: 'Payée', overdue: 'En retard', cancelled: 'Annulée' }[s] || s;
+}
+function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show'; setTimeout(() => t.className = 'toast', 2500); }
+</script>
+</body>
+</html>

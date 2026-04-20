@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clients — MLP Reno & Design</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="css/tools.css?v=15">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-logo">M</div>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v15</span></h1>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
+    <a href="customers.html" class="header-link" title="Clients" style="color:var(--accent-dark);"><span class="material-icons-round">group</span></a>
+    <a href="projects.html" class="header-link" title="Projets"><span class="material-icons-round">construction</span></a>
+    <a href="index.html" class="btn btn-primary btn-sm" style="width:auto;text-decoration:none;margin-left:8px;">
+      <span class="material-icons-round" style="font-size:18px">add</span>
+      <span>Nouvelle soumission</span>
+    </a>
+  </div>
+</div>
+
+<div class="main" id="main">
+  <div class="step active">
+    <div class="step-header">
+      <div class="step-icon gold"><span class="material-icons-round">group</span></div>
+      <div class="step-title">Clients</div>
+      <div class="step-subtitle">Tous vos clients avec leurs soumissions et revenus</div>
+    </div>
+    <div id="list-root">
+      <div style="text-align:center;padding:40px;color:var(--text-secondary);">
+        <div class="spinner-ring" style="width:28px;height:28px;border-width:3px;margin-bottom:12px;"></div>
+        <div>Chargement…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+(async function() {
+  const root = document.getElementById('list-root');
+  try {
+    const customers = await listCustomersWithStats();
+    if (!customers.length) {
+      root.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--text-secondary);">
+        <div style="font-size:48px;margin-bottom:8px;">👤</div>
+        <div style="font-weight:600;color:var(--text-primary);margin-bottom:6px;">Aucun client</div>
+        <div style="font-size:14px;">Les clients seront créés automatiquement lors de la première soumission.</div>
+      </div>`;
+      return;
+    }
+    root.innerHTML = '<div class="quotes-list">' + customers.map(rowHtml).join('') + '</div>';
+  } catch (err) {
+    root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
+  }
+})();
+
+function rowHtml(c) {
+  const s = c.stats;
+  return `<div class="quote-row" onclick="location.href='customer.html?id=${encodeURIComponent(c.id)}'">
+    <div class="quote-row-main">
+      <div class="quote-row-title">${esc(c.name)}</div>
+      <div class="quote-row-sub">
+        ${c.email ? esc(c.email) + ' · ' : ''}${c.phone ? esc(c.phone) : ''}
+      </div>
+    </div>
+    <div class="quote-row-right">
+      <div class="quote-row-total">$${money(s.revenue)}</div>
+      <div style="font-size:11px;color:var(--text-secondary);">${s.signed}/${s.quotes} ${s.quotes === 1 ? 'soumission' : 'soumissions'}</div>
+    </div>
+  </div>`;
+}
+
+function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+</script>
+</body>
+</html>
