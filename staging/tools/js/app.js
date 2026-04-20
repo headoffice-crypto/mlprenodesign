@@ -238,7 +238,13 @@ function goToStep(n) {
   if (n === 2) { renderClientContext(); renderChat(); }
   if (n === 3) renderOptionsEditor();
   if (n === 6) initContractorSignaturePad();
-  if (n === 7) { renderFinalQuote(); ensureShareBoxVisible(); }
+  if (n === 7) {
+    renderFinalQuote();
+    (async () => {
+      if (!savedQuote?.share_token) await saveDraft();
+      ensureShareBoxVisible();
+    })();
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

@@ -79,33 +79,84 @@ function rowHtml(q) {
   }[q.status] || q.status;
   const date = q.created_at ? new Date(q.created_at).toLocaleDateString('fr-CA') : '';
 
-  // Draft rows resume the builder; sent/signed rows open the client signing page
-  const target = q.status === 'draft'
+  const openTarget = q.status === 'draft'
     ? `index.html?draft=${encodeURIComponent(q.id)}`
     : (q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : null);
 
-  const hint = q.status === 'draft' ? 'Cliquez pour continuer' : '';
+  const sendable = q.share_token && q.status !== 'signed';
 
-  return `<div class="quote-row" onclick="openRow('${target || ''}', '${q.status}')">
-    <div class="quote-row-main">
-      <div class="quote-row-title">${esc(q.project_title || q.quote_number)}</div>
-      <div class="quote-row-sub">${esc(q.client_name || '—')} · ${date}${hint ? ' · ' + hint : ''}</div>
+  return `<div class="quote-row" style="flex-direction:column;align-items:stretch;gap:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;" onclick="openRow('${openTarget || ''}', '${q.status}')">
+      <div class="quote-row-main">
+        <div class="quote-row-title">${esc(q.project_title || q.quote_number)}</div>
+        <div class="quote-row-sub">${esc(q.client_name || '—')} · ${date}</div>
+      </div>
+      <div class="quote-row-right">
+        <div class="quote-row-total">${totalLabel}</div>
+        <span class="status-pill ${q.status}">${statusText}</span>
+      </div>
     </div>
-    <div class="quote-row-right">
-      <div class="quote-row-total">${totalLabel}</div>
-      <span class="status-pill ${q.status}">${statusText}</span>
-    </div>
+    ${sendable ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();quickSend('${q.id}','email', this)">
+          <span class="material-icons-round" style="font-size:16px">mail</span>
+          <span>Envoyer courriel</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();quickSend('${q.id}','sms', this)">
+          <span class="material-icons-round" style="font-size:16px">sms</span>
+          <span>Envoyer SMS</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" style="flex:0 0 auto;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();copyPublicLink('${q.share_token}')">
+          <span class="material-icons-round" style="font-size:16px">content_copy</span>
+          <span>Copier le lien</span>
+        </button>
+      </div>` : ''}
   </div>`;
 }
 
 function openRow(target, status) {
   if (!target) return;
-  if (status === 'draft') {
-    // Resume in same tab
-    window.location.href = target;
-  } else {
-    window.open(target, '_blank');
+  if (status === 'draft') window.location.href = target;
+  else window.open(target, '_blank');
+}
+
+function copyPublicLink(token) {
+  const base = (typeof PUBLIC_APP_URL === 'string' && PUBLIC_APP_URL) ? PUBLIC_APP_URL : (location.origin + '/staging/tools');
+  const link = `${base}/sign.html?token=${encodeURIComponent(token)}`;
+  navigator.clipboard.writeText(link).then(() => showToast('Lien copié !'));
+}
+
+async function quickSend(quoteId, channel, btn) {
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-ring"></span><span>Envoi…</span>';
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ quote_id: quoteId, channel })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    showToast(channel === 'sms' ? `✓ SMS envoyé à ${data.to}` : `✓ Courriel envoyé à ${data.to}`);
+  } catch (err) {
+    showToast('⚠️ ' + (err.message || err), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
   }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(() => t.className = 'toast', 3000);
 }
 
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
