@@ -877,6 +877,56 @@ function copyShareLink() {
   navigator.clipboard.writeText(input.value).then(() => showToast(t('link_copied')));
 }
 
+async function sendSmsNow() {
+  const btn = document.getElementById('btn-send-sms');
+  const status = document.getElementById('sms-status');
+
+  if (!savedQuote?.id) {
+    showToast(lang === 'fr' ? 'Enregistrez d\'abord la soumission.' : 'Save the quote first.', 'error');
+    return;
+  }
+  const phone = val('f-client-phone');
+  if (!phone) {
+    showToast(lang === 'fr' ? 'Téléphone client manquant.' : 'Client phone is missing.', 'error');
+    goToStep(1);
+    return;
+  }
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-ring"></span><span>${lang === 'fr' ? 'Envoi…' : 'Sending…'}</span>`;
+  status.textContent = '';
+  status.style.color = 'var(--text-secondary)';
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ quote_id: savedQuote.id, channel: 'sms' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+    status.style.color = 'var(--green)';
+    status.innerHTML = '✓ ' + (lang === 'fr'
+      ? `SMS envoyé au ${data.to}. SID Twilio : ${data.sid}`
+      : `SMS sent to ${data.to}. Twilio SID: ${data.sid}`);
+    showToast(lang === 'fr' ? 'SMS envoyé !' : 'SMS sent!');
+  } catch (err) {
+    console.error('[sendSmsNow]', err);
+    status.style.color = 'var(--red)';
+    status.textContent = '⚠️ ' + (err.message || err);
+    showToast((lang === 'fr' ? 'Erreur : ' : 'Error: ') + (err.message || err), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
+}
+
 /* ============================================
    COPY / PRINT
    ============================================ */
