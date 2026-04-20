@@ -69,18 +69,27 @@ function rowHtml(q) {
   const total = acceptedOpt
     ? acceptedOpt.total
     : (options.length ? Math.max(...options.map(o => o.total || 0)) : 0);
-  const totalLabel = options.length > 1 && !acceptedOpt
-    ? `De $${money(Math.min(...options.map(o => o.total || 0)))} à $${money(total)}`
-    : '$' + money(total);
+  const totalLabel = options.length
+    ? (options.length > 1 && !acceptedOpt
+        ? `De $${money(Math.min(...options.map(o => o.total || 0)))} à $${money(total)}`
+        : '$' + money(total))
+    : '—';
   const statusText = {
     draft: 'Brouillon', sent: 'Envoyée', viewed: 'Consultée', signed: 'Signée', declined: 'Refusée', expired: 'Expirée'
   }[q.status] || q.status;
   const date = q.created_at ? new Date(q.created_at).toLocaleDateString('fr-CA') : '';
-  const link = q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : null;
-  return `<div class="quote-row" onclick="openRow('${q.id}', '${link || ''}')">
+
+  // Draft rows resume the builder; sent/signed rows open the client signing page
+  const target = q.status === 'draft'
+    ? `index.html?draft=${encodeURIComponent(q.id)}`
+    : (q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : null);
+
+  const hint = q.status === 'draft' ? 'Cliquez pour continuer' : '';
+
+  return `<div class="quote-row" onclick="openRow('${target || ''}', '${q.status}')">
     <div class="quote-row-main">
       <div class="quote-row-title">${esc(q.project_title || q.quote_number)}</div>
-      <div class="quote-row-sub">${esc(q.client_name || '—')} · ${date}</div>
+      <div class="quote-row-sub">${esc(q.client_name || '—')} · ${date}${hint ? ' · ' + hint : ''}</div>
     </div>
     <div class="quote-row-right">
       <div class="quote-row-total">${totalLabel}</div>
@@ -89,8 +98,14 @@ function rowHtml(q) {
   </div>`;
 }
 
-function openRow(id, link) {
-  if (link) window.open(link, '_blank');
+function openRow(target, status) {
+  if (!target) return;
+  if (status === 'draft') {
+    // Resume in same tab
+    window.location.href = target;
+  } else {
+    window.open(target, '_blank');
+  }
 }
 
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

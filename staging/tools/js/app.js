@@ -26,6 +26,8 @@ let chatBusy = false;
 let contractorPad = null;
 let contractorSignatureData = null;
 let savedQuote = null;
+let draftSaveInFlight = false;
+let lastSavedAt = null;
 
 /* ---------- i18n ---------- */
 const I18N = {
@@ -126,12 +128,19 @@ const DEFAULT_NOTES = {
 /* ============================================
    INIT
    ============================================ */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('f-payment-methods').value = PAYMENT_METHODS[lang];
   document.getElementById('f-notes').value = DEFAULT_NOTES[lang];
   buildPaymentOptionsUI();
-  goToStep(1);
+
+  const params = new URLSearchParams(location.search);
+  const draftId = params.get('draft');
+  if (draftId) {
+    await loadDraftById(draftId);
+  } else {
+    goToStep(1);
+  }
 
   // Chat: Enter to send, Shift+Enter for newline
   const chatInput = document.getElementById('chat-input');
@@ -234,8 +243,137 @@ function goToStep(n) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function nextStep() { if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1); }
-function prevStep() { if (currentStep > 1) goToStep(currentStep - 1); }
+function nextStep() {
+  if (currentStep < TOTAL_STEPS) {
+    const leaving = currentStep;
+    goToStep(leaving + 1);
+    saveDraft();
+  }
+}
+function prevStep() {
+  if (currentStep > 1) {
+    goToStep(currentStep - 1);
+    saveDraft();
+  }
+}
+
+/* ============================================
+   DRAFT AUTO-SAVE + RESUME
+   ============================================ */
+function buildQuoteRecord(status) {
+  const optionsWithTotals = quoteState.options.map(opt => {
+    const tot = optionTotals(opt);
+    return { ...opt, ...tot };
+  });
+  const record = {
+    id: savedQuote?.id,
+    quote_number: savedQuote?.quote_number || generateQuoteNumber(),
+    share_token: savedQuote?.share_token,
+    status,
+    language: lang,
+    client_name: val('f-client-name') || null,
+    client_email: val('f-client-email') || null,
+    client_phone: val('f-client-phone') || null,
+    client_address: val('f-client-address') || null,
+    quote_date: val('f-date') || null,
+    project_title: quoteState.project_title || null,
+    duration_weeks: optionsWithTotals[0]?.duration_weeks || null,
+    ai_conversation: chatHistory,
+    options: optionsWithTotals,
+    payment_option: selectedPaymentOption,
+    payment_methods: val('f-payment-methods') || null,
+    notes: val('f-notes') || null,
+    contractor_signature: contractorSignatureData || null,
+    contractor_signer_name: contractorSignatureData ? CONTRACTOR.name : null,
+    contractor_signed_at: contractorSignatureData ? (savedQuote?.contractor_signed_at || new Date().toISOString()) : null
+  };
+  // drop nulls that Supabase can auto-handle
+  return record;
+}
+
+async function saveDraft() {
+  if (draftSaveInFlight) return;
+  const clientName = val('f-client-name');
+  if (!clientName) return; // nothing meaningful to save yet
+
+  draftSaveInFlight = true;
+  updateDraftStatus('saving');
+  try {
+    const record = buildQuoteRecord(savedQuote?.status && savedQuote.status !== 'draft' ? savedQuote.status : 'draft');
+    const saved = await saveQuote(record);
+    savedQuote = saved;
+    lastSavedAt = new Date();
+    updateDraftStatus('saved');
+  } catch (err) {
+    console.warn('[saveDraft failed]', err);
+    updateDraftStatus('error', err.message);
+  } finally {
+    draftSaveInFlight = false;
+  }
+}
+
+function updateDraftStatus(state, msg) {
+  const el = document.getElementById('draft-status');
+  if (!el) return;
+  if (state === 'saving') {
+    el.style.display = '';
+    el.innerHTML = '<span class="spinner-ring" style="width:12px;height:12px;border-width:2px;margin-right:4px;"></span>' + (lang === 'fr' ? 'Enregistrement…' : 'Saving…');
+    el.style.color = 'var(--text-secondary)';
+  } else if (state === 'saved') {
+    el.style.display = '';
+    const time = lastSavedAt ? lastSavedAt.toLocaleTimeString() : '';
+    el.innerHTML = '✓ ' + (lang === 'fr' ? `Brouillon enregistré ${time}` : `Draft saved ${time}`);
+    el.style.color = 'var(--green)';
+  } else if (state === 'error') {
+    el.style.display = '';
+    el.textContent = '⚠ ' + (msg || 'Save failed');
+    el.style.color = 'var(--red)';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+async function loadDraftById(id) {
+  try {
+    const { data, error } = await sb.from('quotes').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    if (!data) { showToast(lang === 'fr' ? 'Brouillon introuvable.' : 'Draft not found.', 'error'); goToStep(1); return; }
+
+    savedQuote = data;
+    if (data.language && (data.language === 'en' || data.language === 'fr')) lang = data.language;
+    document.getElementById('lang-fr').className = lang === 'fr' ? 'active' : '';
+    document.getElementById('lang-en').className = lang === 'en' ? 'active' : '';
+
+    document.getElementById('f-client-name').value = data.client_name || '';
+    document.getElementById('f-client-email').value = data.client_email || '';
+    document.getElementById('f-client-phone').value = data.client_phone || '';
+    document.getElementById('f-client-address').value = data.client_address || '';
+    document.getElementById('f-date').value = data.quote_date || new Date().toISOString().split('T')[0];
+
+    quoteState.project_title = data.project_title || '';
+    quoteState.options = Array.isArray(data.options) ? data.options : [];
+    quoteState.activeOptionKey = quoteState.options[0]?.key || null;
+
+    chatHistory = Array.isArray(data.ai_conversation) ? data.ai_conversation : [];
+    selectedPaymentOption = data.payment_option || 'A';
+    buildPaymentOptionsUI();
+
+    if (data.payment_methods) document.getElementById('f-payment-methods').value = data.payment_methods;
+    if (data.notes) document.getElementById('f-notes').value = data.notes;
+    if (data.contractor_signature) contractorSignatureData = data.contractor_signature;
+
+    applyI18N();
+    showToast(lang === 'fr' ? 'Brouillon chargé.' : 'Draft loaded.');
+
+    // Resume at the most useful step
+    const resumeStep = quoteState.options.length ? 3 : 2;
+    goToStep(resumeStep);
+  } catch (err) {
+    console.error('[loadDraftById]', err);
+    showToast('Error loading draft: ' + err.message, 'error');
+    goToStep(1);
+  }
+}
 
 /* ============================================
    CLIENT CONTEXT BANNER
@@ -411,6 +549,7 @@ function renderDraftPreview() {
 function acceptDraftAndContinue() {
   if (!quoteState.options.length) return;
   if (!quoteState.activeOptionKey) quoteState.activeOptionKey = quoteState.options[0].key;
+  saveDraft();
   nextStep();
 }
 
