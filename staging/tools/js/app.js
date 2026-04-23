@@ -638,11 +638,32 @@ function buildOptionEditor(opt) {
   // Scope
   h += `<div class="form-group"><label class="form-label">${t('scope_label')}</label><textarea class="form-textarea" rows="3" oninput="updateOptionField('${opt.key}','scope_summary',this.value)">${esc(opt.scope_summary)}</textarea></div>`;
 
+  // Pricing sanity check — the classic AI failure mode is to dump the customer
+  // total into materials_budget and leave line items at $0.
+  const sub = optionSubtotal(opt);
+  const zeroPricedItems = opt.line_items.filter(i => (parseFloat(i.unit_price) || 0) === 0).length;
+  if (sub === 0 && opt.line_items.length > 0) {
+    h += `<div class="info-banner" style="background:#fff3cd;border-color:#f0c36d;color:#8a6d1a;margin-bottom:12px;">
+      <span class="material-icons-round">warning</span>
+      <p>${lang === 'fr'
+        ? "Tous les postes sont à 0 $. Ajoutez un prix à chaque poste pour que la soumission ne soit pas à zéro. (Astuce : si vous avez un prix total, répartissez-le entre les postes)."
+        : "All line items are priced at $0. Add a price to each item so the quote is not zero. (Tip: if you have a lump-sum total, distribute it across the items.)"}</p>
+    </div>`;
+  } else if (opt.materials_included && opt.materials_budget > 0 && opt.materials_budget > sub && zeroPricedItems > 0) {
+    h += `<div class="info-banner" style="background:#fff3cd;border-color:#f0c36d;color:#8a6d1a;margin-bottom:12px;">
+      <span class="material-icons-round">warning</span>
+      <p>${lang === 'fr'
+        ? `Budget matériaux ($${money(opt.materials_budget)}) supérieur au sous-total des postes ($${money(sub)}). Le budget matériaux est seulement informatif — il n'est PAS ajouté au prix client. Répartissez le montant dans les postes.`
+        : `Materials budget ($${money(opt.materials_budget)}) exceeds the line-item subtotal ($${money(sub)}). Materials budget is informational only — it's NOT added to the customer total. Distribute the amount across the line items.`}</p>
+    </div>`;
+  }
+
   // Materials toggle + budget
   h += `<div class="form-group"><label class="form-label">${t('materials_default')}</label>`;
   h += `<div class="chip-group"><button class="chip ${opt.materials_included ? 'active' : ''}" onclick="setOptionMaterials('${opt.key}', true)">${t('yes')}</button><button class="chip ${!opt.materials_included ? 'active' : ''}" onclick="setOptionMaterials('${opt.key}', false)">${t('no')}</button></div>`;
   if (opt.materials_included) {
-    h += `<div style="margin-top:10px;"><label class="form-label">${t('materials_budget')}</label><input class="form-input" type="number" min="0" step="100" value="${opt.materials_budget || ''}" oninput="updateOptionField('${opt.key}','materials_budget',this.value)"></div>`;
+    h += `<div style="margin-top:10px;"><label class="form-label">${t('materials_budget')}</label><input class="form-input" type="number" min="0" step="100" value="${opt.materials_budget || ''}" oninput="updateOptionField('${opt.key}','materials_budget',this.value)">
+      <div style="font-size:11px;color:var(--text-hint);margin-top:4px;">${lang === 'fr' ? "Informatif seulement. N'est PAS ajouté au total client — le total provient des postes." : "Informational only. NOT added to the customer total — the total comes from the line items."}</div></div>`;
   }
   h += '</div>';
 
@@ -1197,7 +1218,7 @@ function downloadDraftPdf() {
   const title = (lang === 'fr' ? 'Brouillon — Soumission MLP' : 'Draft — MLP Quote') + (num ? ' ' + num : '');
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
-    <link rel="stylesheet" href="css/tools.css?v=21">
+    <link rel="stylesheet" href="css/tools.css?v=22">
     <style>
       body{background:#fff;padding:24px;position:relative;}
       .draft-banner{background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;}

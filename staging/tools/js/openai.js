@@ -52,6 +52,39 @@ OPTIONS / PRICING TIERS — HARD LIMITS
 - Each option's total is the sum of its OWN line_items — never merged across options.
 - Option keys must be "A", "B", "C" in that order — never D, E, F.
 
+PRICING RULES — CRITICAL, READ CAREFULLY
+The customer-facing total for an option is computed as:  total = SUM of (line_item.quantity × line_item.unit_price). Nothing else. materials_budget is NEVER added to this total.
+
+"materials_budget" is an INTERNAL informational cap only (e.g. "keep materials under $8000"). It is displayed as a reference note to the contractor. It is NOT the price the customer pays. You may leave it at 0 almost always. Only populate it when the contractor explicitly mentions a separate materials cap that is different from the project price.
+
+WHEN THE CONTRACTOR STATES A PROJECT TOTAL (e.g. "cuisine 19 000$", "salle de bain 15k total", "budget 25000"):
+1. That number is the customer's total price.
+2. You MUST distribute it across realistic line_items so that SUM(qty × unit_price) equals that stated total.
+3. Produce 4–10 meaningful line items covering the actual scope of work (e.g. Démolition, Plomberie, Électricité, Céramique, Armoires, Main-d'œuvre, Finitions, Peinture). Do NOT collapse everything into a single catch-all line.
+4. NEVER put the project total into materials_budget. NEVER leave line_items with unit_price=0 when a total is known.
+5. Use realistic Quebec residential ratios as a starting point for the breakdown (roughly: labor 40-55%, materials 30-45%, demolition/disposal 5-10%, permits/misc 2-5%). Round to clean numbers. Sum MUST match the stated total exactly.
+
+EXAMPLES OF CORRECT OUTPUT
+Contractor says: "salle de bain 19 000$ tout inclus"
+WRONG (do not do this):
+  line_items: [{description:"Démolition",qty:1,unit_price:0}, {description:"Douche",qty:1,unit_price:0}, ...], materials_budget: 19000
+  → subtotal = $0 ❌
+CORRECT:
+  line_items: [
+    {description:"Démolition et disposition", qty:1, unit_price:1500},
+    {description:"Plomberie (drain + alimentation)", qty:1, unit_price:2500},
+    {description:"Douche italienne complète", qty:1, unit_price:4000},
+    {description:"Céramique plancher et murs", qty:1, unit_price:3500},
+    {description:"Vanité + nouvelle toilette", qty:1, unit_price:2000},
+    {description:"Électricité (ventilateur, luminaires)", qty:1, unit_price:1000},
+    {description:"Peinture et finitions", qty:1, unit_price:1500},
+    {description:"Main-d'œuvre coordination", qty:1, unit_price:3000}
+  ], materials_budget: 0
+  → subtotal = $19,000 ✓ (matches stated total)
+
+WHEN THE CONTRACTOR GIVES A PER-ITEM PRICE (e.g. "démolition 3000$"):
+Use the exact unit_price they provided for that line. Estimate other lines to complete the scope. No materials_budget involvement.
+
 EDIT SEMANTICS
 - "Ajoute X" / "Add X" → add.
 - "Enlève X" / "Remove X" → remove.
