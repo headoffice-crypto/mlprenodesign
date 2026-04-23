@@ -51,8 +51,9 @@ async function sbInsert(url, key, body) {
 }
 
 /* ===== Quote email body (existing) ===== */
-function buildQuoteEmailHtml(quote, link, lang) {
+function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
   const fr = lang === "fr";
+  const isDraft = !!opts.draft;
   const options = Array.isArray(quote.options) ? quote.options : [];
   const multi = options.length > 1;
 
@@ -72,12 +73,28 @@ function buildQuoteEmailHtml(quote, link, lang) {
     optionsBlock += "</div>";
   }
 
-  const title = fr ? "Votre soumission" : "Your quote";
+  const title = isDraft
+    ? (fr ? "Brouillon de soumission" : "Draft quote")
+    : (fr ? "Votre soumission" : "Your quote");
   const greeting = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
-  const intro = fr
-    ? `Voici votre soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""}.`
-    : `Here is your quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the proposed options" : ""}.`;
+  const intro = isDraft
+    ? (fr
+        ? `Voici un <strong>brouillon</strong> de la soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""} pour révision. Ce document n'est pas contractuel et ne peut pas être signé.`
+        : `Here is a <strong>draft</strong> of quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the proposed options" : ""} for review. This document is not contractual and cannot be signed.`)
+    : (fr
+        ? `Voici votre soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""}.`
+        : `Here is your quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the proposed options" : ""}.`);
   const cta = fr ? "Consulter et signer la soumission" : "View and sign the quote";
+
+  const draftBanner = isDraft
+    ? `<div style="background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;">${fr ? "BROUILLON — Non contractuel" : "DRAFT — Not for signature"}</div>`
+    : "";
+
+  const ctaBlock = isDraft
+    ? ""
+    : `<div style="text-align:center;margin:28px 0;">
+      <a href="${link}" style="display:inline-block;background:#c8a45a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 28px;border-radius:8px;font-size:15px;">${cta} →</a>
+    </div>`;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title></head>
 <body style="margin:0;padding:0;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#202124;">
@@ -86,12 +103,11 @@ function buildQuoteEmailHtml(quote, link, lang) {
       <div style="font-size:22px;font-weight:800;color:#c8a45a;">MLP Reno &amp; Design</div>
       <div style="font-size:13px;color:#5f6368;">Construction &amp; Rénovation — ${fr ? "Licence RBQ" : "RBQ Licence"}: 5847-0378-01</div>
     </div>
+    ${draftBanner}
     <p style="font-size:16px;margin:0 0 12px;">${greeting}</p>
     <p style="font-size:14px;color:#3c4043;line-height:1.6;margin:0 0 16px;">${intro}</p>
     ${optionsBlock}
-    <div style="text-align:center;margin:28px 0;">
-      <a href="${link}" style="display:inline-block;background:#c8a45a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 28px;border-radius:8px;font-size:15px;">${cta} →</a>
-    </div>
+    ${ctaBlock}
     <p style="font-size:14px;color:#3c4043;margin:18px 0 0;">${fr ? "Merci," : "Thanks,"}<br><strong>MLP Reno &amp; Design</strong></p>
     <div style="border-top:1px solid #e8eaed;margin-top:28px;padding-top:16px;font-size:11px;color:#9aa0a6;line-height:1.6;">
       MLP Reno &amp; Design — (450) 500-8936 — headoffice@mlpexperience.com
@@ -207,7 +223,8 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { quote_id, invoice_id, project_id, channel = "sms", type, to, message } = body;
+    const { quote_id, invoice_id, project_id, channel = "sms", type, to, message, draft } = body;
+    const isDraft = !!draft;
 
     if (!quote_id && !invoice_id && !project_id) return jsonResp({ error: "quote_id, invoice_id, or project_id required" }, 400);
     if (!["sms", "email"].includes(channel)) return jsonResp({ error: "channel must be 'sms' or 'email'" }, 400);
@@ -428,15 +445,19 @@ Deno.serve(async (req) => {
     const emailTo = (to || quote.client_email || "").trim();
     if (!emailTo) return jsonResp({ error: "no email address on quote" }, 400);
 
-    const subject = lang === "fr"
-      ? `Votre soumission MLP Reno & Design — ${quote.quote_number}`
-      : `Your MLP Reno & Design quote — ${quote.quote_number}`;
+    const subject = isDraft
+      ? (lang === "fr"
+          ? `[BROUILLON] Soumission MLP Reno & Design — ${quote.quote_number}`
+          : `[DRAFT] MLP Reno & Design quote — ${quote.quote_number}`)
+      : (lang === "fr"
+          ? `Votre soumission MLP Reno & Design — ${quote.quote_number}`
+          : `Your MLP Reno & Design quote — ${quote.quote_number}`);
 
     const payload = {
       from: FROM,
       to: [emailTo],
       subject,
-      html: buildQuoteEmailHtml(quote, link, lang),
+      html: buildQuoteEmailHtml(quote, link, lang, { draft: isDraft }),
     };
     if (REPLY_TO) payload.reply_to = REPLY_TO;
 
@@ -449,16 +470,16 @@ Deno.serve(async (req) => {
     if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
 
     await sbInsert(`${SUPABASE_URL}/rest/v1/quote_events`, SUPABASE_KEY, {
-      quote_id: quote.id, event_type: "email_sent",
-      payload: { to: emailTo, resend_id: rData.id },
+      quote_id: quote.id, event_type: isDraft ? "draft_email_sent" : "email_sent",
+      payload: { to: emailTo, resend_id: rData.id, draft: isDraft },
     });
-    if (!quote.sent_at) {
+    if (!isDraft && !quote.sent_at) {
       await sbPatch(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${encodeURIComponent(quote.id)}`, SUPABASE_KEY, {
         sent_at: new Date().toISOString(),
         status: quote.status === "draft" ? "sent" : quote.status,
       });
     }
-    return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo });
+    return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, draft: isDraft });
   } catch (err) {
     return jsonResp({ error: err?.message ?? String(err) }, 500);
   }

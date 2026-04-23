@@ -3,3 +3,7 @@ staging/tools/js/config.js
 
 # Windows shortcuts
 *.lnk
+
+# Supabase CLI scratch
+staging/tools/supabase/.temp/
+staging/tools/supabase/supabase/

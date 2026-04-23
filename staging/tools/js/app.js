@@ -55,6 +55,13 @@ const I18N = {
   next: { fr: 'Suivant', en: 'Next' },
   copy: { fr: 'Copier', en: 'Copy' },
   print_pdf: { fr: 'Imprimer / PDF', en: 'Print / PDF' },
+  draft_actions_title: { fr: "Avant d'envoyer pour signature", en: 'Before sending for signature' },
+  draft_actions_hint: { fr: 'Téléchargez ou envoyez une copie brouillon (filigrane BROUILLON, sans lien de signature) pour révision interne ou pour prévisualiser avec le client.', en: 'Download or email a draft copy (DRAFT watermark, no signing link) for internal review or to preview with the client.' },
+  download_draft: { fr: 'Télécharger brouillon', en: 'Download draft' },
+  send_draft: { fr: 'Envoyer brouillon par courriel', en: 'Email draft copy' },
+  draft_prompt_email: { fr: 'Adresse courriel pour le brouillon ?', en: 'Email address for the draft?' },
+  draft_email_sent: { fr: 'Brouillon envoyé à', en: 'Draft sent to' },
+  draft_watermark: { fr: 'BROUILLON — Non contractuel', en: 'DRAFT — Not for signature' },
   qty: { fr: 'Qté', en: 'Qty' },
   unit_price: { fr: 'Prix unit.', en: 'Unit $' },
   total_label: { fr: 'Total', en: 'Total' },
@@ -1164,6 +1171,83 @@ function printQuote() {
     <body>${content}</body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 500);
+}
+
+/* ============================================
+   DRAFT DOWNLOAD / DRAFT EMAIL
+   ============================================ */
+function downloadDraftPdf() {
+  const content = document.getElementById('quote-output').innerHTML;
+  const watermark = t('draft_watermark');
+  const num = savedQuote?.quote_number || '';
+  const title = (lang === 'fr' ? 'Brouillon — Soumission MLP' : 'Draft — MLP Quote') + (num ? ' ' + num : '');
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
+    <link rel="stylesheet" href="css/tools.css?v=19">
+    <style>
+      body{background:#fff;padding:24px;position:relative;}
+      .draft-banner{background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;}
+      .draft-wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-28deg);font-size:120px;font-weight:900;color:rgba(200,164,90,0.12);pointer-events:none;z-index:0;white-space:nowrap;}
+      .quote-preview{position:relative;z-index:1;}
+      @media print { .draft-banner{background:#fff3cd !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;} .draft-wm{color:rgba(200,164,90,0.18) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
+    </style></head>
+    <body>
+      <div class="draft-wm">${esc(watermark)}</div>
+      <div class="draft-banner">${esc(watermark)}</div>
+      ${content}
+    </body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+async function sendDraftEmail() {
+  const btn = document.getElementById('btn-send-draft');
+  const status = document.getElementById('draft-send-status');
+
+  if (!savedQuote?.id) {
+    showToast(lang === 'fr' ? 'Enregistrez d\'abord la soumission.' : 'Save the quote first.', 'error');
+    return;
+  }
+
+  const defaultTo = val('f-client-email') || '';
+  const to = (window.prompt(t('draft_prompt_email'), defaultTo) || '').trim();
+  if (!to) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    showToast(lang === 'fr' ? 'Courriel invalide.' : 'Invalid email.', 'error');
+    return;
+  }
+
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner-ring"></span><span>${lang === 'fr' ? 'Envoi…' : 'Sending…'}</span>`;
+  status.textContent = '';
+  status.style.color = 'var(--text-secondary)';
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ quote_id: savedQuote.id, channel: 'email', draft: true, to })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+    status.style.color = 'var(--green)';
+    status.innerHTML = '✓ ' + t('draft_email_sent') + ' ' + esc(to) + '.';
+    showToast(lang === 'fr' ? 'Brouillon envoyé !' : 'Draft sent!');
+  } catch (err) {
+    console.error('[sendDraftEmail]', err);
+    status.style.color = 'var(--red)';
+    status.textContent = '⚠️ ' + (err.message || err);
+    showToast((lang === 'fr' ? 'Erreur : ' : 'Error: ') + (err.message || err), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  }
 }
 
 /* ============================================
