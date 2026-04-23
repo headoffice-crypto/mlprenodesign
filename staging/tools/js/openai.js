@@ -21,9 +21,10 @@ The JSON shape:
         "scope_summary": "2-5 sentences on what this option includes",
         "duration_weeks": 2,
         "materials_included": true,
-        "materials_budget": 0,
+        "price_mode": "single",
+        "base_price": 19000,
         "line_items": [
-          { "description": "short item", "quantity": 1, "unit_price": 0 }
+          { "description": "short scope item", "quantity": 1 }
         ]
       }
     ],
@@ -52,38 +53,58 @@ OPTIONS / PRICING TIERS — HARD LIMITS
 - Each option's total is the sum of its OWN line_items — never merged across options.
 - Option keys must be "A", "B", "C" in that order — never D, E, F.
 
-PRICING RULES — CRITICAL, READ CAREFULLY
-The customer-facing total for an option is computed as:  total = SUM of (line_item.quantity × line_item.unit_price). Nothing else. materials_budget is NEVER added to this total.
+PRICING MODEL — READ CAREFULLY, CRITICAL
+Each option has ONE authoritative price: the "base_price" field (pre-tax, in CAD dollars). The customer's pre-tax total equals base_price. Taxes are added on top automatically by the app.
 
-"materials_budget" is an INTERNAL informational cap only (e.g. "keep materials under $8000"). It is displayed as a reference note to the contractor. It is NOT the price the customer pays. You may leave it at 0 almost always. Only populate it when the contractor explicitly mentions a separate materials cap that is different from the project price.
+"line_items" are SCOPE items — a bulleted list of what the work includes (e.g. "Démolition", "Douche italienne", "Céramique plancher et murs"). They do NOT carry prices in single mode. Think of them as bullet points, not invoice lines.
 
-WHEN THE CONTRACTOR STATES A PROJECT TOTAL (e.g. "cuisine 19 000$", "salle de bain 15k total", "budget 25000"):
-1. That number is the customer's total price.
-2. You MUST distribute it across realistic line_items so that SUM(qty × unit_price) equals that stated total.
-3. Produce 4–10 meaningful line items covering the actual scope of work (e.g. Démolition, Plomberie, Électricité, Céramique, Armoires, Main-d'œuvre, Finitions, Peinture). Do NOT collapse everything into a single catch-all line.
-4. NEVER put the project total into materials_budget. NEVER leave line_items with unit_price=0 when a total is known.
-5. Use realistic Quebec residential ratios as a starting point for the breakdown (roughly: labor 40-55%, materials 30-45%, demolition/disposal 5-10%, permits/misc 2-5%). Round to clean numbers. Sum MUST match the stated total exactly.
+"price_mode": either "single" (DEFAULT — one total, line_items are scope bullets) or "detailed" (per-line unit prices where base_price = sum of quantity × unit_price for each line_item). Use "single" unless the contractor explicitly asks for per-item pricing ("break it down by item", "price each item separately", "détaillé par poste"). Default to "single".
 
-EXAMPLES OF CORRECT OUTPUT
-Contractor says: "salle de bain 19 000$ tout inclus"
-WRONG (do not do this):
-  line_items: [{description:"Démolition",qty:1,unit_price:0}, {description:"Douche",qty:1,unit_price:0}, ...], materials_budget: 19000
-  → subtotal = $0 ❌
-CORRECT:
+RULES FOR base_price
+1. If the contractor says any project total ("cuisine 19 000$", "salle de bain 15k total", "budget 25000"), set base_price to that EXACT number. Do not round, do not estimate, do not distribute.
+2. If the contractor has NOT given a total, estimate a realistic Quebec residential price and list it as an assumption.
+3. If the contractor later changes the total ("fais-le à 22k"), update base_price to the new number.
+4. base_price is ALWAYS pre-tax.
+5. Leave "materials_budget" at 0 unless the contractor explicitly mentions a separate materials cap different from the project price. It is informational only and is NOT used as the customer total.
+
+RULES FOR line_items IN SINGLE MODE (the default)
+- Each line is just { "description": "scope item", "quantity": 1 }. You may omit quantity; it defaults to 1.
+- DO NOT include unit_price on line items in single mode. If you do, it will be ignored.
+- Produce 4–10 meaningful scope items describing what is included (e.g. "Démolition et disposition", "Plomberie (drain + alimentation)", "Douche italienne complète", "Céramique plancher et murs", "Vanité + toilette", "Électricité", "Peinture", "Main-d'œuvre"). Do NOT collapse everything into one catch-all line.
+
+RULES FOR line_items IN DETAILED MODE (only when contractor asks)
+- Each line has { "description", "quantity", "unit_price" } and base_price = SUM(quantity × unit_price).
+- The sum MUST exactly equal the contractor's stated total, if they gave one.
+
+EXAMPLES
+Contractor: "salle de bain 19 000$ tout inclus"
+CORRECT (single mode, default):
+  price_mode: "single", base_price: 19000,
   line_items: [
-    {description:"Démolition et disposition", qty:1, unit_price:1500},
-    {description:"Plomberie (drain + alimentation)", qty:1, unit_price:2500},
-    {description:"Douche italienne complète", qty:1, unit_price:4000},
-    {description:"Céramique plancher et murs", qty:1, unit_price:3500},
-    {description:"Vanité + nouvelle toilette", qty:1, unit_price:2000},
-    {description:"Électricité (ventilateur, luminaires)", qty:1, unit_price:1000},
-    {description:"Peinture et finitions", qty:1, unit_price:1500},
-    {description:"Main-d'œuvre coordination", qty:1, unit_price:3000}
-  ], materials_budget: 0
-  → subtotal = $19,000 ✓ (matches stated total)
+    {"description":"Démolition et disposition","quantity":1},
+    {"description":"Plomberie (drain + alimentation)","quantity":1},
+    {"description":"Douche italienne complète","quantity":1},
+    {"description":"Céramique plancher et murs","quantity":1},
+    {"description":"Vanité + nouvelle toilette","quantity":1},
+    {"description":"Électricité (ventilateur, luminaires)","quantity":1},
+    {"description":"Peinture et finitions","quantity":1},
+    {"description":"Main-d'œuvre et coordination","quantity":1}
+  ]
+WRONG (do not do this):
+  base_price: 0, materials_budget: 19000 ❌  (amount lost)
+  OR line_items with unit_price=0 everywhere ❌  (never matches the stated 19k)
 
-WHEN THE CONTRACTOR GIVES A PER-ITEM PRICE (e.g. "démolition 3000$"):
-Use the exact unit_price they provided for that line. Estimate other lines to complete the scope. No materials_budget involvement.
+Contractor: "détaille-moi, démo 2000$, plomberie 3000$, reste à 14000$"
+CORRECT (detailed mode — contractor asked for breakdown):
+  price_mode: "detailed", base_price: 19000,
+  line_items: [
+    {"description":"Démolition","quantity":1,"unit_price":2000},
+    {"description":"Plomberie","quantity":1,"unit_price":3000},
+    {"description":"Reste des travaux (céramique, vanité, électricité, finition)","quantity":1,"unit_price":14000}
+  ]
+
+WHEN THE CONTRACTOR EDITS AFTER THE FIRST DRAFT
+Preserve base_price unless they say otherwise. "Ajoute X" adds a scope line without changing base_price. "Change le total à 22k" updates base_price to 22000. "Enlève X" removes a scope line.
 
 EDIT SEMANTICS
 - "Ajoute X" / "Add X" → add.
@@ -151,19 +172,29 @@ function stripFences(s) {
 /* ---------- Helper: normalize one option ---------- */
 function normalizeOption(o, idx) {
   const items = Array.isArray(o.line_items) ? o.line_items : [];
+  const priceMode = o.price_mode === 'detailed' ? 'detailed' : 'single';
+  const materialsIncluded = o.materials_included !== false;
+  const normalizedItems = items.map(item => ({
+    description: String(item.description || ''),
+    quantity: Math.max(1, parseInt(item.quantity) || 1),
+    unit_price: priceMode === 'detailed' ? Math.max(0, parseFloat(item.unit_price) || 0) : 0,
+    materialsIncluded
+  }));
+  const basePriceRaw = parseFloat(o.base_price);
+  let basePrice = Number.isFinite(basePriceRaw) ? Math.max(0, basePriceRaw) : 0;
+  if (priceMode === 'detailed') {
+    basePrice = normalizedItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  }
   return {
     key: String(o.key || String.fromCharCode(65 + idx)),
     title: String(o.title || `Option ${String.fromCharCode(65 + idx)}`),
     scope_summary: String(o.scope_summary || ''),
     duration_weeks: Math.max(1, parseInt(o.duration_weeks) || 2),
-    materials_included: o.materials_included !== false,
+    materials_included: materialsIncluded,
     materials_budget: Math.max(0, parseFloat(o.materials_budget) || 0),
-    line_items: items.map(item => ({
-      description: String(item.description || ''),
-      quantity: Math.max(1, parseInt(item.quantity) || 1),
-      unit_price: Math.max(0, parseFloat(item.unit_price) || 0),
-      materialsIncluded: o.materials_included !== false
-    }))
+    price_mode: priceMode,
+    base_price: basePrice,
+    line_items: normalizedItems
   };
 }
 
@@ -213,12 +244,19 @@ async function callGPTChatWithDraft(conversation, context, currentDraft) {
     draftBlock = 'CURRENT DRAFT STATE — PRESERVE UNLESS THE CONTRACTOR CHANGES IT:\n';
     draftBlock += `Project: ${currentDraft.project_title || '(none)'}\n`;
     currentDraft.options.forEach(opt => {
-      const total = opt.line_items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-      draftBlock += `\nOption ${opt.key} — ${opt.title} ($${total})`;
+      const mode = opt.price_mode === 'detailed' ? 'detailed' : 'single';
+      const base = Number(opt.base_price) || (mode === 'detailed'
+        ? opt.line_items.reduce((s, i) => s + (i.quantity || 1) * (i.unit_price || 0), 0)
+        : 0);
+      draftBlock += `\nOption ${opt.key} — ${opt.title} | price_mode=${mode} | base_price=$${base}`;
       draftBlock += `\n  Duration: ${opt.duration_weeks}w | Materials ${opt.materials_included ? 'included' : 'excluded'}`;
       draftBlock += `\n  Scope: ${opt.scope_summary}`;
       opt.line_items.forEach(i => {
-        draftBlock += `\n  - ${i.description} x${i.quantity} @ $${i.unit_price}`;
+        if (mode === 'detailed') {
+          draftBlock += `\n  - ${i.description} x${i.quantity} @ $${i.unit_price}`;
+        } else {
+          draftBlock += `\n  - ${i.description}${i.quantity > 1 ? ` x${i.quantity}` : ''}`;
+        }
       });
     });
   }

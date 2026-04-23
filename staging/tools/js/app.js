@@ -638,53 +638,67 @@ function buildOptionEditor(opt) {
   // Scope
   h += `<div class="form-group"><label class="form-label">${t('scope_label')}</label><textarea class="form-textarea" rows="3" oninput="updateOptionField('${opt.key}','scope_summary',this.value)">${esc(opt.scope_summary)}</textarea></div>`;
 
-  // Pricing sanity check — the classic AI failure mode is to dump the customer
-  // total into materials_budget and leave line items at $0.
+  const mode = getPriceMode(opt);
   const sub = optionSubtotal(opt);
-  const zeroPricedItems = opt.line_items.filter(i => (parseFloat(i.unit_price) || 0) === 0).length;
-  if (sub === 0 && opt.line_items.length > 0) {
+
+  // Primary price control — base_price in single mode, computed in detailed mode.
+  h += `<div class="form-group" style="background:#fffaf0;border:1px solid var(--accent);border-radius:8px;padding:14px;">`;
+  h += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">`;
+  h += `<label class="form-label" style="margin:0;">${lang === 'fr' ? "Prix de l'option (avant taxes)" : 'Option price (before taxes)'}</label>`;
+  h += `<button class="btn btn-secondary btn-sm" onclick="togglePriceMode('${opt.key}')" style="padding:4px 10px;font-size:12px;">`;
+  h += `<span class="material-icons-round" style="font-size:16px;">${mode === 'detailed' ? 'toggle_on' : 'toggle_off'}</span>`;
+  h += `<span>${lang === 'fr' ? 'Détailler les prix par poste' : 'Itemize prices'}</span>`;
+  h += `</button></div>`;
+  if (mode === 'single') {
+    h += `<input class="form-input" type="number" min="0" step="100" value="${opt.base_price || ''}" placeholder="${lang === 'fr' ? 'Ex. 19000' : 'e.g. 19000'}" oninput="updateOptionField('${opt.key}','base_price',this.value)" style="font-size:18px;font-weight:700;">`;
+    h += `<div style="font-size:11px;color:var(--text-hint);margin-top:4px;">${lang === 'fr' ? 'Le client voit ce prix. Les postes ci-dessous sont informatifs (scope du projet).' : 'The client sees this price. The items below are informational (project scope).'}</div>`;
+  } else {
+    h += `<div style="font-size:20px;font-weight:800;color:var(--accent-dark);">$${money(sub)}</div>`;
+    h += `<div style="font-size:11px;color:var(--text-hint);margin-top:4px;">${lang === 'fr' ? 'Calculé à partir des prix unitaires des postes ci-dessous.' : 'Computed from per-item unit prices below.'}</div>`;
+  }
+  h += `</div>`;
+
+  if (mode === 'single' && sub === 0 && opt.line_items.length > 0) {
     h += `<div class="info-banner" style="background:#fff3cd;border-color:#f0c36d;color:#8a6d1a;margin-bottom:12px;">
       <span class="material-icons-round">warning</span>
       <p>${lang === 'fr'
-        ? "Tous les postes sont à 0 $. Ajoutez un prix à chaque poste pour que la soumission ne soit pas à zéro. (Astuce : si vous avez un prix total, répartissez-le entre les postes)."
-        : "All line items are priced at $0. Add a price to each item so the quote is not zero. (Tip: if you have a lump-sum total, distribute it across the items.)"}</p>
-    </div>`;
-  } else if (opt.materials_included && opt.materials_budget > 0 && opt.materials_budget > sub && zeroPricedItems > 0) {
-    h += `<div class="info-banner" style="background:#fff3cd;border-color:#f0c36d;color:#8a6d1a;margin-bottom:12px;">
-      <span class="material-icons-round">warning</span>
-      <p>${lang === 'fr'
-        ? `Budget matériaux ($${money(opt.materials_budget)}) supérieur au sous-total des postes ($${money(sub)}). Le budget matériaux est seulement informatif — il n'est PAS ajouté au prix client. Répartissez le montant dans les postes.`
-        : `Materials budget ($${money(opt.materials_budget)}) exceeds the line-item subtotal ($${money(sub)}). Materials budget is informational only — it's NOT added to the customer total. Distribute the amount across the line items.`}</p>
+        ? "Entrez un prix pour l'option ci-dessus, sinon la soumission sera à 0 $."
+        : 'Enter an option price above, otherwise the quote will be $0.'}</p>
     </div>`;
   }
 
-  // Materials toggle + budget
+  // Materials toggle (budget field hidden — it's rarely needed and was a source of confusion)
   h += `<div class="form-group"><label class="form-label">${t('materials_default')}</label>`;
   h += `<div class="chip-group"><button class="chip ${opt.materials_included ? 'active' : ''}" onclick="setOptionMaterials('${opt.key}', true)">${t('yes')}</button><button class="chip ${!opt.materials_included ? 'active' : ''}" onclick="setOptionMaterials('${opt.key}', false)">${t('no')}</button></div>`;
-  if (opt.materials_included) {
-    h += `<div style="margin-top:10px;"><label class="form-label">${t('materials_budget')}</label><input class="form-input" type="number" min="0" step="100" value="${opt.materials_budget || ''}" oninput="updateOptionField('${opt.key}','materials_budget',this.value)">
-      <div style="font-size:11px;color:var(--text-hint);margin-top:4px;">${lang === 'fr' ? "Informatif seulement. N'est PAS ajouté au total client — le total provient des postes." : "Informational only. NOT added to the customer total — the total comes from the line items."}</div></div>`;
-  }
   h += '</div>';
 
-  // Line items
+  // Line items — format depends on price_mode
+  h += `<div class="form-label" style="margin-top:8px;">${lang === 'fr' ? 'Postes du projet' : 'Project items'}</div>`;
   opt.line_items.forEach((item, i) => {
-    const lineTotal = item.quantity * item.unit_price;
-    h += `<div class="line-item">
-      <div class="line-item-header">
-        <textarea class="line-item-desc" rows="2" oninput="updateItemField('${opt.key}',${i},'description',this.value)">${esc(item.description)}</textarea>
-        <button class="li-remove" onclick="removeItem('${opt.key}',${i})"><span class="material-icons-round">close</span></button>
-      </div>
-      <div class="line-item-fields">
-        <div class="li-field"><label>${t('qty')}</label><input type="number" min="1" value="${item.quantity}" onchange="updateItemField('${opt.key}',${i},'quantity',this.value)"></div>
-        <div class="li-field"><label>${t('unit_price')}</label><input type="number" min="0" step="50" value="${item.unit_price}" onchange="updateItemField('${opt.key}',${i},'unit_price',this.value)"></div>
-        <div class="li-field"><label>${t('total_label')}</label><input type="text" value="$${money(lineTotal)}" readonly style="background:transparent;border-color:transparent;font-weight:600;color:var(--accent-dark);"></div>
-      </div>
-      <div class="line-item-footer">
-        <label class="li-material-toggle"><input type="checkbox" ${item.materialsIncluded ? 'checked' : ''} onchange="updateItemField('${opt.key}',${i},'materialsIncluded',this.checked)"><span>${t('mat_included')}</span></label>
-        <div class="li-total">$${money(lineTotal)}</div>
-      </div>
-    </div>`;
+    if (mode === 'detailed') {
+      const lineTotal = item.quantity * item.unit_price;
+      h += `<div class="line-item">
+        <div class="line-item-header">
+          <textarea class="line-item-desc" rows="2" oninput="updateItemField('${opt.key}',${i},'description',this.value)">${esc(item.description)}</textarea>
+          <button class="li-remove" onclick="removeItem('${opt.key}',${i})"><span class="material-icons-round">close</span></button>
+        </div>
+        <div class="line-item-fields">
+          <div class="li-field"><label>${t('qty')}</label><input type="number" min="1" value="${item.quantity}" onchange="updateItemField('${opt.key}',${i},'quantity',this.value)"></div>
+          <div class="li-field"><label>${t('unit_price')}</label><input type="number" min="0" step="50" value="${item.unit_price}" onchange="updateItemField('${opt.key}',${i},'unit_price',this.value)"></div>
+          <div class="li-field"><label>${t('total_label')}</label><input type="text" value="$${money(lineTotal)}" readonly style="background:transparent;border-color:transparent;font-weight:600;color:var(--accent-dark);"></div>
+        </div>
+      </div>`;
+    } else {
+      h += `<div class="line-item">
+        <div class="line-item-header">
+          <textarea class="line-item-desc" rows="2" oninput="updateItemField('${opt.key}',${i},'description',this.value)">${esc(item.description)}</textarea>
+          <button class="li-remove" onclick="removeItem('${opt.key}',${i})"><span class="material-icons-round">close</span></button>
+        </div>
+        <div class="line-item-fields">
+          <div class="li-field" style="max-width:120px;"><label>${t('qty')}</label><input type="number" min="1" value="${item.quantity}" onchange="updateItemField('${opt.key}',${i},'quantity',this.value)"></div>
+        </div>
+      </div>`;
+    }
   });
 
   h += `<button class="btn-add" onclick="addItem('${opt.key}')">+ <span>${t('add_item')}</span></button>`;
@@ -710,7 +724,37 @@ function updateOptionField(key, field, value) {
   if (!opt) return;
   if (field === 'duration_weeks') opt[field] = Math.max(1, parseInt(value) || 1);
   else if (field === 'materials_budget') opt[field] = Math.max(0, parseFloat(value) || 0);
+  else if (field === 'base_price') opt[field] = Math.max(0, parseFloat(value) || 0);
   else opt[field] = value;
+  renderOptionsEditor();
+}
+
+function togglePriceMode(key) {
+  const opt = quoteState.options.find(o => o.key === key);
+  if (!opt) return;
+  const currentMode = getPriceMode(opt);
+  if (currentMode === 'single') {
+    // Switch to detailed. Seed unit prices by distributing base_price evenly
+    // across line items so the total doesn't change when the contractor flips.
+    const base = Math.max(0, parseFloat(opt.base_price) || 0);
+    const items = opt.line_items || [];
+    if (base > 0 && items.length > 0) {
+      const per = Math.round((base / items.length) * 100) / 100;
+      items.forEach(i => { i.quantity = Math.max(1, parseInt(i.quantity) || 1); i.unit_price = per; });
+      // Adjust last line to absorb rounding residue so the sum matches base exactly.
+      const sum = items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+      const last = items[items.length - 1];
+      last.unit_price = Math.max(0, round2(last.unit_price + (base - sum)));
+    }
+    opt.price_mode = 'detailed';
+  } else {
+    // Switch to single. Lock in the current sum as base_price, then clear
+    // per-line prices so the UI becomes description-only.
+    const currentSum = (opt.line_items || []).reduce((s, i) => s + (parseFloat(i.quantity) || 0) * (parseFloat(i.unit_price) || 0), 0);
+    opt.base_price = round2(currentSum);
+    (opt.line_items || []).forEach(i => { i.unit_price = 0; });
+    opt.price_mode = 'single';
+  }
   renderOptionsEditor();
 }
 
@@ -770,6 +814,8 @@ function addOption() {
     duration_weeks: 2,
     materials_included: true,
     materials_budget: 0,
+    price_mode: 'single',
+    base_price: 0,
     line_items: []
   });
   quoteState.activeOptionKey = key;
@@ -784,7 +830,19 @@ function removeOption(key) {
 }
 
 function optionSubtotal(opt) {
-  return opt.line_items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
+  const mode = getPriceMode(opt);
+  if (mode === 'detailed') {
+    return opt.line_items.reduce((s, i) => s + ((parseFloat(i.quantity) || 0) * (parseFloat(i.unit_price) || 0)), 0);
+  }
+  return Math.max(0, parseFloat(opt.base_price) || 0);
+}
+
+// Backwards compat: if price_mode is undefined on a legacy option, pick the
+// mode that matches the stored data so we don't retroactively zero it out.
+function getPriceMode(opt) {
+  if (opt.price_mode === 'single' || opt.price_mode === 'detailed') return opt.price_mode;
+  const hasUnitPrices = (opt.line_items || []).some(i => (parseFloat(i.unit_price) || 0) > 0);
+  return hasUnitPrices ? 'detailed' : 'single';
 }
 
 function optionTotals(opt) {
@@ -1218,7 +1276,7 @@ function downloadDraftPdf() {
   const title = (lang === 'fr' ? 'Brouillon — Soumission MLP' : 'Draft — MLP Quote') + (num ? ' ' + num : '');
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
-    <link rel="stylesheet" href="css/tools.css?v=22">
+    <link rel="stylesheet" href="css/tools.css?v=23">
     <style>
       body{background:#fff;padding:24px;position:relative;}
       .draft-banner{background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;}
