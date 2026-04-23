@@ -62,6 +62,8 @@ const I18N = {
   draft_prompt_email: { fr: 'Adresse courriel pour le brouillon ?', en: 'Email address for the draft?' },
   draft_email_sent: { fr: 'Brouillon envoyé à', en: 'Draft sent to' },
   draft_watermark: { fr: 'BROUILLON — Non contractuel', en: 'DRAFT — Not for signature' },
+  preview_as_client: { fr: 'Aperçu côté client', en: 'Preview as client' },
+  preview_saving: { fr: 'Enregistrement…', en: 'Saving…' },
   qty: { fr: 'Qté', en: 'Qty' },
   unit_price: { fr: 'Prix unit.', en: 'Unit $' },
   total_label: { fr: 'Total', en: 'Total' },
@@ -1174,8 +1176,21 @@ function printQuote() {
 }
 
 /* ============================================
-   DRAFT DOWNLOAD / DRAFT EMAIL
+   DRAFT DOWNLOAD / DRAFT EMAIL / PREVIEW
    ============================================ */
+async function previewAsClient() {
+  if (!savedQuote?.share_token) {
+    showToast(t('preview_saving'));
+    try { await saveDraft(); } catch (_) {}
+  }
+  if (!savedQuote?.share_token) {
+    showToast(lang === 'fr' ? 'Impossible de générer l\'aperçu. Vérifiez les informations du client.' : 'Could not generate preview. Check client info.', 'error');
+    return;
+  }
+  const url = buildShareLink(savedQuote.share_token);
+  window.open(url, '_blank');
+}
+
 function downloadDraftPdf() {
   const content = document.getElementById('quote-output').innerHTML;
   const watermark = t('draft_watermark');
@@ -1183,7 +1198,7 @@ function downloadDraftPdf() {
   const title = (lang === 'fr' ? 'Brouillon — Soumission MLP' : 'Draft — MLP Quote') + (num ? ' ' + num : '');
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
-    <link rel="stylesheet" href="css/tools.css?v=19">
+    <link rel="stylesheet" href="css/tools.css?v=20">
     <style>
       body{background:#fff;padding:24px;position:relative;}
       .draft-banner{background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;}
