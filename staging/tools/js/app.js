@@ -894,11 +894,10 @@ function renderFinalQuote() {
 
       if (opt.line_items.length) {
         h += '<table><thead><tr>';
-        h += `<th>Description</th><th class="r">${fr ? 'Qté' : 'Qty'}</th><th class="r">${fr ? 'Prix' : 'Price'}</th><th class="r">Total</th>`;
+        h += `<th>Description</th><th class="r" style="width:80px;">${fr ? 'Qté' : 'Qty'}</th>`;
         h += '</tr></thead><tbody>';
         opt.line_items.forEach(it => {
-          const lt = it.quantity * it.unit_price;
-          h += `<tr><td>${esc(it.description)}</td><td class="r">${it.quantity}</td><td class="r">$${money(it.unit_price)}</td><td class="r">$${money(lt)}</td></tr>`;
+          h += `<tr><td>${esc(it.description)}</td><td class="r">${it.quantity}</td></tr>`;
         });
         h += '</tbody></table>';
       }
@@ -1198,7 +1197,7 @@ function downloadDraftPdf() {
   const title = (lang === 'fr' ? 'Brouillon — Soumission MLP' : 'Draft — MLP Quote') + (num ? ' ' + num : '');
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
-    <link rel="stylesheet" href="css/tools.css?v=20">
+    <link rel="stylesheet" href="css/tools.css?v=21">
     <style>
       body{background:#fff;padding:24px;position:relative;}
       .draft-banner{background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;}

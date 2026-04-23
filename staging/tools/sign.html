@@ -191,11 +191,10 @@ function renderPage() {
     h += '</div>';
     if (opt.line_items && opt.line_items.length) {
       h += '<table><thead><tr>';
-      h += `<th>Description</th><th class="r">${fr ? 'Qté' : 'Qty'}</th><th class="r">${fr ? 'Prix' : 'Price'}</th><th class="r">Total</th>`;
+      h += `<th>Description</th><th class="r" style="width:80px;">${fr ? 'Qté' : 'Qty'}</th>`;
       h += '</tr></thead><tbody>';
       opt.line_items.forEach(it => {
-        const lt = it.quantity * it.unit_price;
-        h += `<tr><td>${esc(it.description)}</td><td class="r">${it.quantity}</td><td class="r">$${money(it.unit_price)}</td><td class="r">$${money(lt)}</td></tr>`;
+        h += `<tr><td>${esc(it.description)}</td><td class="r">${it.quantity}</td></tr>`;
       });
       h += '</tbody></table>';
     }
