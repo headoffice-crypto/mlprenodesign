@@ -7,3 +7,6 @@ staging/tools/js/config.js
 # Supabase CLI scratch
 staging/tools/supabase/.temp/
 staging/tools/supabase/supabase/
+
+# Claude Code local settings
+.claude/
