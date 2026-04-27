@@ -181,7 +181,9 @@ function renderPage() {
     const accepted = q.accepted_option_key === opt.key;
     h += `<div class="qp-option-block${accepted ? ' accepted' : ''}">`;
     h += '<div class="qp-option-head">';
-    h += `<div class="qp-option-title">${esc(opt.title || opt.key)}${accepted ? (fr ? ' ✓ Signée' : ' ✓ Signed') : ''}</div>`;
+    const optTitle = multi ? `Option ${esc(opt.key)}` : '';
+    const accBadge = accepted ? (fr ? ' ✓ Signée' : ' ✓ Signed') : '';
+    h += `<div class="qp-option-title">${optTitle}${accBadge}</div>`;
     h += `<div class="qp-option-total">$${money(opt.total)}</div>`;
     h += '</div>';
     if (opt.scope_summary) h += `<div style="font-size:13px;color:#3c4043;white-space:pre-line;margin-bottom:10px;">${esc(opt.scope_summary)}</div>`;
@@ -259,7 +261,7 @@ function renderSignBlock(q, fr, options, multi) {
     options.forEach(opt => {
       h += `<div class="option-choose-card${opt.key === selectedOptionKey ? ' selected' : ''}" onclick="selectOption('${opt.key}')">`;
       h += '<div class="option-choose-header">';
-      h += `<div class="option-choose-title">${esc(opt.title || opt.key)}</div>`;
+      h += `<div class="option-choose-title">Option ${esc(opt.key)}</div>`;
       h += `<div class="option-choose-total">$${money(opt.total)}</div>`;
       h += '</div>';
       if (opt.scope_summary) h += `<div class="option-choose-scope">${esc(opt.scope_summary)}</div>`;

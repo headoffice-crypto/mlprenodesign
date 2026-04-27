@@ -7,14 +7,14 @@
   <meta name="robots" content="noindex, nofollow">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=18">
+  <link rel="stylesheet" href="css/tools.css?v=26">
 </head>
 <body>
 
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v18</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v26</span></h1>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -49,10 +49,13 @@
 <script src="js/config.js"></script>
 <script src="js/supabase-client.js"></script>
 <script>
+const customersById = {};
+
 (async function() {
   const root = document.getElementById('list-root');
   try {
     const customers = await listCustomersWithStats();
+    customers.forEach(c => { customersById[c.id] = c; });
     if (!customers.length) {
       root.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--text-secondary);">
         <div style="font-size:48px;margin-bottom:8px;">👤</div>
@@ -104,13 +107,18 @@ function cardHtml(c) {
     </a>`;
   }
 
-  return `<div class="customer-card" onclick="location.href='customer.html?id=${encodeURIComponent(c.id)}'">
+  return `<div class="customer-card" data-id="${esc(c.id)}" onclick="location.href='customer.html?id=${encodeURIComponent(c.id)}'">
     <div class="cc-head">
       <div class="cc-avatar">${initials(c.name)}</div>
       <div style="min-width:0;flex:1;">
         <div class="cc-name">${esc(c.name)}</div>
         <div class="cc-since">${fmtSince(c.created_at)}</div>
       </div>
+      <button class="btn btn-sm" title="Supprimer ce client"
+              style="flex:0 0 auto;padding:6px 8px;background:transparent;color:var(--red);border:1px solid var(--red);"
+              onclick="event.stopPropagation();confirmDeleteCustomer('${c.id}')">
+        <span class="material-icons-round" style="font-size:18px">delete</span>
+      </button>
     </div>
     <div class="cc-contact">${contact.join('') || '<span style="color:var(--text-hint);font-style:italic;">Aucun contact</span>'}</div>
     <div class="cc-stats">
@@ -120,6 +128,44 @@ function cardHtml(c) {
     </div>
     <div class="cc-actions">${actions}</div>
   </div>`;
+}
+
+async function confirmDeleteCustomer(id) {
+  const c = customersById[id];
+  if (!c) { console.warn('[delete] customer not in map', id); return; }
+  const name = c.name || '(sans nom)';
+  const nQuotes = c.stats?.quotes || 0;
+  const nSigned = c.stats?.signed || 0;
+
+  let warn = `Supprimer le client « ${name} » ?\n\nCette action est définitive.`;
+  if (nSigned > 0) {
+    warn = `⚠️ ATTENTION : ${name} a ${nSigned} soumission(s) SIGNÉE(S).\n\nLa suppression effacera AUSSI ces soumissions, projets, factures et photos. Continuer ?`;
+  } else if (nQuotes > 0) {
+    warn = `« ${name} » a ${nQuotes} soumission(s) (brouillons / envoyées).\n\nLa suppression effacera tout (soumissions, projets, factures). Continuer ?`;
+  }
+  if (!confirm(warn)) return;
+
+  const card = document.querySelector(`.customer-card[data-id="${id}"]`);
+  if (card) card.style.opacity = '0.5';
+  try {
+    await deleteCustomer(id);
+    delete customersById[id];
+    showToast('Client supprimé');
+    if (card) card.remove();
+    if (!document.querySelector('.customer-card')) location.reload();
+  } catch (err) {
+    console.error('[deleteCustomer failed]', err);
+    if (card) card.style.opacity = '';
+    showToast('⚠️ ' + (err.message || err), 'error');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(() => t.className = 'toast', 3000);
 }
 
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

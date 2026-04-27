@@ -21,6 +21,7 @@ let selectedPaymentOption = 'A';
 /* AI chat state */
 let chatHistory = [];
 let chatBusy = false;
+let convertBusy = false;
 
 /* Signature / persistence */
 let contractorPad = null;
@@ -34,7 +35,7 @@ const I18N = {
   step1_title: { fr: 'Informations du client', en: 'Client Information' },
   step1_sub:   { fr: 'Coordonnées du client pour la soumission', en: 'Client contact details for the quote' },
   step2_title: { fr: 'Détails du projet', en: 'Project Details' },
-  step2_sub:   { fr: 'Discutez avec l\'IA comme avec ChatGPT. Le brouillon de soumission se met à jour en direct.', en: 'Chat with the AI just like ChatGPT. The quote draft updates live.' },
+  step2_sub:   { fr: 'Discutez librement avec l\'IA, comme sur ChatGPT. Quand le scope vous convient, cliquez sur « Convertir en soumission ».', en: 'Chat freely with the AI, just like ChatGPT. When the scope looks right, click "Convert to quote".' },
   step3_title: { fr: 'Options et postes', en: 'Options & line items' },
   step3_sub:   { fr: 'Ajustez les matériaux, les postes et les prix de chaque option.', en: 'Adjust materials, line items, and pricing for each option.' },
   step4_title: { fr: 'Modalités de paiement', en: 'Payment Terms' },
@@ -75,7 +76,12 @@ const I18N = {
   chat_empty: { fr: 'Décrivez votre projet. Exemple : « rénover la cuisine, donne-moi 3 options : basique, standard, premium »', en: 'Describe the project. E.g. "renovate the kitchen — give me 3 options: basic, standard, premium"' },
   chat_placeholder: { fr: 'Écrivez à l\'IA…', en: 'Write to the AI…' },
   thinking: { fr: 'L\'IA réfléchit…', en: 'AI is thinking…' },
-  draft_title: { fr: 'Brouillon en direct', en: 'Live draft' },
+  convert_to_quote: { fr: 'Convertir en soumission', en: 'Convert to quote' },
+  converting: { fr: 'Conversion en cours…', en: 'Converting…' },
+  convert_hint: { fr: 'Quand vous êtes satisfait de la conversation, transformez-la en options structurées.', en: 'When you\'re happy with the conversation, turn it into structured options.' },
+  reconvert_hint: { fr: 'Vous avez déjà une soumission ci-dessous. Une nouvelle conversion remplacera les options actuelles.', en: 'A draft already exists below. Re-converting will replace the current options.' },
+  no_options_extracted: { fr: 'L\'IA n\'a pas réussi à extraire une soumission. Donnez plus de détails (montant, durée, scope) et réessayez.', en: 'The AI could not extract a quote. Provide more detail (amount, duration, scope) and try again.' },
+  draft_title: { fr: 'Brouillon de soumission', en: 'Quote draft' },
   draft_questions: { fr: 'L\'IA vous demande', en: 'The AI is asking' },
   draft_accept: { fr: 'Accepter et continuer', en: 'Accept & continue' },
   draft_weeks: { fr: 'semaines', en: 'weeks' },
@@ -324,19 +330,9 @@ async function saveDraft() {
   draftSaveInFlight = true;
   updateDraftStatus('saving');
   try {
-    // Ensure a customer exists and is linked to the quote
-    let customerId = savedQuote?.customer_id || null;
-    try {
-      const newId = await upsertCustomer({
-        name: clientName,
-        email: val('f-client-email'),
-        phone: val('f-client-phone'),
-        address: val('f-client-address')
-      });
-      if (newId) customerId = newId;
-    } catch (err) {
-      console.warn('[upsertCustomer during draft] failed', err);
-    }
+    // HARD RULE: a customers row is only created once the customer signs.
+    // During the contractor's flow we keep customer_id NULL (or whatever was previously linked).
+    const customerId = savedQuote?.customer_id || null;
 
     const record = buildQuoteRecord(savedQuote?.status && savedQuote.status !== 'draft' ? savedQuote.status : 'draft');
     record.customer_id = customerId;
@@ -450,7 +446,12 @@ function renderChat() {
     if (m.role === 'system') return;
     const div = document.createElement('div');
     div.className = 'chat-bubble ' + (m.role === 'user' ? 'user' : 'assistant');
-    div.textContent = m.displayText !== undefined ? m.displayText : m.content;
+    const raw = m.displayText !== undefined ? m.displayText : m.content;
+    if (m.role === 'assistant' && m.content !== 'error' && m.content !== 'system-warning') {
+      div.innerHTML = renderMarkdown(raw);
+    } else {
+      div.textContent = raw;
+    }
     box.appendChild(div);
   });
 
@@ -462,6 +463,61 @@ function renderChat() {
   }
 
   box.scrollTop = box.scrollHeight;
+  renderConvertButton();
+}
+
+// Minimal markdown -> HTML for chat bubbles. Escapes first, then handles
+// code spans, bold/italic, simple lists, and paragraph breaks. Intentionally tiny.
+function renderMarkdown(src) {
+  if (!src) return '';
+  let s = String(src);
+  s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  s = s.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code}</code></pre>`);
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  // bullet lists: turn runs of "- " or "* " lines into <ul><li>...</li></ul>
+  s = s.replace(/(?:^|\n)((?:[-*] .+(?:\n|$))+)/g, (_, block) => {
+    const items = block.trim().split(/\n/).map(l => l.replace(/^[-*]\s+/, '')).map(li => `<li>${li}</li>`).join('');
+    return `\n<ul>${items}</ul>`;
+  });
+  // numbered lists
+  s = s.replace(/(?:^|\n)((?:\d+\. .+(?:\n|$))+)/g, (_, block) => {
+    const items = block.trim().split(/\n/).map(l => l.replace(/^\d+\.\s+/, '')).map(li => `<li>${li}</li>`).join('');
+    return `\n<ol>${items}</ol>`;
+  });
+  // paragraphs from blank-line separation; single newlines become <br>
+  const parts = s.split(/\n{2,}/).map(p => {
+    if (/^\s*<(ul|ol|pre)/.test(p)) return p;
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  });
+  return parts.join('');
+}
+
+function renderConvertButton() {
+  const wrap = document.getElementById('convert-to-quote-wrap');
+  if (!wrap) return;
+
+  const userMsgs = chatHistory.filter(m => m.role === 'user').length;
+  if (userMsgs === 0) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+  const disabled = chatBusy || convertBusy;
+  const hasDraft = quoteState.options.length > 0;
+  const label = convertBusy ? t('converting') : t('convert_to_quote');
+  const hint = hasDraft ? t('reconvert_hint') : t('convert_hint');
+
+  wrap.style.display = '';
+  wrap.innerHTML = `
+    <button type="button" class="btn btn-primary"
+            style="width:100%;justify-content:center;padding:14px;font-size:15px;"
+            onclick="convertToQuote()" ${disabled ? 'disabled' : ''}>
+      ${convertBusy
+        ? '<span class="spinner-ring" style="margin-right:8px;"></span>'
+        : '<span class="material-icons-round" style="margin-right:6px;">bolt</span>'}
+      <span>${esc(label)}</span>
+    </button>
+    <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;text-align:center;">${esc(hint)}</div>
+  `;
 }
 
 function setChatError(msg) {
@@ -484,8 +540,8 @@ async function sendChatMessage() {
     setChatError('OpenAI API key is missing or invalid. Check js/config.js.');
     return;
   }
-  if (typeof callGPTChatWithDraft !== 'function') {
-    setChatError('callGPTChatWithDraft is not loaded. The page has a script load problem — hard-refresh with Ctrl+Shift+R.');
+  if (typeof callGPTChat !== 'function') {
+    setChatError('callGPTChat is not loaded. Hard-refresh with Ctrl+Shift+R.');
     return;
   }
 
@@ -503,34 +559,12 @@ async function sendChatMessage() {
   };
 
   try {
-    const currentDraftForGPT = {
-      project_title: quoteState.project_title,
-      options: quoteState.options
-    };
-    const { message, draft } = await callGPTChatWithDraft(chatHistory, context, currentDraftForGPT);
+    const reply = await callGPTChat(chatHistory, context);
     chatHistory.push({
       role: 'assistant',
-      content: JSON.stringify({ message, draft }),
-      displayText: message
+      content: reply,
+      displayText: reply
     });
-
-    console.log('[draft from GPT]', draft);
-    if (draft.options.length) {
-      quoteState.project_title = draft.project_title || quoteState.project_title;
-      quoteState.options = draft.options;
-      quoteState.activeOptionKey = quoteState.activeOptionKey || draft.options[0]?.key;
-      quoteState.assumptions = draft.assumptions;
-      quoteState.questions = draft.questions;
-    } else {
-      // Surface this visibly instead of silently ignoring — tells us GPT is misbehaving
-      chatHistory.push({
-        role: 'assistant',
-        content: 'system-warning',
-        displayText: (lang === 'fr'
-          ? '⚠️ L\'IA n\'a pas retourné d\'options. Reformulez votre demande ou ajoutez plus de détails.'
-          : '⚠️ The AI did not return any options. Rephrase your request or add more details.')
-      });
-    }
   } catch (err) {
     console.error('[sendChatMessage error]', err);
     setChatError('GPT call failed: ' + (err.message || err));
@@ -542,7 +576,57 @@ async function sendChatMessage() {
   } finally {
     chatBusy = false;
     renderChat();
+  }
+}
+
+async function convertToQuote() {
+  if (convertBusy || chatBusy) return;
+  if (!chatHistory.length) return;
+
+  setChatError('');
+
+  if (typeof OPENAI_API_KEY !== 'string' || !OPENAI_API_KEY.startsWith('sk-')) {
+    setChatError('OpenAI API key is missing or invalid. Check js/config.js.');
+    return;
+  }
+  if (typeof extractQuoteFromConversation !== 'function') {
+    setChatError('extractQuoteFromConversation is not loaded. Hard-refresh with Ctrl+Shift+R.');
+    return;
+  }
+
+  convertBusy = true;
+  renderConvertButton();
+
+  const context = {
+    clientName: val('f-client-name'),
+    clientAddress: val('f-client-address'),
+    clientEmail: val('f-client-email'),
+    clientPhone: val('f-client-phone'),
+    quoteDate: val('f-date')
+  };
+
+  try {
+    const { draft } = await extractQuoteFromConversation(chatHistory, context);
+    if (!draft.options.length) {
+      setChatError(t('no_options_extracted'));
+      return;
+    }
+    quoteState.project_title = draft.project_title || quoteState.project_title;
+    quoteState.options = draft.options;
+    quoteState.activeOptionKey = draft.options[0]?.key || null;
+    quoteState.assumptions = draft.assumptions;
+    quoteState.questions = draft.questions;
+    saveDraft();
     renderDraftPreview();
+    setTimeout(() => {
+      document.getElementById('draft-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  } catch (err) {
+    console.error('[convertToQuote error]', err);
+    setChatError('Conversion failed: ' + (err.message || err));
+  } finally {
+    convertBusy = false;
+    renderConvertButton();
   }
 }
 
@@ -558,12 +642,13 @@ function renderDraftPreview() {
     h += `<div class="draft-project-title">${esc(quoteState.project_title)}</div>`;
   }
 
+  const multi = quoteState.options.length > 1;
   quoteState.options.forEach(opt => {
     const total = optionSubtotal(opt);
     h += '<div class="option-card-preview">';
     h += '<div class="option-card-preview-header">';
-    h += `<div class="option-card-preview-title">${esc(opt.title || opt.key)}</div>`;
-    h += `<div class="option-card-preview-total">$${money(total)}</div>`;
+    if (multi) h += `<div class="option-card-preview-title">Option ${esc(opt.key)}</div>`;
+    h += `<div class="option-card-preview-total" style="${multi ? '' : 'margin-left:auto;'}">$${money(total)}</div>`;
     h += '</div>';
     if (opt.scope_summary) h += `<div class="option-card-preview-scope">${esc(opt.scope_summary)}</div>`;
     h += '<div class="option-card-preview-meta">';
@@ -612,14 +697,17 @@ function renderOptionsEditor() {
     quoteState.activeOptionKey = quoteState.options[0].key;
   }
 
+  const multi = quoteState.options.length > 1;
   quoteState.options.forEach(opt => {
     const tab = document.createElement('button');
     tab.className = 'options-tab' + (opt.key === quoteState.activeOptionKey ? ' active' : '');
     const total = optionSubtotal(opt);
-    tab.innerHTML = `${esc(opt.title || opt.key)} · $${money(total)}${quoteState.options.length > 1 ? `<span class="close material-icons-round" onclick="event.stopPropagation(); removeOption('${opt.key}')">close</span>` : ''}`;
+    const label = multi ? `Option ${esc(opt.key)} · $${money(total)}` : `$${money(total)}`;
+    tab.innerHTML = `${label}${multi ? `<span class="close material-icons-round" onclick="event.stopPropagation(); removeOption('${opt.key}')">close</span>` : ''}`;
     tab.onclick = () => { quoteState.activeOptionKey = opt.key; renderOptionsEditor(); };
     tabs.appendChild(tab);
   });
+  if (!multi) tabs.style.display = 'none'; else tabs.style.display = '';
 
   const opt = quoteState.options.find(o => o.key === quoteState.activeOptionKey);
   editor.innerHTML = buildOptionEditor(opt);
@@ -629,9 +717,8 @@ function buildOptionEditor(opt) {
   const fr = lang === 'fr';
   let h = '<div class="option-editor-box">';
 
-  // Head: title + duration
+  // Head: duration only — title is fixed at "Option A/B/C"
   h += '<div class="option-editor-head">';
-  h += `<div class="form-group" style="margin:0;"><label class="form-label">${t('option_title_label')}</label><input class="form-input" type="text" value="${esc(opt.title)}" oninput="updateOptionField('${opt.key}','title',this.value)"></div>`;
   h += `<div class="form-group" style="margin:0;"><label class="form-label">${t('duration_weeks')}</label><input class="form-input" type="number" min="1" value="${opt.duration_weeks}" onchange="updateOptionField('${opt.key}','duration_weeks',this.value)"></div>`;
   h += '</div>';
 
@@ -957,7 +1044,9 @@ function renderFinalQuote() {
       const accepted = savedQuote?.accepted_option_key === opt.key;
       h += `<div class="qp-option-block${accepted ? ' accepted' : ''}">`;
       h += '<div class="qp-option-head">';
-      h += `<div class="qp-option-title">${esc(opt.title || opt.key)}${accepted ? ' ✓ ' + t('signed_badge') : ''}</div>`;
+      const optTitle = multi ? `Option ${esc(opt.key)}` : '';
+      const accBadge = accepted ? ' ✓ ' + t('signed_badge') : '';
+      h += `<div class="qp-option-title">${optTitle}${accBadge}</div>`;
       h += `<div class="qp-option-total">$${money(tot.total)}</div>`;
       h += '</div>';
       if (opt.scope_summary) {
@@ -1041,15 +1130,11 @@ async function saveAndSendForSignature() {
   btn.innerHTML = `<span class="spinner-ring"></span><span>${t('saving')}</span>`;
 
   try {
-    let customerId = null;
-    try {
-      customerId = await upsertCustomer({
-        name: clientName,
-        email: val('f-client-email'),
-        phone: val('f-client-phone'),
-        address: val('f-client-address')
-      });
-    } catch (err) { console.warn('upsertCustomer failed', err); }
+    // HARD RULE: do NOT create a customers row here. The profile is created
+    // only when the customer signs (saveCustomerSignature). Keep whatever
+    // customer_id is already linked (e.g. when starting a quote from an
+    // existing customer's profile), otherwise leave NULL.
+    const customerId = savedQuote?.customer_id || null;
 
     // Enrich options with totals
     const optionsWithTotals = quoteState.options.map(opt => {

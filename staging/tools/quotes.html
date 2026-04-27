@@ -50,10 +50,13 @@
 <script src="js/config.js"></script>
 <script src="js/supabase-client.js"></script>
 <script>
+const quotesById = {};
+
 (async function() {
   const root = document.getElementById('list-root');
   try {
     const quotes = await listQuotes();
+    quotes.forEach(q => { quotesById[q.id] = q; });
     if (!quotes.length) {
       root.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:var(--text-secondary);">
         <div style="font-size:48px;margin-bottom:8px;">📋</div>
@@ -90,7 +93,9 @@ function rowHtml(q) {
 
   const sendable = q.share_token && q.status !== 'signed';
 
-  return `<div class="quote-row" style="flex-direction:column;align-items:stretch;gap:10px;">
+  const isSigned = q.status === 'signed';
+
+  return `<div class="quote-row" data-id="${esc(q.id)}" style="flex-direction:column;align-items:stretch;gap:10px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;" onclick="openRow('${openTarget || ''}', '${q.status}')">
       <div class="quote-row-main">
         <div class="quote-row-title">${esc(q.project_title || q.quote_number)}</div>
@@ -101,8 +106,8 @@ function rowHtml(q) {
         <span class="status-pill ${q.status}">${statusText}</span>
       </div>
     </div>
-    ${sendable ? `
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      ${sendable ? `
         <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();quickSend('${q.id}','email', this)">
           <span class="material-icons-round" style="font-size:16px">mail</span>
           <span>Envoyer courriel</span>
@@ -114,9 +119,39 @@ function rowHtml(q) {
         <button class="btn btn-secondary btn-sm" style="flex:0 0 auto;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();copyPublicLink('${q.share_token}')">
           <span class="material-icons-round" style="font-size:16px">content_copy</span>
           <span>Copier le lien</span>
-        </button>
-      </div>` : ''}
+        </button>` : ''}
+      <button class="btn btn-sm" title="Supprimer"
+              style="flex:0 0 auto;padding:8px 10px;font-size:12px;margin-left:auto;background:transparent;color:var(--red);border:1px solid var(--red);"
+              onclick="event.stopPropagation();confirmDeleteQuote('${q.id}')">
+        <span class="material-icons-round" style="font-size:16px">delete</span>
+        <span>Supprimer</span>
+      </button>
+    </div>
   </div>`;
+}
+
+async function confirmDeleteQuote(id) {
+  const q = quotesById[id];
+  if (!q) { console.warn('[delete] quote not in map', id); return; }
+  const label = q.project_title || q.quote_number || id;
+  const isSigned = q.status === 'signed';
+  const warn = isSigned
+    ? `⚠️ Cette soumission a été SIGNÉE.\n\nSupprimer « ${label} » va aussi effacer les factures associées. Continuer ?`
+    : `Supprimer la soumission « ${label} » (${q.status}) ?\n\nCette action est définitive.`;
+  if (!confirm(warn)) return;
+  const row = document.querySelector(`.quote-row[data-id="${id}"]`);
+  if (row) row.style.opacity = '0.5';
+  try {
+    await deleteQuote(id);
+    delete quotesById[id];
+    showToast('Soumission supprimée');
+    if (row) row.remove();
+    if (!document.querySelector('.quote-row')) location.reload();
+  } catch (err) {
+    console.error('[deleteQuote failed]', err);
+    if (row) row.style.opacity = '';
+    showToast('⚠️ ' + (err.message || err), 'error');
+  }
 }
 
 function openRow(target, status) {

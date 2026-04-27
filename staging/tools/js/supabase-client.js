@@ -125,6 +125,30 @@ async function markQuoteViewed(token) {
 }
 
 async function saveCustomerSignature(token, { signature, signerName, acceptedOptionKey }) {
+  // HARD RULE: a customers row is only created at signing time, not before.
+  // Pull the quote's stored client_* fields and upsert (or reuse an existing
+  // customer matched by email).
+  const { data: quote, error: qErr } = await sb
+    .from('quotes')
+    .select('id, customer_id, client_name, client_email, client_phone, client_address')
+    .eq('share_token', token)
+    .single();
+  if (qErr) throw qErr;
+
+  let customerId = quote.customer_id;
+  if (!customerId && quote.client_name && quote.client_name.trim()) {
+    try {
+      customerId = await upsertCustomer({
+        name: quote.client_name,
+        email: quote.client_email,
+        phone: quote.client_phone,
+        address: quote.client_address
+      });
+    } catch (err) {
+      console.warn('[saveCustomerSignature -> upsertCustomer] failed', err);
+    }
+  }
+
   const patch = {
     customer_signature: signature,
     customer_signer_name: signerName,
@@ -132,6 +156,7 @@ async function saveCustomerSignature(token, { signature, signerName, acceptedOpt
     status: 'signed'
   };
   if (acceptedOptionKey) patch.accepted_option_key = acceptedOptionKey;
+  if (customerId && !quote.customer_id) patch.customer_id = customerId;
 
   const { data, error } = await sb
     .from('quotes')
@@ -142,6 +167,37 @@ async function saveCustomerSignature(token, { signature, signerName, acceptedOpt
   if (error) throw error;
   logQuoteEvent(data.id, 'signed_customer', { signerName, acceptedOptionKey }).catch(() => {});
   return data.id;
+}
+
+/* ---------- Deletion ---------- */
+async function deleteQuote(id) {
+  // Best-effort cleanup of dependents
+  await sb.from('quote_events').delete().eq('quote_id', id);
+  await sb.from('invoices').delete().eq('quote_id', id);
+  const { error } = await sb.from('quotes').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function deleteCustomer(id) {
+  // Find every project linked to the customer, then drop dependents
+  const { data: projects } = await sb.from('projects').select('id').eq('customer_id', id);
+  const projectIds = (projects || []).map(p => p.id);
+  if (projectIds.length) {
+    await sb.from('project_photos').delete().in('project_id', projectIds);
+    await sb.from('invoices').delete().in('project_id', projectIds);
+    await sb.from('projects').delete().in('id', projectIds);
+  }
+
+  const { data: quotes } = await sb.from('quotes').select('id').eq('customer_id', id);
+  const quoteIds = (quotes || []).map(q => q.id);
+  if (quoteIds.length) {
+    await sb.from('quote_events').delete().in('quote_id', quoteIds);
+    await sb.from('invoices').delete().in('quote_id', quoteIds);
+    await sb.from('quotes').delete().in('id', quoteIds);
+  }
+
+  const { error } = await sb.from('customers').delete().eq('id', id);
+  if (error) throw error;
 }
 
 /* ---------- Events ---------- */
