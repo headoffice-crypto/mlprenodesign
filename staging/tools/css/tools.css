@@ -849,3 +849,59 @@ body {
 .quote-row-sub { font-size: 12px; color: var(--text-secondary); }
 .quote-row-right { text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
 .quote-row-total { font-size: 14px; font-weight: 700; color: var(--accent-dark); }
+
+/* ============================================
+   PWA + mobile polish
+   ============================================ */
+
+/* iOS standalone: account for status-bar overlay (we use black-translucent). */
+.header {
+  padding-top: env(safe-area-inset-top);
+  height: calc(56px + env(safe-area-inset-top));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.main {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* iOS keeps zooming inputs <16px on focus — bump on phone widths. */
+@media (max-width: 720px) {
+  .form-input,
+  .form-textarea,
+  .chat-input {
+    font-size: 16px;
+  }
+  /* Bigger tap targets */
+  .btn, .btn-sm, .btn-secondary, .btn-primary {
+    min-height: 44px;
+  }
+  .header-link, .lang-toggle button, .chat-send {
+    min-width: 44px; min-height: 44px;
+  }
+  /* Use most of the screen for the chat on a phone */
+  .chat-messages {
+    max-height: calc(100vh - 360px);
+    min-height: 220px;
+  }
+  /* Bottom nav reserves room above the gesture bar / keyboard */
+  .bottom-nav {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  /* Quote tables on the sign page: never sideways-scroll past the card */
+  table { font-size: 13px; }
+  table th, table td { padding: 8px 6px; }
+  /* Header brand truncates instead of wrapping on tiny phones */
+  .header-brand h1 { font-size: 15px; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* When the contractor has the app installed (display-mode: standalone),
+   hide elements explicitly marked as non-standalone (e.g. an "Install" button). */
+@media (display-mode: standalone) {
+  .install-only { display: none !important; }
+}
+@media not all and (display-mode: standalone) {
+  .standalone-only { display: none !important; }
+}

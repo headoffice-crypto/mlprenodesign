@@ -2,12 +2,20 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Mes soumissions — MLP Reno & Design</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#c8a45a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MLP Tools">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css">
+  <link rel="stylesheet" href="css/tools.css?v=27">
 </head>
 <body>
 
@@ -17,12 +25,15 @@
     <h1>MLP Reno &amp; Design</h1>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
+    <button id="install-app" class="header-link install-only" title="Installer l'app" style="display:none;color:var(--accent-dark);background:none;border:none;cursor:pointer;">
+      <span class="material-icons-round">install_mobile</span>
+    </button>
     <a href="quotes.html" class="header-link" title="Soumissions" style="color:var(--accent-dark);"><span class="material-icons-round">description</span></a>
     <a href="customers.html" class="header-link" title="Clients"><span class="material-icons-round">group</span></a>
     <a href="projects.html" class="header-link" title="Projets"><span class="material-icons-round">construction</span></a>
     <a href="index.html" class="btn btn-primary btn-sm" style="width:auto;text-decoration:none;margin-left:8px;">
       <span class="material-icons-round" style="font-size:18px">add</span>
-      <span>Nouvelle soumission</span>
+      <span>Nouvelle</span>
     </a>
   </div>
 </div>
@@ -202,6 +213,7 @@ function showToast(msg) {
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 </script>
+<script src="js/pwa.js?v=27"></script>
 
 </body>
 </html>

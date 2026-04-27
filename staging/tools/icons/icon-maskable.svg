@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#202124"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+        font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+        font-weight="800" font-size="240" fill="#c8a45a"
+        letter-spacing="-9">M</text>
+</svg>

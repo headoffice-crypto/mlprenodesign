@@ -1,0 +1,42 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/", "destination": "/staging/tools/quotes.html", "has": [{ "type": "host", "value": "app.mlprenodesign.ca" }] },
+    { "source": "/:path((?!staging/|site/).*)", "destination": "/staging/tools/:path", "has": [{ "type": "host", "value": "app.mlprenodesign.ca" }] }
+  ],
+  "headers": [
+    {
+      "source": "/staging/tools/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/staging/tools/" }
+      ]
+    },
+    {
+      "source": "/(.*)/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/staging/tools/manifest.webmanifest",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "public, max-age=300" }
+      ]
+    },
+    {
+      "source": "/staging/tools/icons/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/staging/tools/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "MLP Reno & Design — Outils",
+  "short_name": "MLP Tools",
+  "description": "Soumissions, clients, projets et factures — MLP Reno & Design.",
+  "id": "/staging/tools/",
+  "start_url": "./quotes.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8f9fa",
+  "theme_color": "#c8a45a",
+  "lang": "fr-CA",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nouvelle soumission", "short_name": "Soumission", "url": "./index.html", "icons": [{ "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }] },
+    { "name": "Soumissions", "url": "./quotes.html" },
+    { "name": "Clients", "url": "./customers.html" }
+  ]
+}

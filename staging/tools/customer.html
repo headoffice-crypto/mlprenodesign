@@ -2,12 +2,20 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Client — MLP Reno & Design</title>
   <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#c8a45a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MLP Tools">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=18">
+  <link rel="stylesheet" href="css/tools.css?v=27">
   <style>
     .customer-head {
       background: var(--surface);
@@ -184,5 +192,6 @@ function esc(s) { if (s === null || s === undefined) return ''; return String(s)
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show'; setTimeout(() => t.className = 'toast', 2500); }
 </script>
+<script src="js/pwa.js?v=27"></script>
 </body>
 </html>
