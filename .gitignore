@@ -10,3 +10,5 @@ staging/tools/supabase/supabase/
 
 # Claude Code local settings
 .claude/
+
+.vercel
