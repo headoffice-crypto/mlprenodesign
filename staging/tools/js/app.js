@@ -13,15 +13,16 @@ let quoteState = {
   options: [],             // array of option objects
   activeOptionKey: null,   // which option is shown in step 3 editor
   assumptions: [],
-  questions: []
+  questions: []            // open questions from the analyzer (filled in step 3)
 };
 
 let selectedPaymentOption = 'A';
 
-/* AI chat state */
-let chatHistory = [];
-let chatBusy = false;
-let convertBusy = false;
+/* Step-2 analyzer state */
+let analyzeBusy = false;
+let analyzeText = '';                      // last pasted text (kept so reruns work)
+let pendingFiles = [];                     // [{ name, kind: 'text'|'image', size, text?, dataUrl? }]
+let lastAnalyzedInput = null;              // { text, images } we sent on the most recent run
 
 /* Signature / persistence */
 let contractorPad = null;
@@ -34,10 +35,10 @@ let lastSavedAt = null;
 const I18N = {
   step1_title: { fr: 'Informations du client', en: 'Client Information' },
   step1_sub:   { fr: 'Coordonnées du client pour la soumission', en: 'Client contact details for the quote' },
-  step2_title: { fr: 'Détails du projet', en: 'Project Details' },
-  step2_sub:   { fr: 'Discutez librement avec l\'IA, comme sur ChatGPT. Quand le scope vous convient, cliquez sur « Convertir en soumission ».', en: 'Chat freely with the AI, just like ChatGPT. When the scope looks right, click "Convert to quote".' },
-  step3_title: { fr: 'Options et postes', en: 'Options & line items' },
-  step3_sub:   { fr: 'Ajustez les matériaux, les postes et les prix de chaque option.', en: 'Adjust materials, line items, and pricing for each option.' },
+  step2_title: { fr: 'Importer le projet', en: 'Import the project' },
+  step2_sub:   { fr: 'Collez vos notes ou téléversez un document / une photo. L\'IA analyse et prépare un brouillon de soumission.', en: 'Paste your notes or upload a document / photo. The AI will analyze it and prepare a quote draft.' },
+  step3_title: { fr: 'Informations à compléter', en: 'Information to complete' },
+  step3_sub:   { fr: 'L\'IA a relevé les informations manquantes. Répondez puis ajustez les options ci-dessous.', en: 'The AI flagged what\'s missing. Answer below, then fine-tune the options.' },
   step4_title: { fr: 'Modalités de paiement', en: 'Payment Terms' },
   step4_sub:   { fr: 'Échéancier des paiements', en: 'Payment schedule' },
   step5_title: { fr: 'Méthodes de paiement et notes', en: 'Payment methods & notes' },
@@ -73,17 +74,25 @@ const I18N = {
   add_option: { fr: 'Ajouter une option', en: 'Add an option' },
   payment_methods: { fr: 'Méthodes de paiement', en: 'Payment methods' },
   notes_label: { fr: 'Notes importantes', en: 'Important notes' },
-  chat_empty: { fr: 'Décrivez votre projet. Exemple : « rénover la cuisine, donne-moi 3 options : basique, standard, premium »', en: 'Describe the project. E.g. "renovate the kitchen — give me 3 options: basic, standard, premium"' },
-  chat_placeholder: { fr: 'Écrivez à l\'IA…', en: 'Write to the AI…' },
-  thinking: { fr: 'L\'IA réfléchit…', en: 'AI is thinking…' },
-  convert_to_quote: { fr: 'Convertir en soumission', en: 'Convert to quote' },
-  converting: { fr: 'Conversion en cours…', en: 'Converting…' },
-  convert_hint: { fr: 'Quand vous êtes satisfait de la conversation, transformez-la en options structurées.', en: 'When you\'re happy with the conversation, turn it into structured options.' },
-  reconvert_hint: { fr: 'Vous avez déjà une soumission ci-dessous. Une nouvelle conversion remplacera les options actuelles.', en: 'A draft already exists below. Re-converting will replace the current options.' },
-  no_options_extracted: { fr: 'L\'IA n\'a pas réussi à extraire une soumission. Donnez plus de détails (montant, durée, scope) et réessayez.', en: 'The AI could not extract a quote. Provide more detail (amount, duration, scope) and try again.' },
+  paste_label: { fr: 'Notes du projet', en: 'Project notes' },
+  paste_placeholder: { fr: 'Collez ici votre courriel client, votre liste de scope, votre estimé manuscrit, etc.', en: 'Paste here the client email, the scope list, your handwritten estimate, etc.' },
+  upload_label: { fr: 'Téléverser document(s) ou photo(s)', en: 'Upload document(s) or photo(s)' },
+  upload_pick: { fr: 'Choisir des fichiers', en: 'Choose files' },
+  upload_hint: { fr: 'Texte (.txt, .md, .csv) ou images (.png, .jpg, .webp). Les PDF doivent être copiés-collés.', en: 'Text (.txt, .md, .csv) or images (.png, .jpg, .webp). PDFs must be copy-pasted.' },
+  analyze_btn: { fr: 'Analyser et générer un brouillon', en: 'Analyze and generate a draft' },
+  analyzing: { fr: 'Analyse en cours…', en: 'Analyzing…' },
+  reanalyze_btn: { fr: 'Re-analyser', en: 'Re-analyze' },
+  analyze_empty: { fr: 'Collez du texte ou ajoutez un fichier avant d\'analyser.', en: 'Paste text or add a file before analyzing.' },
+  no_options_extracted: { fr: 'L\'IA n\'a pas pu extraire un projet. Donnez plus de détails (scope, prix si connu) et réessayez.', en: 'The AI could not extract a project. Add more detail (scope, price if known) and try again.' },
   draft_title: { fr: 'Brouillon de soumission', en: 'Quote draft' },
-  draft_questions: { fr: 'L\'IA vous demande', en: 'The AI is asking' },
-  draft_accept: { fr: 'Accepter et continuer', en: 'Accept & continue' },
+  draft_continue: { fr: 'Continuer pour compléter', en: 'Continue to complete the draft' },
+  questions_panel_title: { fr: 'Informations manquantes', en: 'Missing information' },
+  questions_panel_sub: { fr: 'L\'IA a besoin de ces précisions pour finaliser le brouillon. Choisissez une suggestion ou entrez votre propre valeur.', en: 'The AI needs these details to finalize the draft. Pick a suggestion or enter your own value.' },
+  questions_done: { fr: 'Toutes les informations requises sont fournies.', en: 'All required information has been provided.' },
+  q_custom_label: { fr: 'Autre valeur', en: 'Other value' },
+  q_custom_save: { fr: 'Enregistrer', en: 'Save' },
+  q_choice_other_yes: { fr: 'Oui', en: 'Yes' },
+  q_choice_other_no: { fr: 'Non', en: 'No' },
   draft_weeks: { fr: 'semaines', en: 'weeks' },
   draft_mat_included: { fr: 'Matériaux inclus', en: 'Materials included' },
   draft_mat_excluded: { fr: 'Matériaux exclus', en: 'Materials excluded' },
@@ -167,14 +176,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderClientContext();
   }
 
-  // Chat: Enter to send, Shift+Enter for newline
-  const chatInput = document.getElementById('chat-input');
-  chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage();
-    }
-  });
+  // Step 2 textarea — keep state in sync as the user types
+  const analyzeInput = document.getElementById('analyze-text');
+  if (analyzeInput) {
+    analyzeInput.addEventListener('input', () => { analyzeText = analyzeInput.value; });
+  }
 
   // Restore default signature if any
   const savedSig = localStorage.getItem('mlp_default_signature');
@@ -216,7 +222,8 @@ function setLang(l) {
   applyI18N();
   buildPaymentOptionsUI();
   renderDraftPreview();
-  if (currentStep === 3) renderOptionsEditor();
+  if (currentStep === 2) { renderUploadList(); renderAnalyzeButton(); }
+  if (currentStep === 3) { renderQuestionsPanel(); renderOptionsEditor(); }
   if (currentStep === 7) renderFinalQuote();
 }
 
@@ -260,8 +267,8 @@ function goToStep(n) {
   updateProgress();
   applyI18N();
 
-  if (n === 2) { renderClientContext(); renderChat(); }
-  if (n === 3) renderOptionsEditor();
+  if (n === 2) { renderClientContext(); renderAnalyzeStep(); }
+  if (n === 3) { renderQuestionsPanel(); renderOptionsEditor(); }
   if (n === 6) initContractorSignaturePad();
   if (n === 7) {
     renderFinalQuote();
@@ -309,7 +316,7 @@ function buildQuoteRecord(status) {
     quote_date: val('f-date') || null,
     project_title: quoteState.project_title || null,
     duration_weeks: optionsWithTotals[0]?.duration_weeks || null,
-    ai_conversation: chatHistory,
+    ai_conversation: { source_text: analyzeText || '', open_questions: quoteState.questions || [] },
     options: optionsWithTotals,
     payment_option: selectedPaymentOption,
     payment_methods: val('f-payment-methods') || null,
@@ -391,7 +398,14 @@ async function loadDraftById(id) {
     quoteState.options = Array.isArray(data.options) ? data.options : [];
     quoteState.activeOptionKey = quoteState.options[0]?.key || null;
 
-    chatHistory = Array.isArray(data.ai_conversation) ? data.ai_conversation : [];
+    // Restore source text + open questions from previous AI run if any.
+    if (data.ai_conversation && typeof data.ai_conversation === 'object' && !Array.isArray(data.ai_conversation)) {
+      analyzeText = data.ai_conversation.source_text || '';
+      quoteState.questions = Array.isArray(data.ai_conversation.open_questions) ? data.ai_conversation.open_questions : [];
+    } else {
+      analyzeText = '';
+      quoteState.questions = [];
+    }
     selectedPaymentOption = data.payment_option || 'A';
     buildPaymentOptionsUI();
 
@@ -403,7 +417,8 @@ async function loadDraftById(id) {
     showToast(lang === 'fr' ? 'Brouillon chargé.' : 'Draft loaded.');
 
     // Resume at the most useful step
-    const resumeStep = quoteState.options.length ? 3 : 2;
+    const hasOpenQuestions = (quoteState.questions || []).length > 0;
+    const resumeStep = !quoteState.options.length ? 2 : (hasOpenQuestions ? 3 : 3);
     goToStep(resumeStep);
   } catch (err) {
     console.error('[loadDraftById]', err);
@@ -432,170 +447,125 @@ function renderClientContext() {
 }
 
 /* ============================================
-   AI CHAT
+   STEP 2 — Paste / upload + AI analyzer
    ============================================ */
-function renderChat() {
-  const box = document.getElementById('chat-messages');
-  const empty = document.getElementById('chat-empty');
-  [...box.querySelectorAll('.chat-bubble, .chat-typing')].forEach(n => n.remove());
-
-  if (chatHistory.length === 0) { empty.style.display = ''; }
-  else empty.style.display = 'none';
-
-  chatHistory.forEach(m => {
-    if (m.role === 'system') return;
-    const div = document.createElement('div');
-    div.className = 'chat-bubble ' + (m.role === 'user' ? 'user' : 'assistant');
-    const raw = m.displayText !== undefined ? m.displayText : m.content;
-    if (m.role === 'assistant' && m.content !== 'error' && m.content !== 'system-warning') {
-      div.innerHTML = renderMarkdown(raw);
-    } else {
-      div.textContent = raw;
-    }
-    box.appendChild(div);
-  });
-
-  if (chatBusy) {
-    const typing = document.createElement('div');
-    typing.className = 'chat-bubble assistant chat-typing';
-    typing.innerHTML = `<span class="spinner-ring" style="margin-right:8px;"></span>${t('thinking')}`;
-    box.appendChild(typing);
-  }
-
-  box.scrollTop = box.scrollHeight;
-  renderConvertButton();
-}
-
-// Minimal markdown -> HTML for chat bubbles. Escapes first, then handles
-// code spans, bold/italic, simple lists, and paragraph breaks. Intentionally tiny.
-function renderMarkdown(src) {
-  if (!src) return '';
-  let s = String(src);
-  s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  s = s.replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code}</code></pre>`);
-  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
-  // bullet lists: turn runs of "- " or "* " lines into <ul><li>...</li></ul>
-  s = s.replace(/(?:^|\n)((?:[-*] .+(?:\n|$))+)/g, (_, block) => {
-    const items = block.trim().split(/\n/).map(l => l.replace(/^[-*]\s+/, '')).map(li => `<li>${li}</li>`).join('');
-    return `\n<ul>${items}</ul>`;
-  });
-  // numbered lists
-  s = s.replace(/(?:^|\n)((?:\d+\. .+(?:\n|$))+)/g, (_, block) => {
-    const items = block.trim().split(/\n/).map(l => l.replace(/^\d+\.\s+/, '')).map(li => `<li>${li}</li>`).join('');
-    return `\n<ol>${items}</ol>`;
-  });
-  // paragraphs from blank-line separation; single newlines become <br>
-  const parts = s.split(/\n{2,}/).map(p => {
-    if (/^\s*<(ul|ol|pre)/.test(p)) return p;
-    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
-  });
-  return parts.join('');
-}
-
-function renderConvertButton() {
-  const wrap = document.getElementById('convert-to-quote-wrap');
-  if (!wrap) return;
-
-  const userMsgs = chatHistory.filter(m => m.role === 'user').length;
-  if (userMsgs === 0) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
-
-  const disabled = chatBusy || convertBusy;
-  const hasDraft = quoteState.options.length > 0;
-  const label = convertBusy ? t('converting') : t('convert_to_quote');
-  const hint = hasDraft ? t('reconvert_hint') : t('convert_hint');
-
-  wrap.style.display = '';
-  wrap.innerHTML = `
-    <button type="button" class="btn btn-primary"
-            style="width:100%;justify-content:center;padding:14px;font-size:15px;"
-            onclick="convertToQuote()" ${disabled ? 'disabled' : ''}>
-      ${convertBusy
-        ? '<span class="spinner-ring" style="margin-right:8px;"></span>'
-        : '<span class="material-icons-round" style="margin-right:6px;">bolt</span>'}
-      <span>${esc(label)}</span>
-    </button>
-    <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;text-align:center;">${esc(hint)}</div>
-  `;
-}
-
-function setChatError(msg) {
-  const b = document.getElementById('chat-error-banner');
+function setAnalyzeError(msg) {
+  const b = document.getElementById('analyze-error-banner');
   if (!b) return;
   if (!msg) { b.style.display = 'none'; b.textContent = ''; return; }
   b.textContent = '⚠️ ' + msg;
   b.style.display = '';
 }
 
-async function sendChatMessage() {
-  if (chatBusy) return;
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
+function renderAnalyzeStep() {
+  // Restore textarea contents from analyzeText (e.g. when navigating back)
+  const ta = document.getElementById('analyze-text');
+  if (ta && ta.value !== analyzeText) ta.value = analyzeText || '';
+  renderUploadList();
+  renderAnalyzeButton();
+  renderDraftPreview();
+}
 
-  setChatError('');
+function renderUploadList() {
+  const wrap = document.getElementById('upload-list');
+  if (!wrap) return;
+  if (!pendingFiles.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = '';
+  wrap.innerHTML = pendingFiles.map((f, i) => {
+    const icon = f.kind === 'image' ? 'image' : 'description';
+    const sub = f.kind === 'image'
+      ? (lang === 'fr' ? 'Image · sera analysée par vision' : 'Image · will be analyzed by vision')
+      : (lang === 'fr' ? `Texte · ${(f.text || '').length} caractères` : `Text · ${(f.text || '').length} chars`);
+    return `<div class="upload-item">
+      <span class="material-icons-round">${icon}</span>
+      <div class="upload-item-body">
+        <div class="upload-item-name">${esc(f.name)}</div>
+        <div class="upload-item-sub">${esc(sub)}</div>
+      </div>
+      <button class="upload-item-remove" onclick="removePendingFile(${i})" title="Retirer">
+        <span class="material-icons-round">close</span>
+      </button>
+    </div>`;
+  }).join('');
+}
 
-  if (typeof OPENAI_API_KEY !== 'string' || !OPENAI_API_KEY.startsWith('sk-')) {
-    setChatError('OpenAI API key is missing or invalid. Check js/config.js.');
-    return;
-  }
-  if (typeof callGPTChat !== 'function') {
-    setChatError('callGPTChat is not loaded. Hard-refresh with Ctrl+Shift+R.');
-    return;
-  }
-
-  chatHistory.push({ role: 'user', content: text });
-  input.value = '';
-  chatBusy = true;
-  renderChat();
-
-  const context = {
-    clientName: val('f-client-name'),
-    clientAddress: val('f-client-address'),
-    clientEmail: val('f-client-email'),
-    clientPhone: val('f-client-phone'),
-    quoteDate: val('f-date')
-  };
-
-  try {
-    const reply = await callGPTChat(chatHistory, context);
-    chatHistory.push({
-      role: 'assistant',
-      content: reply,
-      displayText: reply
-    });
-  } catch (err) {
-    console.error('[sendChatMessage error]', err);
-    setChatError('GPT call failed: ' + (err.message || err));
-    chatHistory.push({
-      role: 'assistant',
-      content: 'error',
-      displayText: (lang === 'fr' ? 'Erreur : ' : 'Error: ') + err.message
-    });
-  } finally {
-    chatBusy = false;
-    renderChat();
+function renderAnalyzeButton() {
+  const btn = document.getElementById('btn-analyze');
+  if (!btn) return;
+  const hasDraft = quoteState.options.length > 0;
+  if (analyzeBusy) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-ring"></span><span>${esc(t('analyzing'))}</span>`;
+  } else {
+    btn.disabled = false;
+    const label = hasDraft ? t('reanalyze_btn') : t('analyze_btn');
+    btn.innerHTML = `<span class="material-icons-round">${hasDraft ? 'refresh' : 'bolt'}</span><span>${esc(label)}</span>`;
   }
 }
 
-async function convertToQuote() {
-  if (convertBusy || chatBusy) return;
-  if (!chatHistory.length) return;
+function onFilesPicked(ev) {
+  const files = Array.from(ev.target.files || []);
+  ev.target.value = ''; // allow picking the same file again later
+  files.forEach(file => {
+    const isImage = /^image\//i.test(file.type);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (isImage) {
+        pendingFiles.push({ name: file.name, kind: 'image', size: file.size, dataUrl: reader.result });
+      } else {
+        pendingFiles.push({ name: file.name, kind: 'text', size: file.size, text: String(reader.result || '') });
+      }
+      renderUploadList();
+    };
+    reader.onerror = () => {
+      setAnalyzeError((lang === 'fr' ? 'Lecture du fichier impossible : ' : 'Could not read file: ') + file.name);
+    };
+    if (isImage) reader.readAsDataURL(file);
+    else reader.readAsText(file);
+  });
+}
 
-  setChatError('');
+function removePendingFile(idx) {
+  pendingFiles.splice(idx, 1);
+  renderUploadList();
+}
+
+function buildAnalyzePayload() {
+  const pasted = (document.getElementById('analyze-text')?.value || '').trim();
+  analyzeText = pasted;
+
+  const textChunks = [];
+  if (pasted) textChunks.push(pasted);
+  pendingFiles.forEach(f => {
+    if (f.kind === 'text' && f.text) {
+      textChunks.push(`--- File: ${f.name} ---\n${f.text}`);
+    }
+  });
+  const images = pendingFiles.filter(f => f.kind === 'image' && f.dataUrl).map(f => f.dataUrl);
+  return { text: textChunks.join('\n\n'), images };
+}
+
+async function runAnalysis() {
+  if (analyzeBusy) return;
+  setAnalyzeError('');
+
+  const { text, images } = buildAnalyzePayload();
+  if (!text && images.length === 0) {
+    setAnalyzeError(t('analyze_empty'));
+    return;
+  }
 
   if (typeof OPENAI_API_KEY !== 'string' || !OPENAI_API_KEY.startsWith('sk-')) {
-    setChatError('OpenAI API key is missing or invalid. Check js/config.js.');
+    setAnalyzeError('OpenAI API key is missing or invalid. Check js/config.js.');
     return;
   }
-  if (typeof extractQuoteFromConversation !== 'function') {
-    setChatError('extractQuoteFromConversation is not loaded. Hard-refresh with Ctrl+Shift+R.');
+  if (typeof analyzeProjectInput !== 'function') {
+    setAnalyzeError('analyzeProjectInput is not loaded. Hard-refresh with Ctrl+Shift+R.');
     return;
   }
 
-  convertBusy = true;
-  renderConvertButton();
+  analyzeBusy = true;
+  renderAnalyzeButton();
 
   const context = {
     clientName: val('f-client-name'),
@@ -606,27 +576,27 @@ async function convertToQuote() {
   };
 
   try {
-    const { draft } = await extractQuoteFromConversation(chatHistory, context);
+    const { draft, questions } = await analyzeProjectInput({ text, images, context });
     if (!draft.options.length) {
-      setChatError(t('no_options_extracted'));
+      setAnalyzeError(t('no_options_extracted'));
       return;
     }
-    quoteState.project_title = draft.project_title || quoteState.project_title;
+    quoteState.project_title = draft.project_title || '';
     quoteState.options = draft.options;
-    quoteState.activeOptionKey = draft.options[0]?.key || null;
-    quoteState.assumptions = draft.assumptions;
-    quoteState.questions = draft.questions;
+    quoteState.activeOptionKey = draft.options[0].key;
+    quoteState.questions = questions || [];
+    lastAnalyzedInput = { text, images: images.length };
     saveDraft();
     renderDraftPreview();
     setTimeout(() => {
       document.getElementById('draft-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   } catch (err) {
-    console.error('[convertToQuote error]', err);
-    setChatError('Conversion failed: ' + (err.message || err));
+    console.error('[runAnalysis error]', err);
+    setAnalyzeError((lang === 'fr' ? 'Échec de l\'analyse : ' : 'Analysis failed: ') + (err.message || err));
   } finally {
-    convertBusy = false;
-    renderConvertButton();
+    analyzeBusy = false;
+    renderAnalyzeButton();
   }
 }
 
@@ -652,31 +622,148 @@ function renderDraftPreview() {
     h += '</div>';
     if (opt.scope_summary) h += `<div class="option-card-preview-scope">${esc(opt.scope_summary)}</div>`;
     h += '<div class="option-card-preview-meta">';
-    h += `<span><strong>${t('duration_weeks')}:</strong> ${opt.duration_weeks} ${t('draft_weeks')}</span>`;
-    h += `<span>${opt.materials_included ? t('draft_mat_included') : t('draft_mat_excluded')}</span>`;
-    h += `<span><strong>${fr ? 'Postes' : 'Items'}:</strong> ${opt.line_items.length}</span>`;
+    h += `<span><strong>${t('duration_weeks')}:</strong> ${opt.duration_weeks} ${fr ? 'semaines' : 'weeks'}</span>`;
+    h += `<span>${opt.materials_included ? (fr ? 'Matériaux inclus' : 'Materials included') : (fr ? 'Matériaux exclus' : 'Materials excluded')}</span>`;
     h += '</div>';
     h += '</div>';
   });
 
-  if (quoteState.questions.length) {
-    h += `<div class="draft-questions"><div class="draft-questions-title">${t('draft_questions')}</div><ul>`;
-    quoteState.questions.forEach(q => { h += `<li>${esc(q)}</li>`; });
-    h += '</ul></div>';
+  const openQs = (quoteState.questions || []).length;
+  if (openQs > 0) {
+    h += `<div class="draft-questions"><div class="draft-questions-title">${esc(fr ? `${openQs} information(s) manquante(s) à compléter à l'étape suivante` : `${openQs} missing detail(s) to fill in at the next step`)}</div></div>`;
   }
 
-  h += `<button class="btn btn-primary draft-accept" onclick="acceptDraftAndContinue()"><span class="material-icons-round">check</span><span>${t('draft_accept')}</span></button>`;
+  h += `<button class="btn btn-primary draft-accept" onclick="nextStep()"><span class="material-icons-round">arrow_forward</span><span>${esc(t('draft_continue'))}</span></button>`;
   h += '</div>';
 
   wrap.innerHTML = h;
   wrap.style.display = '';
 }
 
-function acceptDraftAndContinue() {
-  if (!quoteState.options.length) return;
-  if (!quoteState.activeOptionKey) quoteState.activeOptionKey = quoteState.options[0].key;
+/* ============================================
+   STEP 3 — Questions panel (missing info)
+   ============================================ */
+function renderQuestionsPanel() {
+  const wrap = document.getElementById('questions-panel');
+  if (!wrap) return;
+  const qs = quoteState.questions || [];
+  if (!qs.length) {
+    if (quoteState.options.length) {
+      wrap.innerHTML = `<div class="info-banner" style="background:var(--green-light);border-color:var(--green);">
+        <span class="material-icons-round" style="color:var(--green);">check_circle</span>
+        <p style="color:var(--text-primary);">${esc(t('questions_done'))}</p>
+      </div>`;
+    } else {
+      wrap.innerHTML = '';
+    }
+    return;
+  }
+
+  let h = `<div class="questions-box">
+    <div class="questions-box-head">
+      <div class="questions-box-title">${esc(t('questions_panel_title'))}</div>
+      <div class="questions-box-sub">${esc(t('questions_panel_sub'))}</div>
+    </div>`;
+
+  qs.forEach(q => {
+    h += `<div class="q-card" data-qid="${esc(q.id)}">
+      <div class="q-card-label">${esc(q.label)}</div>
+      <div class="q-card-suggestions">`;
+    (q.suggestions || []).forEach(s => {
+      const display = formatSuggestion(s, q.type);
+      h += `<button type="button" class="chip q-chip" onclick="answerQuestion('${esc(q.id)}', this.dataset.value)" data-value="${esc(s)}">${esc(display)}</button>`;
+    });
+    h += `</div>`;
+
+    // Custom input (always available except for 'choice', where chips are exhaustive)
+    if (q.type !== 'choice') {
+      const inputType = (q.type === 'currency' || q.type === 'number') ? 'number' : 'text';
+      const step = q.type === 'currency' ? '100' : '1';
+      const placeholder = q.type === 'currency'
+        ? (lang === 'fr' ? 'Ex. 19000' : 'e.g. 19000')
+        : (q.type === 'number'
+          ? (lang === 'fr' ? 'Ex. 2' : 'e.g. 2')
+          : (lang === 'fr' ? 'Tapez votre réponse…' : 'Type your answer…'));
+      h += `<div class="q-card-custom">
+        <input type="${inputType}" ${inputType === 'number' ? `min="0" step="${step}"` : ''} class="form-input q-custom-input" placeholder="${esc(placeholder)}">
+        <button type="button" class="btn btn-primary btn-sm q-custom-save"
+          onclick="answerQuestionFromInput('${esc(q.id)}', this.previousElementSibling)">
+          <span class="material-icons-round" style="font-size:18px;">check</span>
+          <span>${esc(t('q_custom_save'))}</span>
+        </button>
+      </div>`;
+    }
+    h += `</div>`;
+  });
+  h += `</div>`;
+  wrap.innerHTML = h;
+}
+
+function formatSuggestion(value, type) {
+  if (type === 'currency') {
+    const n = parseFloat(value);
+    if (Number.isFinite(n)) return '$' + money(n);
+  }
+  if (type === 'number') {
+    const n = parseFloat(value);
+    if (Number.isFinite(n)) return String(n);
+  }
+  return String(value);
+}
+
+function answerQuestionFromInput(qid, inputEl) {
+  if (!inputEl) return;
+  const v = String(inputEl.value || '').trim();
+  if (!v) return;
+  answerQuestion(qid, v);
+}
+
+function answerQuestion(qid, rawValue) {
+  const q = (quoteState.questions || []).find(x => x.id === qid);
+  if (!q) return;
+  const value = coerceAnswer(rawValue, q.type);
+  if (!setQuoteFieldByPath(q.field, value)) {
+    console.warn('[answerQuestion] could not set field', q.field);
+    return;
+  }
+  quoteState.questions = quoteState.questions.filter(x => x.id !== qid);
   saveDraft();
-  nextStep();
+  renderQuestionsPanel();
+  renderOptionsEditor();
+}
+
+function coerceAnswer(raw, type) {
+  const s = String(raw || '').trim();
+  if (type === 'currency' || type === 'number') {
+    const cleaned = s.replace(/[^0-9.,-]/g, '').replace(/,/g, '.');
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+  if (type === 'choice') {
+    // Treat first-letter Y/I/O/T as truthy for materials_included etc.
+    const lower = s.toLowerCase();
+    if (/^(oui|yes|inclus|included|true|y|o)/.test(lower)) return true;
+    if (/^(non|no|exclus|excluded|false|n)/.test(lower)) return false;
+    return s;
+  }
+  return s;
+}
+
+function setQuoteFieldByPath(path, value) {
+  if (path === 'project_title') {
+    quoteState.project_title = String(value || '');
+    return true;
+  }
+  const m = /^options\.([A-Z])\.(\w+)$/.exec(path);
+  if (!m) return false;
+  const opt = quoteState.options.find(o => o.key === m[1]);
+  if (!opt) return false;
+  const field = m[2];
+  if (field === 'duration_weeks') opt.duration_weeks = Math.max(1, parseInt(value) || 1);
+  else if (field === 'base_price') opt.base_price = Math.max(0, parseFloat(value) || 0);
+  else if (field === 'materials_included') opt.materials_included = !!value;
+  else return false;
+  return true;
 }
 
 /* ============================================
@@ -1156,7 +1243,7 @@ async function saveAndSendForSignature() {
       quote_date: val('f-date') || null,
       project_title: quoteState.project_title || null,
       duration_weeks: optionsWithTotals[0]?.duration_weeks || null,
-      ai_conversation: chatHistory,
+      ai_conversation: { source_text: analyzeText || '', open_questions: quoteState.questions || [] },
       options: optionsWithTotals,
       payment_option: selectedPaymentOption,
       payment_methods: val('f-payment-methods') || null,

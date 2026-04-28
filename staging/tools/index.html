@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=27">
+  <link rel="stylesheet" href="css/tools.css?v=28">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v27</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v28</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -84,44 +84,60 @@
     </div>
   </div>
 
-  <!-- STEP 2 — AI Chat -->
+  <!-- STEP 2 — Paste / upload + Analyze -->
   <div class="step" id="step-2">
     <div class="step-header">
       <div class="step-icon blue"><span class="material-icons-round">auto_awesome</span></div>
-      <div class="step-title" data-i18n="step2_title">Détails du projet</div>
-      <div class="step-subtitle" data-i18n="step2_sub">Discutez avec l'IA comme avec ChatGPT. Le brouillon de soumission se met à jour en direct.</div>
+      <div class="step-title" data-i18n="step2_title">Importer le projet</div>
+      <div class="step-subtitle" data-i18n="step2_sub">Collez vos notes ou téléversez un document / une photo. L'IA analyse et prépare un brouillon de soumission.</div>
     </div>
 
     <div class="client-ctx" id="client-ctx"></div>
 
-    <div id="chat-error-banner" style="display:none;background:#fce8e6;border:1px solid #d93025;color:#a50e0e;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;white-space:pre-wrap;"></div>
+    <div id="analyze-error-banner" style="display:none;background:#fce8e6;border:1px solid #d93025;color:#a50e0e;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;white-space:pre-wrap;"></div>
 
-    <div class="chat-wrap">
-      <div class="chat-messages" id="chat-messages">
-        <div class="chat-empty" id="chat-empty" data-i18n="chat_empty">Décrivez votre projet. Exemple : « rénover la cuisine, donne-moi 3 options : basique, standard, premium »</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label" data-i18n="paste_label">Notes du projet</label>
+        <textarea id="analyze-text" class="form-textarea"
+          data-i18n-placeholder="paste_placeholder"
+          placeholder="Collez ici votre courriel client, votre liste de scope, votre estimé manuscrit, etc."
+          rows="9" style="min-height:180px;"></textarea>
       </div>
-      <div class="chat-input-row">
-        <textarea id="chat-input" class="chat-input"
-          data-i18n-placeholder="chat_placeholder"
-          placeholder="Écrivez à l'IA…"></textarea>
-        <button class="chat-send" id="chat-send" onclick="sendChatMessage()" title="Envoyer">
-          <span class="material-icons-round">send</span>
-        </button>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" data-i18n="upload_label">Téléverser document(s) ou photo(s)</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="analyze-files" multiple
+            accept=".txt,.md,.csv,image/png,image/jpeg,image/jpg,image/webp"
+            style="display:none;" onchange="onFilesPicked(event)">
+          <button type="button" class="btn-add" onclick="document.getElementById('analyze-files').click()" style="margin:0;">
+            <span class="material-icons-round" style="font-size:18px;vertical-align:middle;">upload_file</span>
+            <span data-i18n="upload_pick">Choisir des fichiers</span>
+          </button>
+          <div class="upload-hint" data-i18n="upload_hint">Texte (.txt, .md, .csv) ou images (.png, .jpg, .webp). Les PDF doivent être copiés-collés.</div>
+        </div>
+        <div id="upload-list" class="upload-list" style="display:none;"></div>
       </div>
     </div>
 
-    <div id="convert-to-quote-wrap" style="display:none;margin-top:14px;"></div>
+    <button id="btn-analyze" class="btn btn-primary" onclick="runAnalysis()" style="margin-top:6px;">
+      <span class="material-icons-round">bolt</span>
+      <span data-i18n="analyze_btn">Analyser et générer un brouillon</span>
+    </button>
 
-    <div id="draft-preview" style="display:none;"></div>
+    <div id="draft-preview" style="display:none;margin-top:14px;"></div>
   </div>
 
-  <!-- STEP 3 — Review options -->
+  <!-- STEP 3 — Review missing info + options editor -->
   <div class="step" id="step-3">
     <div class="step-header">
       <div class="step-icon orange"><span class="material-icons-round">checklist</span></div>
-      <div class="step-title" data-i18n="step3_title">Options et postes</div>
-      <div class="step-subtitle" data-i18n="step3_sub">Ajustez les matériaux, les postes et les prix de chaque option.</div>
+      <div class="step-title" data-i18n="step3_title">Informations à compléter</div>
+      <div class="step-subtitle" data-i18n="step3_sub">L'IA a relevé les informations manquantes. Répondez puis ajustez les options ci-dessous.</div>
     </div>
+
+    <div id="questions-panel"></div>
 
     <div class="options-tabs" id="options-tabs"></div>
     <div id="option-editor"></div>
@@ -288,11 +304,11 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="js/config.js?v=27"></script>
-<script src="js/supabase-client.js?v=27"></script>
-<script src="js/signature-pad.js?v=27"></script>
-<script src="js/openai.js?v=27"></script>
-<script src="js/app.js?v=27"></script>
-<script src="js/pwa.js?v=27"></script>
+<script src="js/config.js?v=28"></script>
+<script src="js/supabase-client.js?v=28"></script>
+<script src="js/signature-pad.js?v=28"></script>
+<script src="js/openai.js?v=28"></script>
+<script src="js/app.js?v=28"></script>
+<script src="js/pwa.js?v=28"></script>
 </body>
 </html>

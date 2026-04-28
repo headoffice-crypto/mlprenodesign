@@ -905,3 +905,82 @@ body {
 @media not all and (display-mode: standalone) {
   .standalone-only { display: none !important; }
 }
+
+/* ---------------- Step 2 — Upload zone & file list ---------------- */
+.upload-zone { display: block; }
+.upload-hint {
+  font-size: 12px; color: var(--text-hint);
+  margin-top: 8px; line-height: 1.5;
+}
+.upload-list {
+  margin-top: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.upload-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius-xs);
+}
+.upload-item .material-icons-round {
+  color: var(--accent-dark); font-size: 22px; flex-shrink: 0;
+}
+.upload-item-body { flex: 1; min-width: 0; }
+.upload-item-name {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.upload-item-sub {
+  font-size: 12px; color: var(--text-secondary); margin-top: 2px;
+}
+.upload-item-remove {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-hint); padding: 6px; border-radius: 6px;
+  display: flex; align-items: center;
+}
+.upload-item-remove:hover { background: var(--red-light); color: var(--red); }
+
+/* ---------------- Step 3 — Questions panel ---------------- */
+.questions-box {
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.questions-box-head { margin-bottom: 14px; }
+.questions-box-title {
+  font-size: 16px; font-weight: 700; color: var(--accent-dark);
+  margin-bottom: 4px;
+}
+.questions-box-sub {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+}
+.q-card {
+  background: var(--white);
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius-xs);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.q-card:last-child { margin-bottom: 0; }
+.q-card-label {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 10px; line-height: 1.4;
+}
+.q-card-suggestions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 10px;
+}
+.q-chip { flex: 0 1 auto; min-width: 80px; }
+.q-card-custom {
+  display: flex; gap: 8px; align-items: stretch;
+  margin-top: 4px;
+}
+.q-card-custom .q-custom-input {
+  flex: 1; padding: 10px 12px; font-size: 14px;
+}
+.q-card-custom .q-custom-save {
+  flex-shrink: 0; padding: 10px 14px; width: auto;
+}

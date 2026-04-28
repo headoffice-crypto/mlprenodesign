@@ -1,61 +1,105 @@
 /* ============================================
-   OpenAI integration — split into:
-     1) plain ChatGPT-style conversation (callGPTChat)
-     2) one-shot extractor that turns the conversation into a structured quote (extractQuoteFromConversation)
+   OpenAI integration — single-pass analyzer.
+
+   analyzeProjectInput({ text, images, context })
+     -> { draft, questions }
+
+   The analyzer reads the contractor's pasted text and/or uploaded
+   images (photos of handwritten notes, screenshots, scope docs, etc.)
+   and returns:
+     - a structured quote draft (project_title + 1-3 options)
+     - a list of "questions" for any required field the input did NOT
+       provide. Each question carries a target field path so the UI
+       can apply the contractor's answer directly to quoteState.
    MLP Reno & Design
    ============================================ */
 
-const CHAT_SYSTEM = `You are ChatGPT, a helpful general-purpose assistant. Reply in the same language the user uses (French or English). Use markdown freely (bold, italics, lists, paragraphs) — behave exactly like a regular ChatGPT conversation, with no special framing or constraints. The user happens to own a renovation company in Quebec, but engage with whatever they bring up.`;
+const ANALYZE_SYSTEM = `You read raw notes from a Quebec residential contractor and produce a structured quote draft.
 
-const EXTRACT_SYSTEM = `You convert a finished conversation between a Quebec contractor and an assistant into a structured quote draft.
+The notes can be:
+- pasted text (an email, scope description, list of work, rough estimate, customer message, etc.)
+- text extracted from photos / scanned documents / screenshots provided as images
 
-Reply in the SAME language used in the conversation (French or English).
+Reply in the SAME language used in the notes (French or English).
 
 YOU MUST RETURN VALID JSON. No markdown, no code fences, no prose outside the JSON.
 
+★★★ ABSOLUTE RULE — NEVER REWRITE THE NOTES ★★★
+You are a READER, not a writer. You must NOT paraphrase, summarize, condense, restructure, re-bullet, translate, "clean up", or fix typos. You must NOT add any wording that was not in the notes. You must NOT remove any wording either — including greetings, sign-offs, asides, and informal language. Copy the notes EXACTLY as written. Preserve paragraph breaks (use \\n), bullets, numbering, capitalization, punctuation, accents, spacing, and any markdown that was already there. Treat the notes as if they were a legal document being quoted in court.
+
+If you find yourself "improving" the text in any way, STOP. The contractor must recognize their own words byte-for-byte in the output. The ONLY thing you do with the notes is split them into option blocks (when multiple tiers are described) and copy them into the JSON unchanged.
+
 The JSON shape:
 {
-  "project_title": "short title",
+  "project_title": "<verbatim title pulled from the notes, or empty string if not stated>",
   "options": [
     {
       "key": "A",
-      "title": "Option A",
-      "scope_summary": "<verbatim proposal text from the assistant>",
-      "duration_weeks": 2,
+      "scope_summary": "<the EXACT verbatim text from the notes for this option>",
+      "duration_weeks": 0,
       "materials_included": true,
-      "base_price": 19000,
-      "line_items": []
+      "base_price": 19000
     }
   ],
-  "assumptions": [],
-  "questions": []
+  "questions": [
+    {
+      "id": "q1",
+      "label": "Question to the contractor (in the same language as the notes)",
+      "field": "options.A.base_price",
+      "type": "currency",
+      "suggestions": ["15000", "20000", "25000"]
+    }
+  ]
 }
 
-CORE RULE — DO NOT REWRITE THE SCOPE
-"scope_summary" MUST contain the assistant's most recent proposal/scope text VERBATIM. Copy it as the assistant wrote it. Preserve paragraph breaks (use \\n), bullets, numbering, and any markdown formatting that was in the conversation. Do NOT summarize, paraphrase, condense, restructure, re-bullet, or shorten it. Strip ONLY pure greetings/sign-offs ("Bonjour ...", "Voici ma proposition :", "N'hésitez pas...") if they carry no scope information.
+CORE RULES
 
-LINE ITEMS — ALWAYS EMPTY
-"line_items" MUST be []. Do NOT generate scope items, bullet lists, or per-item rows. The contractor will add line items manually in the next step if they want a per-item breakdown. Returning a non-empty line_items array is a hard error.
+1. SCOPE SUMMARY — VERBATIM, NO EXCEPTIONS
+   "scope_summary" must contain the scope text from the notes copied EXACTLY as written. No paraphrasing, no summarizing, no typo fixing, no greeting/sign-off stripping, nothing. If there are 5 paragraphs of small talk inside the scope, copy all 5. The contractor will edit their own text in the next step if they want to.
 
-OPTIONS / TIERS — HARD LIMITS
-- MAXIMUM 3 OPTIONS in "options".
-- If the conversation discussed multiple tiers (e.g. Basic / Standard / Premium), return them as separate options. Each option's "scope_summary" is the verbatim text describing THAT tier (split it out of the assistant's reply).
-- Otherwise return exactly ONE option whose scope_summary is the assistant's full proposal text.
-- Option keys must be "A", "B", "C" in that order. Title is exactly "Option A", "Option B", "Option C". NEVER use marketing labels like "Basique", "Premium", "Économique", "Deluxe".
+2. OPTIONS / TIERS — MAX 3
+   - If the notes clearly describe multiple tiers (e.g. Basic / Standard / Premium, économique / standard / haut de gamme, 2-3 price points), return them as separate options. Each option's scope_summary is the EXACT verbatim slice of the notes that describes THAT tier — do not rewrite it to make tiers parallel or symmetric.
+   - Otherwise return EXACTLY ONE option whose scope_summary is the COMPLETE notes text, byte-for-byte.
+   - Option keys must be "A", "B", "C" in that order. Never use marketing labels.
 
-PRICING — base_price IS AUTHORITATIVE
-1. If the contractor stated a total price ("cuisine 19 000$", "15k total", "budget 25000"), set base_price to that EXACT number (pre-tax, CAD).
-2. If no total was stated, estimate a realistic Quebec residential price and add a short note in "assumptions".
-3. base_price is ALWAYS pre-tax. Taxes are added automatically by the app.
+3. PROJECT TITLE — VERBATIM OR ASK
+   - If the notes contain an obvious title (a heading, "Soumission pour…", "Project: …", subject line, etc.), copy it VERBATIM into project_title.
+   - If no title is obvious in the notes, set project_title to "" AND emit a question of type "text" targeting "project_title". Do NOT invent a title.
 
-OTHER FIELDS
-- "duration_weeks": integer, from the conversation if stated, otherwise estimated.
-- "materials_included": boolean, from the conversation; default true.
-- "assumptions": short notes about anything you estimated.
-- "questions": short open questions for the contractor (max 3, optional).`;
+4. PRICING — NEVER INVENT
+   - If the notes state a total price for the option ("19 000$", "15k", "budget 25000"), set base_price to that EXACT number (pre-tax, CAD).
+   - If no price is stated for the option, set base_price to 0 AND emit a question of type "currency" targeting "options.<KEY>.base_price". Do NOT estimate or guess a price.
+   - base_price is ALWAYS pre-tax. Taxes are added by the app.
+
+5. DURATION — NEVER INVENT
+   - Integer weeks. If the notes state it for the option, use it.
+   - If not stated, set duration_weeks to 0 AND emit a question of type "number" targeting "options.<KEY>.duration_weeks". Do NOT estimate.
+
+6. MATERIALS — NEVER INVENT
+   - Boolean. If the notes are explicit ("matériaux inclus", "sans matériaux", "main d'œuvre seulement"), use that.
+   - If not stated, leave the field as true (placeholder) AND emit a question of type "choice" with suggestions ["Inclus", "Exclus"] (or ["Included", "Excluded"]) targeting "options.<KEY>.materials_included". Do NOT decide on the contractor's behalf.
+
+7. QUESTIONS — REQUIRED FIELDS ONLY
+   For every required field NOT explicitly provided by the notes, emit ONE question. Required fields:
+     - project_title
+     - per option: duration_weeks, base_price, materials_included
+   You do NOT ask about scope_summary — the scope IS the notes, verbatim.
+   Do NOT ask about anything outside this list. Maximum 6 questions total.
+
+QUESTION SHAPE
+   - "id": unique short id like "q1", "q2"...
+   - "label": the question shown to the contractor, in the same language as the notes
+   - "field": dot path to the value the answer fills:
+       "project_title"
+       "options.A.duration_weeks" | "options.A.base_price" | "options.A.materials_included"
+       (use the correct option key — A, B, or C)
+   - "type": one of "text" | "number" | "currency" | "choice"
+   - "suggestions": 2-4 short suggested answers the contractor can click. For "choice", these are the only valid values. For "currency"/"number", these are realistic Quebec-residential ranges (numeric strings, no $ sign) — these are CHOICES the contractor picks, not your estimate going into the quote. For "text", short example phrasings.
+
+DO NOT include an "assumptions" field. You don't make assumptions — you ask questions instead.`;
 
 /* ---------- Core fetch wrapper ---------- */
-async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonMode = false, model = 'gpt-4o-mini' }) {
+async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonMode = false, model = 'gpt-4o' }) {
   const body = {
     model,
     messages,
@@ -65,13 +109,13 @@ async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonM
   if (jsonMode) body.response_format = { type: 'json_object' };
 
   const bodyStr = JSON.stringify(body);
-  console.log('[openai] payload bytes:', bodyStr.length, '| messages:', messages.length, '| jsonMode:', jsonMode);
+  console.log('[openai] payload bytes:', bodyStr.length, '| messages:', messages.length, '| jsonMode:', jsonMode, '| model:', model);
 
   let lastErr;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -95,7 +139,7 @@ async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonM
     } catch (err) {
       lastErr = err;
       console.warn(`[openai] attempt ${attempt} failed:`, err.name, err.message);
-      if (err.name === 'AbortError') throw new Error('OpenAI timed out after 45s. Try a shorter message.');
+      if (err.name === 'AbortError') throw new Error('OpenAI timed out after 60s. Try a shorter input or smaller image.');
       if (attempt === 1 && err instanceof TypeError) {
         await new Promise(r => setTimeout(r, 500));
         continue;
@@ -110,9 +154,7 @@ function stripFences(s) {
   return s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 }
 
-/* ---------- Helper: normalize one option ----------
-   Force line_items to []: the conversation text lives verbatim in scope_summary.
-   The contractor adds line items manually in the editor if they want a breakdown. */
+/* ---------- Normalizers ---------- */
 function normalizeOption(o, idx) {
   const materialsIncluded = o.materials_included !== false;
   const basePriceRaw = parseFloat(o.base_price);
@@ -131,59 +173,65 @@ function normalizeOption(o, idx) {
   };
 }
 
-const MAX_OPTIONS = 3;
+const VALID_TYPES = new Set(['text', 'number', 'currency', 'choice']);
+const VALID_FIELDS_TOP = new Set(['project_title']);
+const VALID_FIELDS_OPT = new Set(['duration_weeks', 'base_price', 'materials_included']);
 
-function normalizeDraft(raw) {
-  const options = Array.isArray(raw.options) && raw.options.length
-    ? raw.options.slice(0, MAX_OPTIONS).map(normalizeOption)
-    : [];
+function isValidField(path, optionKeys) {
+  if (VALID_FIELDS_TOP.has(path)) return true;
+  const m = /^options\.([A-Z])\.(\w+)$/.exec(path);
+  if (!m) return false;
+  return optionKeys.has(m[1]) && VALID_FIELDS_OPT.has(m[2]);
+}
+
+function normalizeQuestion(q, optionKeys, idx) {
+  if (!q || !q.field || !q.label) return null;
+  if (!isValidField(String(q.field), optionKeys)) return null;
+  const type = VALID_TYPES.has(q.type) ? q.type : 'text';
+  let suggestions = Array.isArray(q.suggestions) ? q.suggestions.map(String).slice(0, 6) : [];
+  if (type === 'choice' && suggestions.length === 0) {
+    suggestions = ['Oui', 'Non'];
+  }
+  const safeId = String(q.id || `q${idx + 1}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || `q${idx + 1}`;
   return {
-    project_title: String(raw.project_title || ''),
-    options,
-    assumptions: Array.isArray(raw.assumptions) ? raw.assumptions.map(String) : [],
-    questions: Array.isArray(raw.questions) ? raw.questions.map(String) : []
+    id: safeId,
+    label: String(q.label),
+    field: String(q.field),
+    type,
+    suggestions
   };
 }
 
-/* ---------- Conversation filter (shared) ---------- */
-function visibleTurns(conversation) {
-  return conversation.filter(m => {
-    if (m.role === 'user') return !!m.content?.trim();
-    if (m.role === 'assistant') return m.content !== 'error' && m.content !== 'system-warning';
-    return false;
-  });
+const MAX_OPTIONS = 3;
+const MAX_QUESTIONS = 6;
+
+function normalizeAnalysis(raw) {
+  const options = (Array.isArray(raw.options) && raw.options.length
+    ? raw.options.slice(0, MAX_OPTIONS).map(normalizeOption)
+    : []);
+  const optionKeys = new Set(options.map(o => o.key));
+  const questions = (Array.isArray(raw.questions) ? raw.questions : [])
+    .map((q, i) => normalizeQuestion(q, optionKeys, i))
+    .filter(Boolean)
+    .slice(0, MAX_QUESTIONS);
+  return {
+    draft: {
+      project_title: String(raw.project_title || ''),
+      options
+    },
+    questions
+  };
 }
 
-function turnText(m) {
-  return m.role === 'assistant' ? (m.displayText || m.content || '') : (m.content || '');
-}
-
-/* ---------- 1) Plain ChatGPT-style chat ---------- */
-async function callGPTChat(conversation /*, context (intentionally ignored to keep the chat unbiased) */) {
-  const chatMsgs = visibleTurns(conversation).map(m => ({
-    role: m.role,
-    content: turnText(m)
-  }));
-
-  const messages = [
-    { role: 'system', content: CHAT_SYSTEM },
-    ...chatMsgs
-  ];
-
-  const reply = await openaiChat({ messages, temperature: 0.7, maxTokens: 2000, jsonMode: false, model: 'gpt-4o' });
-  return reply;
-}
-
-/* ---------- 2) One-shot extractor: conversation -> structured draft ---------- */
-async function extractQuoteFromConversation(conversation, context) {
-  const turns = visibleTurns(conversation);
-  if (!turns.length) {
-    return { draft: { project_title: '', options: [], assumptions: [], questions: [] } };
+/* ---------- Public: single-pass analyzer ---------- */
+async function analyzeProjectInput({ text, images = [], context }) {
+  const trimmed = (text || '').trim();
+  if (!trimmed && images.length === 0) {
+    return {
+      draft: { project_title: '', options: [] },
+      questions: []
+    };
   }
-
-  const transcript = turns
-    .map(m => `[${m.role === 'user' ? 'CONTRACTOR' : 'ASSISTANT'}] ${turnText(m)}`)
-    .join('\n\n');
 
   const contextBlock = `CONTEXT
 - Client: ${context.clientName || '(not provided)'}
@@ -192,32 +240,48 @@ async function extractQuoteFromConversation(conversation, context) {
 - Phone: ${context.clientPhone || '(not provided)'}
 - Quote date: ${context.quoteDate || new Date().toISOString().split('T')[0]}`;
 
-  const userBlock = `CONVERSATION TRANSCRIPT TO CONVERT INTO A QUOTE DRAFT:
-
-${transcript}
-
-Now produce the JSON quote draft as specified.`;
+  const userParts = [];
+  const intro = images.length > 0
+    ? `The contractor uploaded ${images.length} image(s)${trimmed ? ' and pasted text' : ''}. Read every image carefully (handwritten notes, screenshots, etc.) and combine with the pasted text. Then produce the JSON quote draft as specified.`
+    : `The contractor's notes:`;
+  userParts.push({ type: 'text', text: intro });
+  if (trimmed) {
+    userParts.push({ type: 'text', text: '\n\n=== PASTED TEXT ===\n' + trimmed + '\n=== END ===' });
+  }
+  for (const dataUrl of images) {
+    userParts.push({ type: 'image_url', image_url: { url: dataUrl } });
+  }
+  userParts.push({ type: 'text', text: '\n\nNow produce the JSON quote draft as specified.' });
 
   const messages = [
-    { role: 'system', content: EXTRACT_SYSTEM },
+    { role: 'system', content: ANALYZE_SYSTEM },
     { role: 'system', content: contextBlock },
-    { role: 'user', content: userBlock }
+    { role: 'user', content: userParts }
   ];
 
-  const raw = await openaiChat({ messages, temperature: 0.1, maxTokens: 3500, jsonMode: true });
+  const raw = await openaiChat({
+    messages,
+    temperature: 0.1,
+    maxTokens: 3500,
+    jsonMode: true,
+    model: 'gpt-4o'
+  });
   const cleaned = stripFences(raw);
-
-  console.log('[GPT extract raw]', cleaned);
+  console.log('[GPT analyze raw]', cleaned);
 
   let parsed;
   try {
     parsed = JSON.parse(cleaned);
   } catch (e) {
-    console.error('[GPT extract JSON parse failed]', e, cleaned);
+    console.error('[GPT analyze JSON parse failed]', e, cleaned);
     throw new Error('AI returned invalid JSON. Raw: ' + cleaned.slice(0, 200));
   }
 
-  const draft = normalizeDraft(parsed);
-  console.log('[GPT extract parsed]', { options: draft.options.length, project: draft.project_title });
-  return { draft };
+  const result = normalizeAnalysis(parsed);
+  console.log('[GPT analyze parsed]', {
+    options: result.draft.options.length,
+    questions: result.questions.length,
+    project: result.draft.project_title
+  });
+  return result;
 }
