@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=31">
+  <link rel="stylesheet" href="css/tools.css?v=32">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v31</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v32</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -38,25 +38,46 @@
   </div>
 </div>
 
-<!-- PROGRESS -->
-<div class="progress-section">
-  <div class="progress-info">
-    <span class="progress-label" id="progress-label">Étape 1 / 7</span>
-    <span class="progress-count" id="progress-pct">14%</span>
-  </div>
-  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:14%"></div></div>
-</div>
+<div id="draft-status" style="display:none;max-width:720px;margin:0 auto;padding:6px 20px 0;font-size:12px;text-align:right;"></div>
 
-<div id="draft-status" style="display:none;max-width:640px;margin:0 auto;padding:6px 20px 0;font-size:12px;text-align:right;"></div>
+<div class="main main-single" id="main">
 
-<div class="main" id="main">
+  <!-- 1. SOURCE -->
+  <section class="section">
+    <div class="section-head">
+      <div class="step-icon blue"><span class="material-icons-round">description</span></div>
+      <div>
+        <div class="section-title" data-i18n="src_title">Texte du projet</div>
+        <div class="section-sub" data-i18n="src_sub">Collez le scope ou téléversez un PDF. Le texte est utilisé tel quel dans la soumission.</div>
+      </div>
+    </div>
 
-  <!-- STEP 1 — Client -->
-  <div class="step active" id="step-1">
-    <div class="step-header">
+    <div id="pdf-error-banner" style="display:none;background:#fce8e6;border:1px solid #d93025;color:#a50e0e;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;white-space:pre-wrap;"></div>
+
+    <div class="card">
+      <div class="form-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+          <label class="form-label" style="margin:0;" data-i18n="scope_label">Portée des travaux</label>
+          <button type="button" class="btn-link" onclick="document.getElementById('pdf-input').click()">
+            <span class="material-icons-round" style="font-size:18px;vertical-align:middle;">upload_file</span>
+            <span data-i18n="upload_pdf">Téléverser un PDF</span>
+          </button>
+          <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none;" onchange="onPdfPicked(event)">
+        </div>
+        <textarea id="f-scope" class="form-textarea" rows="9" style="min-height:180px;" data-i18n-placeholder="scope_placeholder" placeholder="Collez ici le texte du scope, le courriel client, le contenu du PDF, etc. Tout le texte sera utilisé tel quel."></textarea>
+        <div id="pdf-status" class="form-helper" style="display:none;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. CLIENT -->
+  <section class="section">
+    <div class="section-head">
       <div class="step-icon gold"><span class="material-icons-round">person</span></div>
-      <div class="step-title" data-i18n="step1_title">Informations du client</div>
-      <div class="step-subtitle" data-i18n="step1_sub">Coordonnées du client pour la soumission</div>
+      <div>
+        <div class="section-title" data-i18n="client_title">Client</div>
+        <div class="section-sub" data-i18n="client_sub">Coordonnées qui apparaissent sur la soumission.</div>
+      </div>
     </div>
     <div class="card">
       <div class="form-group">
@@ -77,115 +98,92 @@
           <input class="form-input" type="tel" id="f-client-phone">
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" data-i18n="quote_date">Date de la soumission</label>
-        <input class="form-input" type="date" id="f-date">
-      </div>
-    </div>
-  </div>
-
-  <!-- STEP 2 — Paste / upload + Analyze -->
-  <div class="step" id="step-2">
-    <div class="step-header">
-      <div class="step-icon blue"><span class="material-icons-round">auto_awesome</span></div>
-      <div class="step-title" data-i18n="step2_title">Importer le projet</div>
-      <div class="step-subtitle" data-i18n="step2_sub">Collez vos notes ou téléversez un document / une photo. L'IA analyse et prépare un brouillon de soumission.</div>
-    </div>
-
-    <div class="client-ctx" id="client-ctx"></div>
-
-    <div id="analyze-error-banner" style="display:none;background:#fce8e6;border:1px solid #d93025;color:#a50e0e;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;white-space:pre-wrap;"></div>
-
-    <div class="card">
-      <div class="form-group">
-        <label class="form-label" data-i18n="paste_label">Notes du projet</label>
-        <textarea id="analyze-text" class="form-textarea"
-          data-i18n-placeholder="paste_placeholder"
-          placeholder="Collez ici votre courriel client, votre liste de scope, votre estimé manuscrit, etc."
-          rows="6" style="min-height:120px;"></textarea>
-      </div>
-
-      <div class="form-group" style="margin-bottom:0;">
-        <label class="form-label" data-i18n="upload_label">Téléverser document(s) ou photo(s)</label>
-        <div class="upload-zone" id="upload-zone">
-          <input type="file" id="analyze-files" multiple
-            accept=".txt,.md,.csv,.pdf,application/pdf,image/png,image/jpeg,image/jpg,image/webp"
-            style="display:none;" onchange="onFilesPicked(event)">
-          <button type="button" class="btn-add" onclick="document.getElementById('analyze-files').click()" style="margin:0;">
-            <span class="material-icons-round" style="font-size:18px;vertical-align:middle;">upload_file</span>
-            <span data-i18n="upload_pick">Choisir des fichiers</span>
-          </button>
-          <div class="upload-hint" data-i18n="upload_hint">PDF, texte (.txt, .md, .csv) ou images (.png, .jpg, .webp).</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-i18n="quote_date">Date de la soumission</label>
+          <input class="form-input" type="date" id="f-date">
         </div>
-        <div id="upload-list" class="upload-list" style="display:none;"></div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="project_title_label">Titre du projet</label>
+          <input class="form-input" type="text" id="f-project-title" data-i18n-placeholder="project_title_ph" placeholder="Ex. Rénovation cuisine">
+        </div>
       </div>
     </div>
+  </section>
 
-    <button id="btn-analyze" class="btn btn-primary btn-analyze" onclick="runAnalysis()">
-      <span class="material-icons-round">bolt</span>
-      <span data-i18n="analyze_btn">Analyser et générer un brouillon</span>
-    </button>
-
-    <div id="draft-preview" style="display:none;margin-top:14px;"></div>
-  </div>
-
-  <!-- STEP 3 — Review missing info + options editor -->
-  <div class="step" id="step-3">
-    <div class="step-header">
-      <div class="step-icon orange"><span class="material-icons-round">checklist</span></div>
-      <div class="step-title" data-i18n="step3_title">Informations à compléter</div>
-      <div class="step-subtitle" data-i18n="step3_sub">L'IA a relevé les informations manquantes. Répondez puis ajustez les options ci-dessous.</div>
+  <!-- 3. QUOTE DETAILS -->
+  <section class="section">
+    <div class="section-head">
+      <div class="step-icon orange"><span class="material-icons-round">payments</span></div>
+      <div>
+        <div class="section-title" data-i18n="quote_title">Prix et durée</div>
+        <div class="section-sub" data-i18n="quote_sub">Le prix avant taxes et la durée estimée. Les taxes sont calculées automatiquement.</div>
+      </div>
     </div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" data-i18n="base_price_label">Prix avant taxes ($)</label>
+          <input class="form-input" type="number" min="0" step="100" id="f-base-price" placeholder="Ex. 19000">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="duration_label">Durée (semaines)</label>
+          <input class="form-input" type="number" min="1" id="f-duration" value="2">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" data-i18n="materials_label">Matériaux inclus ?</label>
+        <div class="chip-group">
+          <button class="chip active" id="chip-mat-yes" onclick="setMaterials(true)" data-i18n="yes">Oui</button>
+          <button class="chip" id="chip-mat-no" onclick="setMaterials(false)" data-i18n="no">Non</button>
+        </div>
+      </div>
+      <div class="tax-preview" id="tax-preview"></div>
+    </div>
+  </section>
 
-    <div id="questions-panel"></div>
-
-    <div class="options-tabs" id="options-tabs"></div>
-    <div id="option-editor"></div>
-
-    <button class="btn-add" onclick="addOption()" id="btn-add-option">
-      + <span data-i18n="add_option">Ajouter une option</span>
-    </button>
-  </div>
-
-  <!-- STEP 4 — Payment terms -->
-  <div class="step" id="step-4">
-    <div class="step-header">
+  <!-- 4. PAYMENT TERMS -->
+  <section class="section">
+    <div class="section-head">
       <div class="step-icon blue"><span class="material-icons-round">account_balance_wallet</span></div>
-      <div class="step-title" data-i18n="step4_title">Modalités de paiement</div>
-      <div class="step-subtitle" data-i18n="step4_sub">Échéancier des paiements</div>
+      <div>
+        <div class="section-title" data-i18n="terms_title">Modalités de paiement</div>
+        <div class="section-sub" data-i18n="terms_sub">Échéancier des paiements.</div>
+      </div>
     </div>
     <div class="card-flat" id="payment-options-container"></div>
-  </div>
+  </section>
 
-  <!-- STEP 5 — Payment methods + notes -->
-  <div class="step" id="step-5">
-    <div class="step-header">
-      <div class="step-icon green"><span class="material-icons-round">payments</span></div>
-      <div class="step-title" data-i18n="step5_title">Méthodes de paiement et notes</div>
-      <div class="step-subtitle" data-i18n="step5_sub">Informations de paiement et conditions</div>
+  <!-- 5. METHODS + NOTES -->
+  <section class="section">
+    <div class="section-head">
+      <div class="step-icon green"><span class="material-icons-round">receipt_long</span></div>
+      <div>
+        <div class="section-title" data-i18n="methods_title">Méthodes de paiement et notes</div>
+        <div class="section-sub" data-i18n="methods_sub">Pré-remplis avec les valeurs par défaut. Modifiez si besoin.</div>
+      </div>
     </div>
     <div class="card">
       <div class="form-group">
         <label class="form-label" data-i18n="payment_methods">Méthodes de paiement</label>
-        <textarea class="form-textarea" id="f-payment-methods" rows="6"></textarea>
+        <textarea class="form-textarea" id="f-payment-methods" rows="5"></textarea>
       </div>
-    </div>
-    <div class="card">
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0;">
         <label class="form-label" data-i18n="notes_label">Notes importantes</label>
-        <textarea class="form-textarea" id="f-notes" rows="6"></textarea>
+        <textarea class="form-textarea" id="f-notes" rows="5"></textarea>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- STEP 6 — Signature -->
-  <div class="step" id="step-6">
-    <div class="step-header">
+  <!-- 6. SIGNATURE -->
+  <section class="section">
+    <div class="section-head">
       <div class="step-icon gold"><span class="material-icons-round">draw</span></div>
-      <div class="step-title" data-i18n="step6_title">Votre signature</div>
-      <div class="step-subtitle" data-i18n="step6_sub">Signez la soumission. Elle sera appliquée automatiquement sur toutes les options.</div>
+      <div>
+        <div class="section-title" data-i18n="sig_title">Votre signature</div>
+        <div class="section-sub" data-i18n="sig_sub">Signez la soumission avant l'envoi au client.</div>
+      </div>
     </div>
-
     <div class="sig-pad-wrap">
       <label class="sig-label">
         <span data-i18n="contractor_sig">Signature — MLP Reno &amp; Design</span>
@@ -206,16 +204,10 @@
         </label>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- STEP 7 — Final + send -->
-  <div class="step" id="step-7">
-    <div class="step-header">
-      <div class="step-icon gold"><span class="material-icons-round">send</span></div>
-      <div class="step-title" data-i18n="step7_title">Envoyer au client</div>
-      <div class="step-subtitle" data-i18n="step7_sub">Vérifiez, enregistrez et envoyez le lien au client.</div>
-    </div>
-
+  <!-- 7. GENERATE / SEND -->
+  <section class="section">
     <div class="card" id="quote-status-card" style="display:none;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
         <div>
@@ -226,16 +218,10 @@
       </div>
     </div>
 
-    <div class="quote-actions">
-      <button class="btn btn-secondary btn-sm" onclick="copyQuote()">
-        <span class="material-icons-round" style="font-size:18px">content_copy</span>
-        <span data-i18n="copy">Copier</span>
-      </button>
-      <button class="btn btn-secondary btn-sm" onclick="printQuote()">
-        <span class="material-icons-round" style="font-size:18px">print</span>
-        <span data-i18n="print_pdf">Imprimer / PDF</span>
-      </button>
-    </div>
+    <button class="btn btn-primary btn-generate" id="btn-save-send" onclick="saveAndSendForSignature()">
+      <span class="material-icons-round">send</span>
+      <span data-i18n="save_and_send">Générer la soumission et le lien client</span>
+    </button>
 
     <div class="card" style="margin-top:12px;border:1px dashed var(--border);">
       <div style="font-size:12px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;" data-i18n="draft_actions_title">Avant d'envoyer pour signature</div>
@@ -257,11 +243,6 @@
       <div id="draft-send-status" style="font-size:12px;color:var(--text-secondary);margin-top:8px;"></div>
     </div>
 
-    <button class="btn btn-primary" id="btn-save-send" onclick="saveAndSendForSignature()" style="margin-top:8px;">
-      <span class="material-icons-round">send</span>
-      <span data-i18n="save_and_send">Enregistrer et générer le lien client</span>
-    </button>
-
     <div class="share-box" id="share-box" style="display:none;">
       <div class="share-title" data-i18n="share_title">Lien à envoyer au client</div>
       <div class="share-link-row">
@@ -281,24 +262,23 @@
         </button>
       </div>
       <div id="send-status" style="font-size:12px;color:var(--text-secondary);margin-top:8px;"></div>
-      <div class="share-hint" data-i18n="share_hint">Copiez ce lien ou utilisez les boutons ci-dessus. Le client pourra choisir une option et signer. Vous serez notifié dans le tableau des soumissions une fois signée.</div>
+      <div class="share-hint" data-i18n="share_hint">Copiez ce lien ou utilisez les boutons ci-dessus. Le client pourra signer en ligne.</div>
+    </div>
+
+    <div class="quote-actions" style="margin-top:12px;">
+      <button class="btn btn-secondary btn-sm" onclick="copyQuote()">
+        <span class="material-icons-round" style="font-size:18px">content_copy</span>
+        <span data-i18n="copy">Copier</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="printQuote()">
+        <span class="material-icons-round" style="font-size:18px">print</span>
+        <span data-i18n="print_pdf">Imprimer / PDF</span>
+      </button>
     </div>
 
     <div id="quote-output" style="margin-top:16px;"></div>
-  </div>
+  </section>
 
-</div>
-
-<!-- BOTTOM NAV -->
-<div class="bottom-nav" id="bottom-nav">
-  <button class="btn btn-secondary" id="btn-prev" onclick="prevStep()" style="display:none;">
-    <span class="material-icons-round" style="font-size:18px">arrow_back</span>
-    <span data-i18n="previous">Précédent</span>
-  </button>
-  <button class="btn btn-primary" id="btn-next" onclick="nextStep()">
-    <span data-i18n="next">Suivant</span>
-    <span class="material-icons-round" style="font-size:18px">arrow_forward</span>
-  </button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -306,18 +286,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>
-  // pdf.js v3 UMD exposes window.pdfjsLib synchronously. Point the worker
-  // at the matching CDN file so getDocument() can spin one up.
   if (window.pdfjsLib) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc =
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
 </script>
-<script src="js/config.js?v=31"></script>
-<script src="js/supabase-client.js?v=31"></script>
-<script src="js/signature-pad.js?v=31"></script>
-<script src="js/openai.js?v=31"></script>
-<script src="js/app.js?v=31"></script>
-<script src="js/pwa.js?v=31"></script>
+<script src="js/config.js?v=32"></script>
+<script src="js/supabase-client.js?v=32"></script>
+<script src="js/signature-pad.js?v=32"></script>
+<script src="js/openai.js?v=32"></script>
+<script src="js/app.js?v=32"></script>
+<script src="js/pwa.js?v=32"></script>
 </body>
 </html>
