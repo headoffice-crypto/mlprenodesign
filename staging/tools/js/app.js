@@ -76,8 +76,6 @@ const I18N = {
   schedule_remove: { fr: 'Supprimer cet échéancier', en: 'Remove this schedule' },
   schedule_add_row: { fr: 'Ajouter une étape', en: 'Add a stage' },
   schedule_default_title: { fr: 'Nouvel échéancier', en: 'New schedule' },
-  schedule_default_row_fr: { fr: 'Étape', en: 'Stage' },
-  schedule_default_row_en: { fr: 'Stage', en: 'Stage' },
   schedule_invalid_save: { fr: 'L\'échéancier sélectionné doit totaliser 100 % avant la génération.', en: 'The selected schedule must total 100% before generating.' },
   materials_label: { fr: 'Matériaux inclus ?', en: 'Materials included?' },
   yes: { fr: 'Oui', en: 'Yes' },
@@ -575,7 +573,7 @@ function renderScheduleCard(schedule) {
   const isSelected = schedule.key === selectedPaymentOption;
   const labelKey = lang === 'fr' ? 'label_fr' : 'label_en';
 
-  let h = `<div class="schedule-card${isSelected ? ' selected' : ''}" onclick="selectSchedule('${esc(schedule.key)}')">`;
+  let h = `<div class="schedule-card${isSelected ? ' selected' : ''}" data-key="${esc(schedule.key)}" onclick="selectSchedule('${esc(schedule.key)}')">`;
   h += `<div class="schedule-head">`;
   h += `  <div class="option-radio"></div>`;
   h += `  <input class="schedule-title" type="text" value="${esc(schedule.title)}" onclick="event.stopPropagation()" oninput="onScheduleTitleInput('${esc(schedule.key)}', this.value)">`;
@@ -630,17 +628,35 @@ function onScheduleRowPct(key, idx, value) {
   if (!s || !s.rows[idx]) return;
   s.rows[idx].pct = Math.max(0, Math.min(100, parseFloat(value) || 0));
   persistSchedules();
-  buildPaymentOptionsUI();
+  // Update only the total badge for THIS card so the input keeps focus.
+  refreshScheduleTotal(key);
+}
+
+function refreshScheduleTotal(key) {
+  const s = findSchedule(key);
+  if (!s) return;
+  const card = document.querySelector(`.schedule-card[data-key="${cssEscape(key)}"]`);
+  if (!card) return;
+  const badge = card.querySelector('.schedule-total');
+  if (!badge) return;
+  const total = scheduleTotalPct(s);
+  const ok = total === 100;
+  badge.textContent = ok
+    ? t('schedule_total_ok')
+    : t('schedule_total_bad').replace('{n}', String(total));
+  badge.classList.toggle('ok', ok);
+  badge.classList.toggle('bad', !ok);
+}
+
+function cssEscape(s) {
+  // Schedule keys are restricted to A-Z (and X<timestamp>). No real escaping needed.
+  return String(s).replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
 function addScheduleRow(key) {
   const s = findSchedule(key);
   if (!s) return;
-  s.rows.push({
-    label_fr: t('schedule_default_row_fr'),
-    label_en: t('schedule_default_row_en'),
-    pct: 0
-  });
+  s.rows.push({ label_fr: 'Étape', label_en: 'Stage', pct: 0 });
   persistSchedules();
   buildPaymentOptionsUI();
 }
