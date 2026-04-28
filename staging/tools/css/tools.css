@@ -906,6 +906,17 @@ body {
   .standalone-only { display: none !important; }
 }
 
+/* ---------------- Step 2 — Analyze button ---------------- */
+.btn-analyze {
+  margin-top: 16px;
+  padding: 18px 24px;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 14px rgba(200, 164, 90, 0.25);
+}
+.btn-analyze:hover { box-shadow: 0 6px 18px rgba(200, 164, 90, 0.35); }
+.btn-analyze .material-icons-round { font-size: 22px; }
+
 /* ---------------- Step 2 — Upload zone & file list ---------------- */
 .upload-zone { display: block; }
 .upload-hint {

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=30">
+  <link rel="stylesheet" href="css/tools.css?v=31">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v30</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v31</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -102,7 +102,7 @@
         <textarea id="analyze-text" class="form-textarea"
           data-i18n-placeholder="paste_placeholder"
           placeholder="Collez ici votre courriel client, votre liste de scope, votre estimé manuscrit, etc."
-          rows="9" style="min-height:180px;"></textarea>
+          rows="6" style="min-height:120px;"></textarea>
       </div>
 
       <div class="form-group" style="margin-bottom:0;">
@@ -121,7 +121,7 @@
       </div>
     </div>
 
-    <button id="btn-analyze" class="btn btn-primary" onclick="runAnalysis()" style="margin-top:6px;">
+    <button id="btn-analyze" class="btn btn-primary btn-analyze" onclick="runAnalysis()">
       <span class="material-icons-round">bolt</span>
       <span data-i18n="analyze_btn">Analyser et générer un brouillon</span>
     </button>
@@ -313,11 +313,11 @@
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
 </script>
-<script src="js/config.js?v=30"></script>
-<script src="js/supabase-client.js?v=30"></script>
-<script src="js/signature-pad.js?v=30"></script>
-<script src="js/openai.js?v=30"></script>
-<script src="js/app.js?v=30"></script>
-<script src="js/pwa.js?v=30"></script>
+<script src="js/config.js?v=31"></script>
+<script src="js/supabase-client.js?v=31"></script>
+<script src="js/signature-pad.js?v=31"></script>
+<script src="js/openai.js?v=31"></script>
+<script src="js/app.js?v=31"></script>
+<script src="js/pwa.js?v=31"></script>
 </body>
 </html>
