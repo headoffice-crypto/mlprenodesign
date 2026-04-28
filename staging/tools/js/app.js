@@ -474,14 +474,17 @@ function renderUploadList() {
   if (!pendingFiles.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
   wrap.style.display = '';
   wrap.innerHTML = pendingFiles.map((f, i) => {
-    const isPdf = /\.pdf$/i.test(f.name);
-    const icon = f.kind === 'image' ? 'image' : (isPdf ? 'picture_as_pdf' : 'description');
+    const icon = f.kind === 'image' ? 'image' : (f.kind === 'pdf' ? 'picture_as_pdf' : 'description');
     let sub;
+    let subColor = '';
     if (f.extracting) {
       sub = t('pdf_extracting');
+    } else if (f.error) {
+      sub = '⚠️ ' + f.error;
+      subColor = 'color:var(--red);';
     } else if (f.kind === 'image') {
       sub = lang === 'fr' ? 'Image · sera analysée par vision' : 'Image · will be analyzed by vision';
-    } else if (isPdf) {
+    } else if (f.kind === 'pdf') {
       sub = lang === 'fr' ? `PDF · ${(f.text || '').length} caractères extraits` : `PDF · ${(f.text || '').length} chars extracted`;
     } else {
       sub = lang === 'fr' ? `Texte · ${(f.text || '').length} caractères` : `Text · ${(f.text || '').length} chars`;
@@ -491,7 +494,7 @@ function renderUploadList() {
       <span class="material-icons-round">${icon}</span>
       <div class="upload-item-body">
         <div class="upload-item-name">${esc(f.name)}</div>
-        <div class="upload-item-sub">${spinner}${esc(sub)}</div>
+        <div class="upload-item-sub" style="${subColor}">${spinner}${esc(sub)}</div>
       </div>
       <button class="upload-item-remove" onclick="removePendingFile(${i})" title="Retirer">
         <span class="material-icons-round">close</span>
@@ -523,20 +526,22 @@ function onFilesPicked(ev) {
 
     if (isPdf) {
       // Show a placeholder while pdf.js extracts the text
-      const placeholder = { name: file.name, kind: 'text', size: file.size, text: '', extracting: true };
+      const placeholder = { name: file.name, kind: 'pdf', size: file.size, text: '', extracting: true, error: null };
       pendingFiles.push(placeholder);
       renderUploadList();
+      console.log('[pdf] queued', file.name, file.size, 'bytes; pdfjs ready =', !!window.pdfjsLib);
       extractPdfText(file)
         .then(text => {
           placeholder.text = text;
           placeholder.extracting = false;
+          placeholder.error = null;
+          console.log('[pdf] extracted', file.name, text.length, 'chars');
           renderUploadList();
         })
         .catch(err => {
           console.error('[pdf extract]', err);
-          // Drop the failed entry and show an error
-          const idx = pendingFiles.indexOf(placeholder);
-          if (idx >= 0) pendingFiles.splice(idx, 1);
+          placeholder.extracting = false;
+          placeholder.error = err.message || String(err);
           renderUploadList();
           setAnalyzeError(t('pdf_extract_failed') + ' : ' + file.name + ' — ' + (err.message || err));
         });
@@ -590,7 +595,7 @@ function buildAnalyzePayload() {
   const textChunks = [];
   if (pasted) textChunks.push(pasted);
   pendingFiles.forEach(f => {
-    if (f.kind === 'text' && f.text) {
+    if ((f.kind === 'text' || f.kind === 'pdf') && f.text && !f.extracting && !f.error) {
       textChunks.push(`--- File: ${f.name} ---\n${f.text}`);
     }
   });

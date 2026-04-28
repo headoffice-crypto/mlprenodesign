@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=29">
+  <link rel="stylesheet" href="css/tools.css?v=30">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v29</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v30</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -304,18 +304,20 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs" type="module"></script>
-<script type="module">
-  // Expose pdfjs to non-module scripts and configure the worker.
-  import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.min.mjs';
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.7.76/build/pdf.worker.min.mjs';
-  window.pdfjsLib = pdfjsLib;
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+  // pdf.js v3 UMD exposes window.pdfjsLib synchronously. Point the worker
+  // at the matching CDN file so getDocument() can spin one up.
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
 </script>
-<script src="js/config.js?v=29"></script>
-<script src="js/supabase-client.js?v=29"></script>
-<script src="js/signature-pad.js?v=29"></script>
-<script src="js/openai.js?v=29"></script>
-<script src="js/app.js?v=29"></script>
-<script src="js/pwa.js?v=29"></script>
+<script src="js/config.js?v=30"></script>
+<script src="js/supabase-client.js?v=30"></script>
+<script src="js/signature-pad.js?v=30"></script>
+<script src="js/openai.js?v=30"></script>
+<script src="js/app.js?v=30"></script>
+<script src="js/pwa.js?v=30"></script>
 </body>
 </html>
