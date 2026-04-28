@@ -20,54 +20,39 @@ The JSON shape:
     {
       "key": "A",
       "title": "Option A",
-      "scope_summary": "2-5 sentences on what this option includes",
+      "scope_summary": "<verbatim proposal text from the assistant>",
       "duration_weeks": 2,
       "materials_included": true,
-      "price_mode": "single",
       "base_price": 19000,
-      "line_items": [
-        { "description": "short scope item", "quantity": 1 }
-      ]
+      "line_items": []
     }
   ],
   "assumptions": [],
   "questions": []
 }
 
-CORE RULE — THE CONVERSATION IS AUTHORITATIVE
-Use only what was actually agreed in the conversation. If the contractor stated a specific price, quantity, duration, material decision, title, or budget, reproduce that exact value. Never substitute your own estimate over a value they gave.
-You may estimate a value only when the conversation never specified one. When you estimate, add a short note to "assumptions".
+CORE RULE — DO NOT REWRITE THE SCOPE
+"scope_summary" MUST contain the assistant's most recent proposal/scope text VERBATIM. Copy it as the assistant wrote it. Preserve paragraph breaks (use \\n), bullets, numbering, and any markdown formatting that was in the conversation. Do NOT summarize, paraphrase, condense, restructure, re-bullet, or shorten it. Strip ONLY pure greetings/sign-offs ("Bonjour ...", "Voici ma proposition :", "N'hésitez pas...") if they carry no scope information.
 
-OPTIONS / PRICING TIERS — HARD LIMITS
-- MAXIMUM 3 OPTIONS. Never return more than 3 items in "options". If the conversation discusses more, keep the 3 most relevant and note the limit in "assumptions".
-- If the conversation discussed multiple tiers, return them as separate options with materially different scopes.
-- Otherwise return exactly ONE option.
-- Each option's total is the sum of its OWN line_items — never merged across options.
-- Option keys must be "A", "B", "C" in that order.
-- TITLES: always set "title" to exactly "Option A", "Option B", or "Option C" matching the key. NEVER use marketing labels like "Basique", "Standard", "Premium", "Économique", "Deluxe", etc.
+LINE ITEMS — ALWAYS EMPTY
+"line_items" MUST be []. Do NOT generate scope items, bullet lists, or per-item rows. The contractor will add line items manually in the next step if they want a per-item breakdown. Returning a non-empty line_items array is a hard error.
 
-PRICING MODEL — READ CAREFULLY
-Each option has ONE authoritative price: "base_price" (pre-tax, in CAD dollars). The customer's pre-tax total equals base_price. Taxes are added on top automatically by the app.
+OPTIONS / TIERS — HARD LIMITS
+- MAXIMUM 3 OPTIONS in "options".
+- If the conversation discussed multiple tiers (e.g. Basic / Standard / Premium), return them as separate options. Each option's "scope_summary" is the verbatim text describing THAT tier (split it out of the assistant's reply).
+- Otherwise return exactly ONE option whose scope_summary is the assistant's full proposal text.
+- Option keys must be "A", "B", "C" in that order. Title is exactly "Option A", "Option B", "Option C". NEVER use marketing labels like "Basique", "Premium", "Économique", "Deluxe".
 
-"line_items" are SCOPE items — a bulleted list of what the work includes (e.g. "Démolition", "Douche italienne", "Céramique plancher et murs"). They do NOT carry prices in single mode.
+PRICING — base_price IS AUTHORITATIVE
+1. If the contractor stated a total price ("cuisine 19 000$", "15k total", "budget 25000"), set base_price to that EXACT number (pre-tax, CAD).
+2. If no total was stated, estimate a realistic Quebec residential price and add a short note in "assumptions".
+3. base_price is ALWAYS pre-tax. Taxes are added automatically by the app.
 
-"price_mode": "single" (DEFAULT — one total, line_items are scope bullets) or "detailed" (per-line unit prices where base_price = sum of quantity × unit_price). Use "single" unless the conversation explicitly used per-item pricing. Default to "single".
-
-RULES FOR base_price
-1. If a project total was stated ("cuisine 19 000$", "salle de bain 15k total", "budget 25000"), set base_price to that EXACT number. Do not round, do not redistribute.
-2. If no total was given, estimate a realistic Quebec residential price and add it to "assumptions".
-3. base_price is ALWAYS pre-tax.
-4. Leave "materials_budget" at 0 unless a separate materials cap was discussed.
-
-RULES FOR line_items IN SINGLE MODE (the default)
-- Each line is { "description": "scope item", "quantity": 1 }. unit_price is omitted/ignored in single mode.
-- Produce 4–10 meaningful scope items describing what is included.
-
-RULES FOR line_items IN DETAILED MODE (only when contractor used per-item pricing)
-- Each line has { "description", "quantity", "unit_price" } and base_price = SUM(quantity × unit_price).
-- The sum MUST exactly equal the stated total.
-
-If the conversation is too vague to extract a usable quote, still return at least one option with realistic Quebec placeholder pricing and document your assumptions clearly in "assumptions".`;
+OTHER FIELDS
+- "duration_weeks": integer, from the conversation if stated, otherwise estimated.
+- "materials_included": boolean, from the conversation; default true.
+- "assumptions": short notes about anything you estimated.
+- "questions": short open questions for the contractor (max 3, optional).`;
 
 /* ---------- Core fetch wrapper ---------- */
 async function openaiChat({ messages, temperature = 0.2, maxTokens = 3500, jsonMode = false, model = 'gpt-4o-mini' }) {
@@ -125,22 +110,13 @@ function stripFences(s) {
   return s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
 }
 
-/* ---------- Helper: normalize one option ---------- */
+/* ---------- Helper: normalize one option ----------
+   Force line_items to []: the conversation text lives verbatim in scope_summary.
+   The contractor adds line items manually in the editor if they want a breakdown. */
 function normalizeOption(o, idx) {
-  const items = Array.isArray(o.line_items) ? o.line_items : [];
-  const priceMode = o.price_mode === 'detailed' ? 'detailed' : 'single';
   const materialsIncluded = o.materials_included !== false;
-  const normalizedItems = items.map(item => ({
-    description: String(item.description || ''),
-    quantity: Math.max(1, parseInt(item.quantity) || 1),
-    unit_price: priceMode === 'detailed' ? Math.max(0, parseFloat(item.unit_price) || 0) : 0,
-    materialsIncluded
-  }));
   const basePriceRaw = parseFloat(o.base_price);
-  let basePrice = Number.isFinite(basePriceRaw) ? Math.max(0, basePriceRaw) : 0;
-  if (priceMode === 'detailed') {
-    basePrice = normalizedItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  }
+  const basePrice = Number.isFinite(basePriceRaw) ? Math.max(0, basePriceRaw) : 0;
   const key = String(o.key || String.fromCharCode(65 + idx));
   return {
     key,
@@ -148,10 +124,10 @@ function normalizeOption(o, idx) {
     scope_summary: String(o.scope_summary || ''),
     duration_weeks: Math.max(1, parseInt(o.duration_weeks) || 2),
     materials_included: materialsIncluded,
-    materials_budget: Math.max(0, parseFloat(o.materials_budget) || 0),
-    price_mode: priceMode,
+    materials_budget: 0,
+    price_mode: 'single',
     base_price: basePrice,
-    line_items: normalizedItems
+    line_items: []
   };
 }
 

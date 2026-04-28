@@ -723,7 +723,7 @@ function buildOptionEditor(opt) {
   h += '</div>';
 
   // Scope
-  h += `<div class="form-group"><label class="form-label">${t('scope_label')}</label><textarea class="form-textarea" rows="3" oninput="updateOptionField('${opt.key}','scope_summary',this.value)">${esc(opt.scope_summary)}</textarea></div>`;
+  h += `<div class="form-group"><label class="form-label">${t('scope_label')}</label><textarea class="form-textarea" rows="10" style="min-height:180px;font-family:inherit;line-height:1.55;" oninput="updateOptionField('${opt.key}','scope_summary',this.value)">${esc(opt.scope_summary)}</textarea></div>`;
 
   const mode = getPriceMode(opt);
   const sub = optionSubtotal(opt);
