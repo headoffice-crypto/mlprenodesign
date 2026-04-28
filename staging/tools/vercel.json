@@ -1,8 +1,18 @@
 {
-  "cleanUrls": true,
+  "cleanUrls": false,
   "trailingSlash": false,
+  "rewrites": [
+    { "source": "/quotes",    "destination": "/quotes.html" },
+    { "source": "/customers", "destination": "/customers.html" },
+    { "source": "/customer",  "destination": "/customer.html" },
+    { "source": "/projects",  "destination": "/projects.html" },
+    { "source": "/project",   "destination": "/project.html" },
+    { "source": "/sign",      "destination": "/sign.html" },
+    { "source": "/bill",      "destination": "/bill.html" },
+    { "source": "/new",       "destination": "/index.html" }
+  ],
   "redirects": [
-    { "source": "/", "destination": "/quotes.html", "permanent": false }
+    { "source": "/", "destination": "/quotes", "permanent": false }
   ],
   "headers": [
     {
