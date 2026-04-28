@@ -78,7 +78,9 @@ const I18N = {
   paste_placeholder: { fr: 'Collez ici votre courriel client, votre liste de scope, votre estimé manuscrit, etc.', en: 'Paste here the client email, the scope list, your handwritten estimate, etc.' },
   upload_label: { fr: 'Téléverser document(s) ou photo(s)', en: 'Upload document(s) or photo(s)' },
   upload_pick: { fr: 'Choisir des fichiers', en: 'Choose files' },
-  upload_hint: { fr: 'Texte (.txt, .md, .csv) ou images (.png, .jpg, .webp). Les PDF doivent être copiés-collés.', en: 'Text (.txt, .md, .csv) or images (.png, .jpg, .webp). PDFs must be copy-pasted.' },
+  upload_hint: { fr: 'PDF, texte (.txt, .md, .csv) ou images (.png, .jpg, .webp).', en: 'PDF, text (.txt, .md, .csv), or images (.png, .jpg, .webp).' },
+  pdf_extracting: { fr: 'Extraction du PDF…', en: 'Extracting PDF…' },
+  pdf_extract_failed: { fr: 'Impossible de lire le PDF', en: 'Could not read PDF' },
   analyze_btn: { fr: 'Analyser et générer un brouillon', en: 'Analyze and generate a draft' },
   analyzing: { fr: 'Analyse en cours…', en: 'Analyzing…' },
   reanalyze_btn: { fr: 'Re-analyser', en: 'Re-analyze' },
@@ -472,15 +474,24 @@ function renderUploadList() {
   if (!pendingFiles.length) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
   wrap.style.display = '';
   wrap.innerHTML = pendingFiles.map((f, i) => {
-    const icon = f.kind === 'image' ? 'image' : 'description';
-    const sub = f.kind === 'image'
-      ? (lang === 'fr' ? 'Image · sera analysée par vision' : 'Image · will be analyzed by vision')
-      : (lang === 'fr' ? `Texte · ${(f.text || '').length} caractères` : `Text · ${(f.text || '').length} chars`);
+    const isPdf = /\.pdf$/i.test(f.name);
+    const icon = f.kind === 'image' ? 'image' : (isPdf ? 'picture_as_pdf' : 'description');
+    let sub;
+    if (f.extracting) {
+      sub = t('pdf_extracting');
+    } else if (f.kind === 'image') {
+      sub = lang === 'fr' ? 'Image · sera analysée par vision' : 'Image · will be analyzed by vision';
+    } else if (isPdf) {
+      sub = lang === 'fr' ? `PDF · ${(f.text || '').length} caractères extraits` : `PDF · ${(f.text || '').length} chars extracted`;
+    } else {
+      sub = lang === 'fr' ? `Texte · ${(f.text || '').length} caractères` : `Text · ${(f.text || '').length} chars`;
+    }
+    const spinner = f.extracting ? '<span class="spinner-ring" style="margin-right:6px;"></span>' : '';
     return `<div class="upload-item">
       <span class="material-icons-round">${icon}</span>
       <div class="upload-item-body">
         <div class="upload-item-name">${esc(f.name)}</div>
-        <div class="upload-item-sub">${esc(sub)}</div>
+        <div class="upload-item-sub">${spinner}${esc(sub)}</div>
       </div>
       <button class="upload-item-remove" onclick="removePendingFile(${i})" title="Retirer">
         <span class="material-icons-round">close</span>
@@ -508,6 +519,30 @@ function onFilesPicked(ev) {
   ev.target.value = ''; // allow picking the same file again later
   files.forEach(file => {
     const isImage = /^image\//i.test(file.type);
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+    if (isPdf) {
+      // Show a placeholder while pdf.js extracts the text
+      const placeholder = { name: file.name, kind: 'text', size: file.size, text: '', extracting: true };
+      pendingFiles.push(placeholder);
+      renderUploadList();
+      extractPdfText(file)
+        .then(text => {
+          placeholder.text = text;
+          placeholder.extracting = false;
+          renderUploadList();
+        })
+        .catch(err => {
+          console.error('[pdf extract]', err);
+          // Drop the failed entry and show an error
+          const idx = pendingFiles.indexOf(placeholder);
+          if (idx >= 0) pendingFiles.splice(idx, 1);
+          renderUploadList();
+          setAnalyzeError(t('pdf_extract_failed') + ' : ' + file.name + ' — ' + (err.message || err));
+        });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       if (isImage) {
@@ -523,6 +558,24 @@ function onFilesPicked(ev) {
     if (isImage) reader.readAsDataURL(file);
     else reader.readAsText(file);
   });
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) {
+    throw new Error('pdf.js not loaded');
+  }
+  const arrayBuf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  const chunks = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it => it.str).join(' ');
+    chunks.push(pageText.trim());
+  }
+  const out = chunks.join('\n\n').trim();
+  if (!out) throw new Error('PDF contains no extractable text (likely a scan — upload it as an image instead).');
+  return out;
 }
 
 function removePendingFile(idx) {
@@ -548,6 +601,11 @@ function buildAnalyzePayload() {
 async function runAnalysis() {
   if (analyzeBusy) return;
   setAnalyzeError('');
+
+  if (pendingFiles.some(f => f.extracting)) {
+    setAnalyzeError(t('pdf_extracting'));
+    return;
+  }
 
   const { text, images } = buildAnalyzePayload();
   if (!text && images.length === 0) {
