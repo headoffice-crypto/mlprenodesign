@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=33">
+  <link rel="stylesheet" href="css/tools.css?v=34">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v33</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v34</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -132,8 +132,14 @@
           <input class="form-input" type="number" min="0" step="100" id="f-base-price" placeholder="Ex. 19000">
         </div>
         <div class="form-group">
-          <label class="form-label" data-i18n="duration_label">Durée (semaines)</label>
-          <input class="form-input" type="number" min="1" id="f-duration" value="2">
+          <label class="form-label" data-i18n="duration_label">Durée</label>
+          <div style="display:flex;gap:8px;">
+            <input class="form-input" type="number" min="1" id="f-duration" value="2" style="flex:1;">
+            <select class="form-input" id="f-duration-unit" style="flex:1.1;max-width:160px;" onchange="saveDraft()">
+              <option value="weeks" data-i18n="unit_weeks">Semaines</option>
+              <option value="days" data-i18n="unit_days">Jours ouvrables</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="form-group" style="margin-bottom:0;">
@@ -156,7 +162,11 @@
         <div class="section-sub" data-i18n="terms_sub">Échéancier des paiements.</div>
       </div>
     </div>
-    <div class="card-flat" id="payment-options-container"></div>
+    <div id="payment-options-container"></div>
+    <button class="btn-add" type="button" onclick="addPaymentSchedule()">
+      + <span data-i18n="add_schedule">Ajouter un échéancier</span>
+    </button>
+    <div style="font-size:12px;color:var(--text-hint);margin-top:8px;line-height:1.5;" data-i18n="schedule_hint">Les pourcentages doivent totaliser 100 %. Vos échéanciers personnalisés sont enregistrés sur cet appareil pour les prochaines soumissions.</div>
   </section>
 
   <!-- 5. METHODS + NOTES -->
@@ -296,11 +306,11 @@
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
 </script>
-<script src="js/config.js?v=33"></script>
-<script src="js/supabase-client.js?v=33"></script>
-<script src="js/signature-pad.js?v=33"></script>
-<script src="js/openai.js?v=33"></script>
-<script src="js/app.js?v=33"></script>
-<script src="js/pwa.js?v=33"></script>
+<script src="js/config.js?v=34"></script>
+<script src="js/supabase-client.js?v=34"></script>
+<script src="js/signature-pad.js?v=34"></script>
+<script src="js/openai.js?v=34"></script>
+<script src="js/app.js?v=34"></script>
+<script src="js/pwa.js?v=34"></script>
 </body>
 </html>

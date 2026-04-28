@@ -11,7 +11,9 @@ let lang = 'fr';
 let quoteState = {
   project_title: '',
   scope_summary: '',
-  duration_weeks: 2,
+  duration_value: 2,             // raw number the contractor entered
+  duration_unit: 'weeks',        // 'weeks' | 'days'
+  duration_weeks: 2,             // canonical value in weeks (kept for backwards compat with sign.html / invoices)
   materials_included: true,
   base_price: 0
 };
@@ -61,7 +63,22 @@ const I18N = {
   quote_title: { fr: 'Prix et durée', en: 'Price & duration' },
   quote_sub:   { fr: 'Le prix avant taxes et la durée estimée. Les taxes sont calculées automatiquement.', en: 'Pre-tax price and estimated duration. Taxes are computed automatically.' },
   base_price_label: { fr: 'Prix avant taxes ($)', en: 'Pre-tax price ($)' },
-  duration_label: { fr: 'Durée (semaines)', en: 'Duration (weeks)' },
+  duration_label: { fr: 'Durée', en: 'Duration' },
+  unit_weeks: { fr: 'Semaines', en: 'Weeks' },
+  unit_days:  { fr: 'Jours ouvrables', en: 'Business days' },
+  add_schedule: { fr: 'Ajouter un échéancier', en: 'Add a payment schedule' },
+  schedule_hint: { fr: 'Les pourcentages doivent totaliser 100 %. Vos échéanciers personnalisés sont enregistrés sur cet appareil pour les prochaines soumissions.', en: 'Percentages must total 100%. Your custom schedules are saved on this device for future quotes.' },
+  schedule_title_label: { fr: 'Titre', en: 'Title' },
+  schedule_row_label: { fr: 'Étape', en: 'Stage' },
+  schedule_row_pct: { fr: '%', en: '%' },
+  schedule_total_ok: { fr: 'Total : 100 %', en: 'Total: 100%' },
+  schedule_total_bad: { fr: 'Total : {n} % (doit être 100 %)', en: 'Total: {n}% (must be 100%)' },
+  schedule_remove: { fr: 'Supprimer cet échéancier', en: 'Remove this schedule' },
+  schedule_add_row: { fr: 'Ajouter une étape', en: 'Add a stage' },
+  schedule_default_title: { fr: 'Nouvel échéancier', en: 'New schedule' },
+  schedule_default_row_fr: { fr: 'Étape', en: 'Stage' },
+  schedule_default_row_en: { fr: 'Stage', en: 'Stage' },
+  schedule_invalid_save: { fr: 'L\'échéancier sélectionné doit totaliser 100 % avant la génération.', en: 'The selected schedule must total 100% before generating.' },
   materials_label: { fr: 'Matériaux inclus ?', en: 'Materials included?' },
   yes: { fr: 'Oui', en: 'Yes' },
   no:  { fr: 'Non', en: 'No' },
@@ -110,17 +127,73 @@ const I18N = {
   preview_saving: { fr: 'Enregistrement…', en: 'Saving…' }
 };
 
-const PAYMENT_OPTIONS_DATA = [
-  { key: 'A',
-    fr: { title: 'Option A', desc: '10% dépôt\n40% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux' },
-    en: { title: 'Option A', desc: '10% deposit\n40% before work begins\n40% mid-project\n10% upon completion' } },
-  { key: 'B',
-    fr: { title: 'Option B', desc: '20% dépôt\n30% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux' },
-    en: { title: 'Option B', desc: '20% deposit\n30% before work begins\n40% mid-project\n10% upon completion' } },
-  { key: 'C',
-    fr: { title: 'Option C', desc: '20% dépôt\n40% avant le début des travaux\n30% mi-parcours\n10% à la fin des travaux' },
-    en: { title: 'Option C', desc: '20% deposit\n40% before work begins\n30% mid-project\n10% upon completion' } }
+/* ---------- Payment schedules ----------
+   Each schedule has a title and a list of rows: { label_fr, label_en, pct }.
+   The display description is derived from the rows (e.g. "10% Dépôt\n…").
+   Schedules are stored in localStorage so the contractor's custom set
+   carries across sessions and quotes. The seed below is what new installs see. */
+const SCHEDULE_SEED = [
+  { key: 'A', title: 'Option A', rows: [
+    { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 10 },
+    { label_fr: 'Avant début',     label_en: 'Before start',    pct: 40 },
+    { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 40 },
+    { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 10 }
+  ]},
+  { key: 'B', title: 'Option B', rows: [
+    { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 20 },
+    { label_fr: 'Avant début',     label_en: 'Before start',    pct: 30 },
+    { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 40 },
+    { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 10 }
+  ]},
+  { key: 'C', title: 'Option C', rows: [
+    { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 20 },
+    { label_fr: 'Avant début',     label_en: 'Before start',    pct: 40 },
+    { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 30 },
+    { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 10 }
+  ]}
 ];
+
+let paymentSchedules = loadSchedulesFromStorage();
+
+function loadSchedulesFromStorage() {
+  try {
+    const raw = localStorage.getItem('mlp_payment_schedules');
+    if (!raw) return JSON.parse(JSON.stringify(SCHEDULE_SEED));
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch (_) {}
+  return JSON.parse(JSON.stringify(SCHEDULE_SEED));
+}
+
+function persistSchedules() {
+  try { localStorage.setItem('mlp_payment_schedules', JSON.stringify(paymentSchedules)); } catch (_) {}
+}
+
+function scheduleDescription(schedule, l) {
+  if (!schedule || !Array.isArray(schedule.rows)) return '';
+  return schedule.rows
+    .filter(r => Number(r.pct) > 0)
+    .map(r => `${r.pct}% ${l === 'fr' ? r.label_fr : r.label_en}`)
+    .join('\n');
+}
+
+function scheduleTotalPct(schedule) {
+  if (!schedule || !Array.isArray(schedule.rows)) return 0;
+  return schedule.rows.reduce((s, r) => s + (Number(r.pct) || 0), 0);
+}
+
+function findSchedule(key) {
+  return paymentSchedules.find(s => s.key === key) || paymentSchedules[0];
+}
+
+function nextScheduleKey() {
+  const used = new Set(paymentSchedules.map(s => s.key));
+  for (let i = 0; i < 26; i++) {
+    const k = String.fromCharCode(65 + i);
+    if (!used.has(k)) return k;
+  }
+  return 'X' + Date.now().toString(36).slice(-4);
+}
 
 const PAYMENT_METHODS = {
   fr: `Virement Interac :\npayment@mlpexperience.com\n\nChèque :\nMLP Gestion et Consultation Inc.\n\nNote : Les paiements par chèque peuvent prendre 5 à 7 jours ouvrables avant réception. Les dates de début et la planification sont confirmées seulement après réception du paiement.`,
@@ -411,8 +484,19 @@ function setMaterials(included) {
 function readFormIntoState() {
   quoteState.project_title  = val('f-project-title');
   quoteState.scope_summary  = document.getElementById('f-scope').value; // verbatim — no .trim()
-  quoteState.duration_weeks = Math.max(1, parseInt(val('f-duration')) || 1);
+  quoteState.duration_value = Math.max(1, parseInt(val('f-duration')) || 1);
+  quoteState.duration_unit  = (document.getElementById('f-duration-unit')?.value === 'days') ? 'days' : 'weeks';
+  // Keep duration_weeks in sync for older consumers (5 business days = 1 week, rounded up).
+  quoteState.duration_weeks = quoteState.duration_unit === 'days'
+    ? Math.max(1, Math.ceil(quoteState.duration_value / 5))
+    : quoteState.duration_value;
   quoteState.base_price     = Math.max(0, parseFloat(val('f-base-price')) || 0);
+}
+
+function durationLabel(value, unit, fr) {
+  const n = Math.max(1, parseInt(value) || 1);
+  if (unit === 'days') return `${n} ${fr ? 'jours ouvrables' : 'business days'}`;
+  return `${n} ${fr ? (n === 1 ? 'semaine' : 'semaines') : (n === 1 ? 'week' : 'weeks')}`;
 }
 
 function renderTaxPreview() {
@@ -439,6 +523,8 @@ function buildOptionsArray() {
     title: 'Option A',
     scope_summary: quoteState.scope_summary,
     duration_weeks: quoteState.duration_weeks,
+    duration_value: quoteState.duration_value,
+    duration_unit:  quoteState.duration_unit,
     materials_included: quoteState.materials_included,
     materials_budget: 0,
     price_mode: 'single',
@@ -451,24 +537,149 @@ function buildOptionsArray() {
   }];
 }
 
+/* The chosen schedule, deep-cloned so saved records snapshot the exact
+   terms the contractor showed the customer (even if the schedule is
+   later edited or deleted). */
+function buildSelectedScheduleSnapshot() {
+  const s = findSchedule(selectedPaymentOption);
+  if (!s) return null;
+  return {
+    key: s.key,
+    title: s.title,
+    rows: s.rows.map(r => ({
+      label_fr: r.label_fr || '',
+      label_en: r.label_en || '',
+      pct: Number(r.pct) || 0
+    }))
+  };
+}
+
 /* ============================================
-   PAYMENT TERMS UI
+   PAYMENT SCHEDULES — editable + addable
    ============================================ */
 function buildPaymentOptionsUI() {
   const container = document.getElementById('payment-options-container');
-  container.innerHTML = '';
-  PAYMENT_OPTIONS_DATA.forEach(opt => {
-    const div = document.createElement('div');
-    div.className = 'option-card' + (selectedPaymentOption === opt.key ? ' selected' : '');
-    div.onclick = () => { selectedPaymentOption = opt.key; buildPaymentOptionsUI(); saveDraft(); };
-    div.innerHTML = `
-      <div class="option-radio"></div>
-      <div class="option-body">
-        <div class="option-title">${opt[lang].title}</div>
-        <div class="option-desc">${opt[lang].desc.replace(/\n/g, '<br>')}</div>
-      </div>`;
-    container.appendChild(div);
+  if (!container) return;
+  if (!paymentSchedules.find(s => s.key === selectedPaymentOption)) {
+    selectedPaymentOption = paymentSchedules[0]?.key || 'A';
+  }
+  container.innerHTML = paymentSchedules.map(s => renderScheduleCard(s)).join('');
+}
+
+function renderScheduleCard(schedule) {
+  const total = scheduleTotalPct(schedule);
+  const totalOk = total === 100;
+  const totalLabel = totalOk
+    ? t('schedule_total_ok')
+    : t('schedule_total_bad').replace('{n}', String(total));
+  const isSelected = schedule.key === selectedPaymentOption;
+  const labelKey = lang === 'fr' ? 'label_fr' : 'label_en';
+
+  let h = `<div class="schedule-card${isSelected ? ' selected' : ''}" onclick="selectSchedule('${esc(schedule.key)}')">`;
+  h += `<div class="schedule-head">`;
+  h += `  <div class="option-radio"></div>`;
+  h += `  <input class="schedule-title" type="text" value="${esc(schedule.title)}" onclick="event.stopPropagation()" oninput="onScheduleTitleInput('${esc(schedule.key)}', this.value)">`;
+  h += `  <button type="button" class="schedule-remove" onclick="event.stopPropagation(); removeSchedule('${esc(schedule.key)}')" title="${esc(t('schedule_remove'))}">`;
+  h += `    <span class="material-icons-round" style="font-size:18px;">close</span>`;
+  h += `  </button>`;
+  h += `</div>`;
+  h += `<div class="schedule-rows" onclick="event.stopPropagation()">`;
+  schedule.rows.forEach((row, idx) => {
+    h += `<div class="schedule-row">`;
+    h += `  <input class="form-input schedule-row-label" type="text" value="${esc(row[labelKey] || '')}" placeholder="${esc(t('schedule_row_label'))}" oninput="onScheduleRowLabel('${esc(schedule.key)}', ${idx}, this.value)">`;
+    h += `  <input class="form-input schedule-row-pct" type="number" min="0" max="100" step="1" value="${row.pct}" oninput="onScheduleRowPct('${esc(schedule.key)}', ${idx}, this.value)">`;
+    h += `  <span class="schedule-row-pct-suffix">%</span>`;
+    h += `  <button type="button" class="schedule-row-remove" onclick="removeScheduleRow('${esc(schedule.key)}', ${idx})" title="–">`;
+    h += `    <span class="material-icons-round" style="font-size:18px;">remove_circle_outline</span>`;
+    h += `  </button>`;
+    h += `</div>`;
   });
+  h += `</div>`;
+  h += `<button type="button" class="btn-link schedule-add-row" onclick="event.stopPropagation(); addScheduleRow('${esc(schedule.key)}')">+ ${esc(t('schedule_add_row'))}</button>`;
+  h += `<div class="schedule-total ${totalOk ? 'ok' : 'bad'}">${esc(totalLabel)}</div>`;
+  h += `</div>`;
+  return h;
+}
+
+function selectSchedule(key) {
+  selectedPaymentOption = key;
+  buildPaymentOptionsUI();
+  saveDraft();
+}
+
+function onScheduleTitleInput(key, value) {
+  const s = findSchedule(key);
+  if (!s) return;
+  s.title = value;
+  persistSchedules();
+}
+
+function onScheduleRowLabel(key, idx, value) {
+  const s = findSchedule(key);
+  if (!s || !s.rows[idx]) return;
+  if (lang === 'fr') s.rows[idx].label_fr = value;
+  else s.rows[idx].label_en = value;
+  // Mirror to the other language if it was empty so the schedule isn't bilingual-broken
+  const other = lang === 'fr' ? 'label_en' : 'label_fr';
+  if (!s.rows[idx][other]) s.rows[idx][other] = value;
+  persistSchedules();
+}
+
+function onScheduleRowPct(key, idx, value) {
+  const s = findSchedule(key);
+  if (!s || !s.rows[idx]) return;
+  s.rows[idx].pct = Math.max(0, Math.min(100, parseFloat(value) || 0));
+  persistSchedules();
+  buildPaymentOptionsUI();
+}
+
+function addScheduleRow(key) {
+  const s = findSchedule(key);
+  if (!s) return;
+  s.rows.push({
+    label_fr: t('schedule_default_row_fr'),
+    label_en: t('schedule_default_row_en'),
+    pct: 0
+  });
+  persistSchedules();
+  buildPaymentOptionsUI();
+}
+
+function removeScheduleRow(key, idx) {
+  const s = findSchedule(key);
+  if (!s || !s.rows[idx]) return;
+  if (s.rows.length <= 1) return;
+  s.rows.splice(idx, 1);
+  persistSchedules();
+  buildPaymentOptionsUI();
+}
+
+function addPaymentSchedule() {
+  const key = nextScheduleKey();
+  paymentSchedules.push({
+    key,
+    title: t('schedule_default_title'),
+    rows: [
+      { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 25 },
+      { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 50 },
+      { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 25 }
+    ]
+  });
+  selectedPaymentOption = key;
+  persistSchedules();
+  buildPaymentOptionsUI();
+  saveDraft();
+}
+
+function removeSchedule(key) {
+  if (paymentSchedules.length <= 1) return;
+  paymentSchedules = paymentSchedules.filter(s => s.key !== key);
+  if (selectedPaymentOption === key) {
+    selectedPaymentOption = paymentSchedules[0].key;
+  }
+  persistSchedules();
+  buildPaymentOptionsUI();
+  saveDraft();
 }
 
 /* ============================================
@@ -504,6 +715,7 @@ function clearContractorSignature() {
 function buildQuoteRecord(status) {
   readFormIntoState();
   const options = buildOptionsArray();
+  const schedule = buildSelectedScheduleSnapshot();
   return {
     id: savedQuote?.id,
     quote_number: savedQuote?.quote_number || generateQuoteNumber(),
@@ -517,7 +729,12 @@ function buildQuoteRecord(status) {
     quote_date: val('f-date') || null,
     project_title: quoteState.project_title || null,
     duration_weeks: quoteState.duration_weeks,
-    ai_conversation: { source_text: quoteState.scope_summary || '' },
+    ai_conversation: {
+      source_text: quoteState.scope_summary || '',
+      duration_value: quoteState.duration_value,
+      duration_unit: quoteState.duration_unit,
+      payment_schedule: schedule
+    },
     options,
     payment_option: selectedPaymentOption,
     payment_methods: val('f-payment-methods') || null,
@@ -595,9 +812,22 @@ async function loadDraftById(id) {
     const opt = Array.isArray(data.options) && data.options[0] ? data.options[0] : null;
     document.getElementById('f-scope').value      = opt?.scope_summary    || (data.ai_conversation?.source_text || '');
     document.getElementById('f-base-price').value = opt?.base_price       || '';
-    document.getElementById('f-duration').value   = opt?.duration_weeks   || 2;
+
+    // Duration: prefer the saved value+unit pair, fall back to weeks-only
+    const savedUnit  = opt?.duration_unit  || data.ai_conversation?.duration_unit  || 'weeks';
+    const savedValue = opt?.duration_value || data.ai_conversation?.duration_value || opt?.duration_weeks || 2;
+    document.getElementById('f-duration').value      = savedValue;
+    document.getElementById('f-duration-unit').value = savedUnit;
     setMaterials(opt ? !!opt.materials_included : true);
 
+    // Restore the embedded payment schedule if present (so a quote loaded on
+    // a different device still shows the exact schedule the customer saw).
+    const embedded = data.ai_conversation?.payment_schedule;
+    if (embedded && Array.isArray(embedded.rows)) {
+      const idx = paymentSchedules.findIndex(s => s.key === embedded.key);
+      if (idx >= 0) paymentSchedules[idx] = embedded;
+      else paymentSchedules.push(embedded);
+    }
     selectedPaymentOption = data.payment_option || 'A';
     buildPaymentOptionsUI();
     if (data.payment_methods) document.getElementById('f-payment-methods').value = data.payment_methods;
@@ -630,6 +860,8 @@ async function saveAndSendForSignature() {
   if (!quoteState.scope_summary.trim()) { showToast(t('scope_required')); return; }
   if (quoteState.base_price <= 0) { showToast(t('price_required')); return; }
   if (!contractorSignatureData) { showToast(t('signature_required')); return; }
+  const selSched = findSchedule(selectedPaymentOption);
+  if (scheduleTotalPct(selSched) !== 100) { showToast(t('schedule_invalid_save')); return; }
 
   const btn = document.getElementById('btn-save-send');
   const originalHtml = btn.innerHTML;
@@ -652,7 +884,12 @@ async function saveAndSendForSignature() {
       quote_date: val('f-date') || null,
       project_title: quoteState.project_title || null,
       duration_weeks: quoteState.duration_weeks,
-      ai_conversation: { source_text: quoteState.scope_summary },
+      ai_conversation: {
+        source_text: quoteState.scope_summary,
+        duration_value: quoteState.duration_value,
+        duration_unit: quoteState.duration_unit,
+        payment_schedule: buildSelectedScheduleSnapshot()
+      },
       options,
       payment_option: selectedPaymentOption,
       payment_methods: val('f-payment-methods') || null,
@@ -760,7 +997,7 @@ function renderFinalQuote() {
 
   const num   = savedQuote?.quote_number || generateQuoteNumber();
   const fr    = lang === 'fr';
-  const payOpt = PAYMENT_OPTIONS_DATA.find(o => o.key === selectedPaymentOption);
+  const schedule = findSchedule(selectedPaymentOption);
   const sub   = quoteState.base_price;
   const gst   = round2(sub * 0.05);
   const qst   = round2(sub * 0.09975);
@@ -801,7 +1038,7 @@ function renderFinalQuote() {
     h += `<div style="font-size:13px;color:#3c4043;white-space:pre-wrap;margin-bottom:10px;">${esc(quoteState.scope_summary)}</div>`;
   }
   h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
-  h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${quoteState.duration_weeks} ${fr ? 'semaines' : 'weeks'} · `;
+  h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${esc(durationLabel(quoteState.duration_value, quoteState.duration_unit, fr))} · `;
   h += quoteState.materials_included
     ? `<span class="qp-badge included">${fr ? 'Matériaux inclus' : 'Materials included'}</span>`
     : `<span class="qp-badge excluded">${fr ? 'Matériaux exclus' : 'Materials excluded'}</span>`;
@@ -816,7 +1053,7 @@ function renderFinalQuote() {
   h += '</div>';
 
   h += `<h2>${fr ? 'Modalités de paiement' : 'Payment Terms'}</h2>`;
-  h += `<div class="qp-section">${payOpt[lang].desc}</div>`;
+  h += `<div class="qp-section">${esc(scheduleDescription(schedule, lang))}</div>`;
   if (methods) { h += `<h2>${fr ? 'Méthodes de paiement' : 'Payment Methods'}</h2><div class="qp-section">${esc(methods)}</div>`; }
   if (notes)   { h += `<h2>${fr ? 'Notes importantes' : 'Important Notes'}</h2><div class="qp-section">${esc(notes)}</div>`; }
 

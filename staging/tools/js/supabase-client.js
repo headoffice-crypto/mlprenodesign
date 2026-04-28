@@ -346,7 +346,12 @@ async function getOrGenerateInvoicesForProject(project, quote) {
   const accepted = opts.find(o => o.key === quote.accepted_option_key) || opts[0];
   if (!accepted) return [];
 
-  const schedule = PAYMENT_SCHEDULES[quote.payment_option || 'A'] || PAYMENT_SCHEDULES.A;
+  // Prefer the schedule embedded in the quote (lets the contractor define
+  // custom payment schedules per quote). Fall back to the canonical A/B/C set.
+  const embedded = quote.ai_conversation && quote.ai_conversation.payment_schedule;
+  const schedule = (embedded && Array.isArray(embedded.rows) && embedded.rows.length)
+    ? embedded.rows.map(r => ({ label_fr: r.label_fr || '', label_en: r.label_en || '', pct: Number(r.pct) || 0 }))
+    : (PAYMENT_SCHEDULES[quote.payment_option || 'A'] || PAYMENT_SCHEDULES.A);
   const base = Number(accepted.subtotal || 0);
   const lang = quote.language === 'en' ? 'en' : 'fr';
   const rand4 = () => Math.random().toString(36).slice(2, 6).toUpperCase();

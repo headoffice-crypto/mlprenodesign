@@ -191,7 +191,7 @@ function renderPage() {
     h += '</div>';
     if (opt.scope_summary) h += `<div style="font-size:13px;color:#3c4043;white-space:pre-line;margin-bottom:10px;">${esc(opt.scope_summary)}</div>`;
     h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
-    h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${opt.duration_weeks} ${fr ? 'semaines' : 'weeks'} · `;
+    h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${formatDurationForOption(opt, fr)} · `;
     h += `${opt.materials_included ? `<span class="qp-badge included">${fr ? 'Matériaux inclus' : 'Materials included'}</span>` : `<span class="qp-badge excluded">${fr ? 'Matériaux exclus' : 'Materials excluded'}</span>`}`;
     h += '</div>';
     if (opt.line_items && opt.line_items.length) {
@@ -212,13 +212,23 @@ function renderPage() {
     h += '</div>';
   });
 
-  const payDesc = {
-    A: { fr: '10% dépôt\n40% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '10% deposit\n40% before work begins\n40% mid-project\n10% upon completion' },
-    B: { fr: '20% dépôt\n30% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n30% before work begins\n40% mid-project\n10% upon completion' },
-    C: { fr: '20% dépôt\n40% avant le début des travaux\n30% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n40% before work begins\n30% mid-project\n10% upon completion' }
-  };
+  const embedded = q.ai_conversation && q.ai_conversation.payment_schedule;
+  let payText;
+  if (embedded && Array.isArray(embedded.rows)) {
+    payText = embedded.rows
+      .filter(r => Number(r.pct) > 0)
+      .map(r => `${r.pct}% ${fr ? (r.label_fr || '') : (r.label_en || '')}`)
+      .join('\n');
+  } else {
+    const payDesc = {
+      A: { fr: '10% dépôt\n40% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '10% deposit\n40% before work begins\n40% mid-project\n10% upon completion' },
+      B: { fr: '20% dépôt\n30% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n30% before work begins\n40% mid-project\n10% upon completion' },
+      C: { fr: '20% dépôt\n40% avant le début des travaux\n30% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n40% before work begins\n30% mid-project\n10% upon completion' }
+    };
+    payText = payDesc[q.payment_option || 'A'][fr ? 'fr' : 'en'];
+  }
   h += `<h2>${fr ? 'Modalités de paiement' : 'Payment Terms'}</h2>`;
-  h += `<div class="qp-section">${esc(payDesc[q.payment_option || 'A'][fr ? 'fr' : 'en'])}</div>`;
+  h += `<div class="qp-section">${esc(payText)}</div>`;
   if (q.payment_methods) {
     h += `<h2>${fr ? 'Méthodes de paiement' : 'Payment Methods'}</h2>`;
     h += `<div class="qp-section">${esc(q.payment_methods)}</div>`;
@@ -268,7 +278,7 @@ function renderSignBlock(q, fr, options, multi) {
       h += `<div class="option-choose-total">$${money(opt.total)}</div>`;
       h += '</div>';
       if (opt.scope_summary) h += `<div class="option-choose-scope">${esc(opt.scope_summary)}</div>`;
-      h += `<div class="option-choose-meta">${opt.duration_weeks} ${fr ? 'semaines' : 'weeks'} · ${opt.materials_included ? (fr ? 'Matériaux inclus' : 'Materials included') : (fr ? 'Matériaux exclus' : 'Materials excluded')}</div>`;
+      h += `<div class="option-choose-meta">${formatDurationForOption(opt, fr)} · ${opt.materials_included ? (fr ? 'Matériaux inclus' : 'Materials included') : (fr ? 'Matériaux exclus' : 'Materials excluded')}</div>`;
       h += '</div>';
     });
   } else {
@@ -396,6 +406,16 @@ function setupSigning(quote, fr, multi) {
 /* utils */
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function formatDurationForOption(opt, fr) {
+  const unit = opt && opt.duration_unit;
+  const value = opt && (opt.duration_value || (unit === 'days' ? null : opt.duration_weeks));
+  if (unit === 'days') {
+    const n = Math.max(1, parseInt(value) || 1);
+    return n + ' ' + (fr ? 'jours ouvrables' : 'business days');
+  }
+  const n = Math.max(1, parseInt(opt && opt.duration_weeks) || 1);
+  return n + ' ' + (fr ? (n === 1 ? 'semaine' : 'semaines') : (n === 1 ? 'week' : 'weeks'));
+}
 function formatDate(dateStr, fr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + (dateStr.length === 10 ? 'T00:00:00' : ''));
