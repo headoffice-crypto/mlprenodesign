@@ -959,6 +959,13 @@ body {
 .btn-generate:hover { box-shadow: 0 6px 18px rgba(200, 164, 90, 0.35); }
 .btn-generate .material-icons-round { font-size: 22px; }
 
+.btn-analyze {
+  margin-top: 14px;
+  padding: 14px 20px;
+  font-size: 14px;
+}
+.btn-analyze .material-icons-round { font-size: 18px; }
+
 /* ---------------- Step 2 — Upload zone & file list ---------------- */
 .upload-zone { display: block; }
 .upload-hint {

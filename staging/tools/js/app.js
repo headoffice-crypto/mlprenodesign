@@ -23,6 +23,13 @@ let savedQuote = null;
 let draftSaveInFlight = false;
 let lastSavedAt = null;
 
+/* PDF analysis state — images of rendered PDF pages held in memory
+   so the Analyze action can send them to GPT-4o vision for layout
+   understanding. Cleared when a new PDF replaces the old one. */
+let pdfPageImages = [];
+let pdfSourceName = '';
+let analyzeBusy = false;
+
 /* ---------- i18n ---------- */
 const I18N = {
   src_title: { fr: 'Texte du projet', en: 'Project text' },
@@ -34,6 +41,12 @@ const I18N = {
   pdf_extracted: { fr: 'PDF importé', en: 'PDF imported' },
   pdf_extract_failed: { fr: 'Impossible de lire le PDF', en: 'Could not read PDF' },
   pdf_no_text: { fr: 'Le PDF ne contient pas de texte extractible (probablement un scan).', en: 'PDF has no extractable text (likely a scan).' },
+  pdf_rendering: { fr: 'Lecture des pages du PDF…', en: 'Reading PDF pages…' },
+  analyze_btn: { fr: 'Analyser et remplir le formulaire', en: 'Analyze and fill the form' },
+  analyzing: { fr: 'Analyse en cours…', en: 'Analyzing…' },
+  analyze_done: { fr: 'Formulaire rempli. Vérifiez et ajustez si besoin avant de générer.', en: 'Form filled. Review and adjust before generating.' },
+  analyze_empty: { fr: 'Coller du texte ou téléverser un PDF d\'abord.', en: 'Paste text or upload a PDF first.' },
+  analyze_failed: { fr: 'Échec de l\'analyse', en: 'Analysis failed' },
 
   client_title: { fr: 'Client', en: 'Client' },
   client_sub:   { fr: 'Coordonnées qui apparaissent sur la soumission.', en: 'Contact details shown on the quote.' },
@@ -230,17 +243,31 @@ function setPdfStatus(msg, color) {
 
 async function onPdfPicked(ev) {
   const file = ev.target.files?.[0];
-  ev.target.value = ''; // allow same file again
+  ev.target.value = '';
   if (!file) return;
   setPdfError('');
-  setPdfStatus(`<span class="spinner-ring" style="margin-right:6px;"></span>${esc(t('pdf_extracting'))} ${esc(file.name)}`);
+  setPdfStatus(`<span class="spinner-ring" style="margin-right:6px;"></span>${esc(t('pdf_rendering'))} ${esc(file.name)}`);
+
   try {
-    const text = await extractPdfText(file);
+    const { text, images } = await loadPdf(file);
+    pdfPageImages = images;
+    pdfSourceName = file.name;
+
+    // Put extracted text in the scope textarea so the user sees what was read.
+    // The Analyze step (next click) is what understands layout — this is just a preview.
     const ta = document.getElementById('f-scope');
-    // Append to whatever is already in the textarea, separated by a blank line
     const existing = ta.value.trim();
     ta.value = existing ? existing + '\n\n' + text : text;
-    setPdfStatus('✓ ' + esc(t('pdf_extracted')) + ' — ' + esc(file.name) + ' (' + text.length + ' ' + (lang === 'fr' ? 'caractères' : 'chars') + ')', 'var(--green)');
+
+    const fr = lang === 'fr';
+    setPdfStatus(
+      `✓ ${esc(file.name)} — ${pdf.numPages || images.length} ${fr ? 'page(s) lues' : 'page(s) read'} · ` +
+      `<button type="button" class="btn-link" onclick="runAnalysis()" style="padding:2px 6px;font-size:13px;">` +
+      `<span class="material-icons-round" style="font-size:16px;vertical-align:middle;">auto_awesome</span>` +
+      `<span>${esc(t('analyze_btn'))}</span></button>`,
+      'var(--green)'
+    );
+    renderAnalyzeButton();
     saveDraft();
   } catch (err) {
     console.error('[pdf]', err);
@@ -249,19 +276,126 @@ async function onPdfPicked(ev) {
   }
 }
 
-async function extractPdfText(file) {
+/* Load a PDF: extract text AND render each page to a JPEG data URL so
+   GPT-4o vision can see the actual layout (tables, headings, line items).
+   Cap at MAX_PAGES to keep the API call cheap and fast. */
+const PDF_MAX_PAGES = 6;
+const PDF_RENDER_SCALE = 1.5;
+let pdf; // hoisted so the status line above can read pdf.numPages
+
+async function loadPdf(file) {
   if (!window.pdfjsLib) throw new Error('pdf.js not loaded');
   const arrayBuf = await file.arrayBuffer();
-  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuf }).promise;
-  const chunks = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
+  pdf = await window.pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  const pages = Math.min(pdf.numPages, PDF_MAX_PAGES);
+
+  const textChunks = [];
+  const images = [];
+
+  for (let i = 1; i <= pages; i++) {
     const page = await pdf.getPage(i);
+
+    // Text (best-effort fallback when vision is unavailable / for the textarea preview)
     const content = await page.getTextContent();
-    chunks.push(content.items.map(it => it.str).join(' ').trim());
+    textChunks.push(content.items.map(it => it.str).join(' ').trim());
+
+    // Image (what GPT-4o vision actually reads to understand layout)
+    const viewport = page.getViewport({ scale: PDF_RENDER_SCALE });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    images.push(canvas.toDataURL('image/jpeg', 0.85));
   }
-  const out = chunks.join('\n\n').trim();
-  if (!out) throw new Error(t('pdf_no_text'));
-  return out;
+
+  const text = textChunks.join('\n\n').trim();
+  return { text, images };
+}
+
+/* ============================================
+   ANALYZE: send text + PDF page images to GPT-4o, fill the form
+   ============================================ */
+function renderAnalyzeButton() {
+  const btn = document.getElementById('btn-analyze');
+  if (!btn) return;
+  const hasInput = (document.getElementById('f-scope').value.trim().length > 0) || pdfPageImages.length > 0;
+  btn.style.display = hasInput ? '' : 'none';
+  if (analyzeBusy) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-ring"></span><span>${esc(t('analyzing'))}</span>`;
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = `<span class="material-icons-round">auto_awesome</span><span>${esc(t('analyze_btn'))}</span>`;
+  }
+}
+
+async function runAnalysis() {
+  if (analyzeBusy) return;
+  setPdfError('');
+
+  const pasted = document.getElementById('f-scope').value.trim();
+  if (!pasted && pdfPageImages.length === 0) {
+    setPdfError(t('analyze_empty'));
+    return;
+  }
+  if (typeof OPENAI_API_KEY !== 'string' || !OPENAI_API_KEY.startsWith('sk-')) {
+    setPdfError('OpenAI API key is missing or invalid. Check js/config.js.');
+    return;
+  }
+  if (typeof analyzeProjectInput !== 'function') {
+    setPdfError('Analyzer not loaded. Hard-refresh (Ctrl+Shift+R).');
+    return;
+  }
+
+  analyzeBusy = true;
+  renderAnalyzeButton();
+
+  const context = { today: new Date().toISOString().split('T')[0] };
+
+  try {
+    const result = await analyzeProjectInput({
+      text: pasted,
+      images: pdfPageImages,
+      context
+    });
+
+    // Auto-fill the form with whatever the analyzer found.
+    // Empty/zero values mean "not in the document" — leave existing values alone.
+    if (result.client_name)    setFieldIfEmpty('f-client-name',    result.client_name);
+    if (result.client_email)   setFieldIfEmpty('f-client-email',   result.client_email);
+    if (result.client_phone)   setFieldIfEmpty('f-client-phone',   result.client_phone);
+    if (result.client_address) setFieldIfEmpty('f-client-address', result.client_address);
+    if (result.project_title)  setFieldIfEmpty('f-project-title',  result.project_title);
+
+    // Scope is special: ALWAYS replace with the verbatim AI output, because
+    // the textarea may currently hold raw pdf.js text dump (no layout) and
+    // the AI version preserves the document's real structure verbatim.
+    if (result.scope_summary) {
+      document.getElementById('f-scope').value = result.scope_summary;
+    }
+
+    if (result.base_price > 0) document.getElementById('f-base-price').value = result.base_price;
+    if (result.duration_weeks > 0) document.getElementById('f-duration').value = result.duration_weeks;
+    setMaterials(result.materials_included);
+
+    renderTaxPreview();
+    setPdfStatus('✓ ' + esc(t('analyze_done')), 'var(--green)');
+    showToast(t('analyze_done'));
+    saveDraft();
+  } catch (err) {
+    console.error('[runAnalysis]', err);
+    setPdfError(t('analyze_failed') + ' : ' + (err.message || err));
+  } finally {
+    analyzeBusy = false;
+    renderAnalyzeButton();
+  }
+}
+
+function setFieldIfEmpty(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!el.value.trim()) el.value = value;
 }
 
 /* ============================================
