@@ -115,42 +115,92 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
   </div></body></html>`;
 }
 
-/* ===== Invoice email body ===== */
-function buildInvoiceEmailHtml(invoice, quote, lang) {
+/* ===== Invoice email body =====
+   Clean, generous layout. Full detail (schedule, breakdown, payment methods)
+   lives on bill.html — email is a short summary with a CTA to the full bill. */
+function buildInvoiceEmailHtml(invoice, quote, allInvoices, lang, billUrl) {
   const fr = lang === "fr";
-  const greeting = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
-  const title = fr ? "Facture" : "Invoice";
-  const intro = fr
-    ? `Voici la facture <strong>${escHtml(invoice.invoice_number)}</strong> correspondant au paiement « <strong>${escHtml(invoice.label)}</strong> » (${invoice.pct_of_total}%) pour votre projet ${escHtml(quote.project_title || quote.quote_number)}.`
-    : `Here is invoice <strong>${escHtml(invoice.invoice_number)}</strong> for the "${escHtml(invoice.label)}" payment (${invoice.pct_of_total}%) of your project ${escHtml(quote.project_title || quote.quote_number)}.`;
-  const payMethodsLabel = fr ? "Méthodes de paiement" : "Payment methods";
+  const isPaid = invoice.status === "paid";
+  const list = Array.isArray(allInvoices) ? allInvoices : [];
 
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#202124;">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;padding:32px 28px;">
-    <div style="border-bottom:3px solid #c8a45a;padding-bottom:12px;margin-bottom:20px;">
-      <div style="font-size:22px;font-weight:800;color:#c8a45a;">MLP Reno &amp; Design</div>
-      <div style="font-size:13px;color:#5f6368;">${title} ${escHtml(invoice.invoice_number)}</div>
-    </div>
-    <p style="font-size:16px;margin:0 0 12px;">${greeting}</p>
-    <p style="font-size:14px;color:#3c4043;line-height:1.6;margin:0 0 16px;">${intro}</p>
+  const contractTotal = list.reduce((s, i) => s + Number(i.amount_total || 0), 0);
+  const paidToDate    = list.filter(i => i.status === "paid").reduce((s, i) => s + Number(i.amount_total || 0), 0);
+  const remaining     = Math.max(0, contractTotal - paidToDate);
 
-    <div style="border:1px solid #e8eaed;border-radius:10px;padding:16px;margin:16px 0;">
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>${fr ? "Sous-total" : "Subtotal"}</span><span>$${money(invoice.amount_before_tax)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>TPS (5%)</span><span>$${money(invoice.gst)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>TVQ (9.975%)</span><span>$${money(invoice.qst)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:#c8a45a;padding-top:10px;margin-top:8px;border-top:2px solid #c8a45a;">
-        <span>${fr ? "Montant total" : "Total amount"}</span><span>$${money(invoice.amount_total)}</span>
-      </div>
-    </div>
+  const greeting   = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const projectRef = escHtml(quote.project_title || quote.quote_number || "");
+  const docLabel   = isPaid ? (fr ? "Reçu de paiement" : "Payment receipt") : (fr ? "Facture" : "Invoice");
+  const intro = isPaid
+    ? (fr
+        ? `Nous confirmons la réception de votre paiement pour le versement « <strong>${escHtml(invoice.label)}</strong> » du projet ${projectRef}. Merci !`
+        : `We confirm receipt of your payment for the "${escHtml(invoice.label)}" installment of project ${projectRef}. Thank you!`)
+    : (fr
+        ? `Voici votre facture pour le versement « <strong>${escHtml(invoice.label)}</strong> » du projet ${projectRef}.`
+        : `Here is your invoice for the "${escHtml(invoice.label)}" installment of project ${projectRef}.`);
+  const cta = isPaid
+    ? (fr ? "Voir le reçu détaillé →" : "View detailed receipt →")
+    : (fr ? "Voir la facture détaillée →" : "View detailed bill →");
+  const heroLabel = isPaid ? (fr ? "Montant payé" : "Amount paid") : (fr ? "Montant dû" : "Amount due");
+  const heroBg    = isPaid ? "background:#e6f4ea;border:1px solid #a8d5b3;" : "background:#fffaf0;border:1px solid #ecd9a9;";
+  const heroLabelColor = isPaid ? "#1e8e3e" : "#a68a3e";
+  const buttonBg  = isPaid ? "#1e8e3e" : "#c8a45a";
 
-    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:#202124;margin:20px 0 8px;">${payMethodsLabel}</h3>
-    <div style="background:#f8f9fa;border-left:4px solid #c8a45a;padding:14px;border-radius:10px;font-size:13px;color:#3c4043;line-height:1.7;white-space:pre-line;">
-${escHtml(quote.payment_methods || "")}</div>
+  return `<!DOCTYPE html><html lang="${fr ? "fr" : "en"}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${docLabel} ${escHtml(invoice.invoice_number)}</title></head>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#202124;line-height:1.5;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 24px rgba(0,0,0,0.04);overflow:hidden;">
 
-    <p style="font-size:13px;color:#5f6368;line-height:1.6;margin-top:16px;">${fr ? "Merci de référencer le numéro de facture lors du paiement." : "Please reference the invoice number with your payment."}</p>
-    <p style="font-size:14px;color:#3c4043;margin:18px 0 0;">${fr ? "Merci," : "Thanks,"}<br><strong>MLP Reno &amp; Design</strong></p>
-  </div></body></html>`;
+        <!-- Brand bar -->
+        <tr><td style="padding:32px 40px 24px;border-bottom:2px solid #c8a45a;">
+          <div style="font-size:22px;font-weight:800;color:#c8a45a;letter-spacing:-0.3px;">MLP Reno &amp; Design</div>
+          <div style="font-size:12px;color:#5f6368;margin-top:2px;">${fr ? "Construction & Rénovation" : "Construction & Renovation"} — ${fr ? "RBQ" : "RBQ Licence"} 5847-0378-01</div>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:32px 40px 8px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#9aa0a6;">${docLabel}</div>
+          <div style="font-size:14px;color:#5f6368;font-variant-numeric:tabular-nums;margin-top:2px;">${escHtml(invoice.invoice_number)}</div>
+
+          <p style="font-size:15px;margin:24px 0 8px;color:#202124;">${greeting}</p>
+          <p style="font-size:14px;color:#3c4043;margin:0 0 24px;">${intro}</p>
+
+          <!-- Hero amount -->
+          <div style="${heroBg}border-radius:12px;padding:24px 28px;margin-bottom:28px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:${heroLabelColor};">${heroLabel}</div>
+            <div style="font-size:32px;font-weight:800;color:#202124;letter-spacing:-0.6px;margin-top:6px;font-variant-numeric:tabular-nums;line-height:1;">$${money(invoice.amount_total)}</div>
+            <div style="font-size:13px;color:#5f6368;margin-top:8px;">${escHtml(invoice.label || "")} · ${invoice.pct_of_total}% ${fr ? "du contrat" : "of contract"}</div>
+          </div>
+
+          <!-- CTA to bill.html -->
+          ${billUrl ? `
+          <div style="text-align:center;margin:0 0 32px;">
+            <a href="${escHtml(billUrl)}" style="display:inline-block;background:${buttonBg};color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 28px;border-radius:10px;letter-spacing:0.2px;">${cta}</a>
+            <div style="font-size:12px;color:#9aa0a6;margin-top:10px;">${fr ? "Imprimer ou télécharger en PDF depuis votre navigateur." : "Print or save as PDF from your browser."}</div>
+          </div>` : ""}
+
+          <!-- Compact summary -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#3c4043;border-top:1px solid #e8eaed;margin-bottom:8px;">
+            <tr><td style="padding:10px 0;color:#5f6368;">${fr ? "Total du contrat" : "Contract total"}</td><td style="padding:10px 0;text-align:right;font-variant-numeric:tabular-nums;">$${money(contractTotal)}</td></tr>
+            <tr><td style="padding:10px 0;border-top:1px solid #f1f3f4;color:#5f6368;">${fr ? "Payé à ce jour" : "Paid to date"}</td><td style="padding:10px 0;border-top:1px solid #f1f3f4;text-align:right;color:#1e8e3e;font-weight:700;font-variant-numeric:tabular-nums;">$${money(paidToDate)}</td></tr>
+            <tr><td style="padding:10px 0;border-top:1px solid #f1f3f4;color:#202124;font-weight:600;">${fr ? "Solde restant" : "Remaining balance"}</td><td style="padding:10px 0;border-top:1px solid #f1f3f4;text-align:right;color:#a68a3e;font-weight:800;font-variant-numeric:tabular-nums;">$${money(remaining)}</td></tr>
+          </table>
+
+          <p style="font-size:13px;color:#5f6368;margin:24px 0 0;">${fr ? "Détail complet, échéancier et méthodes de paiement disponibles via le lien ci-dessus." : "Full breakdown, schedule and payment methods are available via the link above."}</p>
+
+          <p style="font-size:14px;color:#3c4043;margin:24px 0 0;">${fr ? "Merci," : "Thanks,"}<br><strong>MLP Reno &amp; Design</strong></p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:24px 40px 32px;border-top:1px solid #f1f3f4;text-align:center;font-size:11px;color:#9aa0a6;line-height:1.7;">
+          MLP Reno &amp; Design — ${fr ? "RBQ" : "RBQ Licence"} 5847-0378-01<br>
+          (450) 500-8936 — headoffice@mlpexperience.com
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
 }
 
 function buildProgressEmailHtml(project, quote, lang) {
@@ -320,7 +370,15 @@ Deno.serve(async (req) => {
       const quote = qArr?.[0];
       if (!quote) return jsonResp({ error: "related quote not found" }, 404);
 
+      // All sibling invoices on the same project — for full payment-schedule context
+      const allInv = await sbGet(`${SUPABASE_URL}/rest/v1/invoices?project_id=eq.${encodeURIComponent(inv.project_id)}&order=sequence.asc&select=*`, SUPABASE_KEY);
+
       const lang = quote.language === "en" ? "en" : "fr";
+      const isPaid = inv.status === "paid";
+      const contractTotal = (allInv || []).reduce((s, i) => s + Number(i.amount_total || 0), 0);
+      const paidToDate    = (allInv || []).filter(i => i.status === "paid").reduce((s, i) => s + Number(i.amount_total || 0), 0);
+      const remaining     = Math.max(0, contractTotal - paidToDate);
+      const billUrl       = inv.share_token ? `${APP_BASE_URL}/bill?token=${encodeURIComponent(inv.share_token)}` : "";
 
       if (channel === "sms") {
         const TWILIO_SID = Deno.env.get("TWILIO_SID") ?? "";
@@ -333,9 +391,13 @@ Deno.serve(async (req) => {
         if (!digits) return jsonResp({ error: "no phone number" }, 400);
         const to_e164 = raw.startsWith("+") ? raw : (digits.length === 10 ? `+1${digits}` : `+${digits}`);
 
-        const smsBody = message || (lang === "fr"
-          ? `MLP Reno & Design — Facture ${inv.invoice_number} : ${inv.label} ${inv.pct_of_total}% — $${money(inv.amount_total)}. Méthodes : ${(quote.payment_methods || '').split('\n')[0] || 'nous contacter'}.`
-          : `MLP Reno & Design — Invoice ${inv.invoice_number}: ${inv.label} ${inv.pct_of_total}% — $${money(inv.amount_total)}.`);
+        const smsBody = message || (isPaid
+          ? (lang === "fr"
+              ? `MLP Reno & Design — Reçu de paiement ${inv.invoice_number}: $${money(inv.amount_total)} (${inv.label}). Solde restant: $${money(remaining)}. Détail: ${billUrl}`
+              : `MLP Reno & Design — Receipt ${inv.invoice_number}: $${money(inv.amount_total)} paid (${inv.label}). Remaining: $${money(remaining)}. Details: ${billUrl}`)
+          : (lang === "fr"
+              ? `MLP Reno & Design — Facture ${inv.invoice_number}: ${inv.label} (${inv.pct_of_total}%) — $${money(inv.amount_total)} à payer. Détail et méthodes: ${billUrl}`
+              : `MLP Reno & Design — Invoice ${inv.invoice_number}: ${inv.label} (${inv.pct_of_total}%) — $${money(inv.amount_total)} due. Bill & payment methods: ${billUrl}`));
 
         const auth = btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
         const form = new URLSearchParams({ From: TWILIO_FROM, To: to_e164, Body: smsBody });
@@ -347,10 +409,16 @@ Deno.serve(async (req) => {
         const twData = await twRes.json();
         if (!twRes.ok) return jsonResp({ error: twData.message || "Twilio error", code: twData.code }, 500);
 
-        await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
-          status: "sent", sent_at: new Date().toISOString()
-        });
-        return jsonResp({ ok: true, channel: "sms", sid: twData.sid, to: to_e164 });
+        if (!isPaid) {
+          await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
+            status: "sent", sent_at: new Date().toISOString()
+          });
+        } else {
+          await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
+            sent_at: new Date().toISOString()
+          });
+        }
+        return jsonResp({ ok: true, channel: "sms", sid: twData.sid, to: to_e164, paid: isPaid });
       }
 
       // Invoice — email
@@ -362,15 +430,19 @@ Deno.serve(async (req) => {
       const emailTo = (to || quote.client_email || "").trim();
       if (!emailTo) return jsonResp({ error: "no email address" }, 400);
 
-      const subject = lang === "fr"
-        ? `Facture ${inv.invoice_number} — ${inv.label} (MLP Reno & Design)`
-        : `Invoice ${inv.invoice_number} — ${inv.label} (MLP Reno & Design)`;
+      const subject = isPaid
+        ? (lang === "fr"
+            ? `Reçu ${inv.invoice_number} — ${inv.label} (MLP Reno & Design)`
+            : `Receipt ${inv.invoice_number} — ${inv.label} (MLP Reno & Design)`)
+        : (lang === "fr"
+            ? `Facture ${inv.invoice_number} — ${inv.label} (MLP Reno & Design)`
+            : `Invoice ${inv.invoice_number} — ${inv.label} (MLP Reno & Design)`);
 
       const payload = {
         from: FROM,
         to: [emailTo],
         subject,
-        html: buildInvoiceEmailHtml(inv, quote, lang),
+        html: buildInvoiceEmailHtml(inv, quote, allInv, lang, billUrl),
       };
       if (REPLY_TO) payload.reply_to = REPLY_TO;
 
@@ -382,10 +454,16 @@ Deno.serve(async (req) => {
       const rData = await rRes.json();
       if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
 
-      await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
-        status: "sent", sent_at: new Date().toISOString()
-      });
-      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo });
+      if (!isPaid) {
+        await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
+          status: "sent", sent_at: new Date().toISOString()
+        });
+      } else {
+        await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
+          sent_at: new Date().toISOString()
+        });
+      }
+      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, paid: isPaid });
     }
 
     // ---------- QUOTE PATH (existing) ----------

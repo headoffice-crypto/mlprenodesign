@@ -349,13 +349,13 @@ function invoiceRow(inv) {
       <div class="invoice-title">${esc(inv.label)} <span style="color:var(--text-hint);font-weight:400;">· ${inv.pct_of_total}%</span></div>
       <div class="invoice-sub">${esc(inv.invoice_number)}${inv.paid_at ? ' · Payée ' + new Date(inv.paid_at).toLocaleDateString('fr-CA') : ''}${inv.sent_at && !inv.paid_at ? ' · Envoyée ' + new Date(inv.sent_at).toLocaleDateString('fr-CA') : ''}</div>
       <div class="invoice-actions">
+        <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendInvoice('${inv.id}', 'email', this)" title="${inv.status === 'paid' ? 'Envoyer le reçu par courriel' : 'Envoyer la facture par courriel'}">
+          <span class="material-icons-round" style="font-size:14px">mail</span> ${inv.status === 'paid' ? 'Reçu courriel' : 'Courriel'}
+        </button>
+        <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendInvoice('${inv.id}', 'sms', this)" title="${inv.status === 'paid' ? 'Envoyer le reçu par SMS' : 'Envoyer la facture par SMS'}">
+          <span class="material-icons-round" style="font-size:14px">sms</span> ${inv.status === 'paid' ? 'Reçu SMS' : 'SMS'}
+        </button>
         ${inv.status !== 'paid' ? `
-          <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendInvoice('${inv.id}', 'email', this)">
-            <span class="material-icons-round" style="font-size:14px">mail</span> Courriel
-          </button>
-          <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendInvoice('${inv.id}', 'sms', this)">
-            <span class="material-icons-round" style="font-size:14px">sms</span> SMS
-          </button>
           <button class="btn btn-primary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="markPaid('${inv.id}', ${inv.amount_total})">
             <span class="material-icons-round" style="font-size:14px">check</span> Payée
           </button>
