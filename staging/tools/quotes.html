@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=27">
+  <link rel="stylesheet" href="css/tools.css?v=36">
 </head>
 <body>
 
@@ -107,13 +107,17 @@ function rowHtml(q) {
   }[q.status] || q.status;
   const date = q.created_at ? new Date(q.created_at).toLocaleDateString('fr-CA') : '';
 
-  const openTarget = q.status === 'draft'
-    ? `index.html?draft=${encodeURIComponent(q.id)}`
-    : (q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : null);
-
-  const sendable = q.share_token && q.status !== 'signed';
-
   const isSigned = q.status === 'signed';
+
+  // Signed quotes are read-only (open the customer view). Everything else
+  // (draft / sent / viewed / declined / expired) opens in the editor so the
+  // contractor can update and re-send.
+  const openTarget = isSigned
+    ? (q.share_token ? `sign.html?token=${encodeURIComponent(q.share_token)}` : null)
+    : `index.html?draft=${encodeURIComponent(q.id)}`;
+
+  const sendable = q.share_token && !isSigned;
+  const editable = !isSigned;
 
   return `<div class="quote-row" data-id="${esc(q.id)}" style="flex-direction:column;align-items:stretch;gap:10px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;" onclick="openRow('${openTarget || ''}', '${q.status}')">
@@ -127,7 +131,16 @@ function rowHtml(q) {
       </div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      ${editable ? `
+        <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();window.location.href='index.html?draft=${encodeURIComponent(q.id)}'">
+          <span class="material-icons-round" style="font-size:16px">edit</span>
+          <span>Modifier</span>
+        </button>` : ''}
       ${sendable ? `
+        <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();window.open('sign.html?token=${encodeURIComponent(q.share_token)}','_blank')">
+          <span class="material-icons-round" style="font-size:16px">visibility</span>
+          <span>Aperçu</span>
+        </button>
         <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();quickSend('${q.id}','email', this)">
           <span class="material-icons-round" style="font-size:16px">mail</span>
           <span>Envoyer courriel</span>
@@ -176,8 +189,10 @@ async function confirmDeleteQuote(id) {
 
 function openRow(target, status) {
   if (!target) return;
-  if (status === 'draft') window.location.href = target;
-  else window.open(target, '_blank');
+  // Signed quotes open the customer-facing view in a new tab (read-only).
+  // Everything else opens in the editor so the contractor can update.
+  if (status === 'signed') window.open(target, '_blank');
+  else window.location.href = target;
 }
 
 function copyPublicLink(token) {
@@ -222,7 +237,7 @@ function showToast(msg) {
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 </script>
-<script src="js/pwa.js?v=27"></script>
+<script src="js/pwa.js?v=36"></script>
 
 </body>
 </html>

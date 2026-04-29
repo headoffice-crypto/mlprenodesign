@@ -99,6 +99,10 @@ const I18N = {
   sig_saved: { fr: 'Enregistrée', en: 'Saved' },
 
   save_and_send: { fr: 'Générer la soumission et le lien client', en: 'Generate quote & client link' },
+  update_and_send: { fr: 'Mettre à jour et renvoyer pour signature', en: 'Update & re-send for signature' },
+  update_banner_title: { fr: 'Vous modifiez une soumission déjà envoyée', en: 'You are editing a quote that was already sent' },
+  update_banner_body: { fr: 'Apportez vos modifications, puis cliquez sur « Mettre à jour et renvoyer » pour pousser la nouvelle version au client. Le lien de signature reste le même.', en: 'Make your changes, then click "Update & re-send" to push the new version to the client. The signing link stays the same.' },
+  signed_locked: { fr: 'Cette soumission est signée et ne peut plus être modifiée. Redirection…', en: 'This quote is signed and cannot be edited. Redirecting…' },
   saving: { fr: 'Enregistrement…', en: 'Saving…' },
   saved: { fr: 'Enregistré !', en: 'Saved!' },
   copy: { fr: 'Copier', en: 'Copy' },
@@ -274,6 +278,7 @@ function setLang(l) {
     notesField.value = DEFAULT_NOTES[l];
   }
   applyI18N();
+  refreshSendButtonForState();
   buildPaymentOptionsUI();
   renderTaxPreview();
   if (savedQuote) renderFinalQuote();
@@ -749,7 +754,10 @@ function buildQuoteRecord(status) {
       source_text: quoteState.scope_summary || '',
       duration_value: quoteState.duration_value,
       duration_unit: quoteState.duration_unit,
-      payment_schedule: schedule
+      payment_schedule: schedule,
+      // Preserve the revision counter set by saveAndSendForSignature so
+      // periodic auto-saves don't blow it away.
+      revision: Number(savedQuote?.ai_conversation?.revision) || 1
     },
     options,
     payment_option: selectedPaymentOption,
@@ -813,6 +821,13 @@ async function loadDraftById(id) {
     if (error) throw error;
     if (!data) { showToast(lang === 'fr' ? 'Brouillon introuvable.' : 'Draft not found.'); return; }
 
+    // Hard guard: a signed quote is a contract, never editable from this page.
+    if (data.status === 'signed') {
+      alert(t('signed_locked'));
+      window.location.href = 'quotes.html';
+      return;
+    }
+
     savedQuote = data;
     if (data.language === 'en' || data.language === 'fr') lang = data.language;
     document.getElementById('lang-fr').className = lang === 'fr' ? 'active' : '';
@@ -859,11 +874,56 @@ async function loadDraftById(id) {
 
     applyI18N();
     renderTaxPreview();
+    refreshSendButtonForState();
+    showShareBoxIfSent();
     showToast(lang === 'fr' ? 'Brouillon chargé.' : 'Draft loaded.');
   } catch (err) {
     console.error('[loadDraftById]', err);
     showToast('Error: ' + err.message);
   }
+}
+
+// If the loaded quote was already sent (status: sent / viewed / declined / expired),
+// surface the share box and status pill so the contractor can re-send right away.
+function showShareBoxIfSent() {
+  if (!savedQuote || !savedQuote.share_token) return;
+  if (savedQuote.status === 'draft') return;
+
+  document.getElementById('share-link-input').value = buildShareLink(savedQuote.share_token);
+  document.getElementById('share-box').style.display = '';
+
+  document.getElementById('quote-status-card').style.display = '';
+  document.getElementById('quote-number-display').textContent = savedQuote.quote_number || '';
+  const pill = document.getElementById('quote-status-pill');
+  const statusText = {
+    sent:     { fr: 'Envoyée', en: 'Sent' },
+    viewed:   { fr: 'Consultée', en: 'Viewed' },
+    declined: { fr: 'Refusée', en: 'Declined' },
+    expired:  { fr: 'Expirée', en: 'Expired' }
+  }[savedQuote.status] || { fr: savedQuote.status, en: savedQuote.status };
+  pill.textContent = statusText[lang] || statusText.fr;
+  pill.className = 'status-pill ' + savedQuote.status;
+
+  // Inject a one-time banner inside the draft-actions card explaining the
+  // re-send flow, so the contractor isn't surprised by the new button label.
+  const card = document.getElementById('quote-status-card');
+  if (card && !card.querySelector('.update-banner')) {
+    const banner = document.createElement('div');
+    banner.className = 'update-banner';
+    banner.style.cssText = 'margin-top:10px;padding:10px 12px;border-radius:8px;background:#fffaf0;border:1px solid #ecd9a9;font-size:12px;color:#8a6d1a;line-height:1.5;';
+    banner.innerHTML = `<strong>${esc(t('update_banner_title'))}.</strong><br>${esc(t('update_banner_body'))}`;
+    card.appendChild(banner);
+  }
+}
+
+// Swap the primary button label between "Generate" (new quote) and
+// "Update & re-send" (editing a quote that was already sent).
+function refreshSendButtonForState() {
+  const btn = document.getElementById('btn-save-send');
+  if (!btn) return;
+  const isUpdate = !!(savedQuote && savedQuote.status && savedQuote.status !== 'draft');
+  const label = isUpdate ? t('update_and_send') : t('save_and_send');
+  btn.innerHTML = `<span class="material-icons-round">${isUpdate ? 'autorenew' : 'send'}</span><span>${esc(label)}</span>`;
 }
 
 /* ============================================
@@ -887,6 +947,15 @@ async function saveAndSendForSignature() {
   try {
     const customerId = savedQuote?.customer_id || null;
     const options = buildOptionsArray();
+
+    // Re-send detection: if the quote already has a non-draft status, this is
+    // an update of a quote that was previously sent. Bump the revision counter
+    // and reset any prior view/sign state so the customer sees a fresh cycle.
+    const previousStatus = savedQuote?.status || 'draft';
+    const isReSend = previousStatus !== 'draft';
+    const previousRevision = Number(savedQuote?.ai_conversation?.revision) || 1;
+    const newRevision = isReSend ? previousRevision + 1 : 1;
+
     const record = {
       id: savedQuote?.id,
       customer_id: customerId,
@@ -904,7 +973,8 @@ async function saveAndSendForSignature() {
         source_text: quoteState.scope_summary,
         duration_value: quoteState.duration_value,
         duration_unit: quoteState.duration_unit,
-        payment_schedule: buildSelectedScheduleSnapshot()
+        payment_schedule: buildSelectedScheduleSnapshot(),
+        revision: newRevision
       },
       options,
       payment_option: selectedPaymentOption,
@@ -916,7 +986,24 @@ async function saveAndSendForSignature() {
       sent_at: new Date().toISOString()
     };
 
+    if (isReSend) {
+      // The previous sent version may have been viewed; clear those flags so
+      // the customer sees a clean "sent → viewed → signed" cycle on the new
+      // version. Defensive resets for signing fields (this branch never runs
+      // for a 'signed' quote — loadDraftById blocks that — but be explicit).
+      record.viewed_at = null;
+      record.customer_signature = null;
+      record.customer_signed_at = null;
+      record.customer_signer_name = null;
+      record.customer_signer_ip = null;
+      record.accepted_option_key = null;
+    }
+
     savedQuote = await saveQuote(record);
+
+    if (isReSend) {
+      logQuoteEvent(savedQuote.id, 'revised', { revision: newRevision }).catch(() => {});
+    }
 
     const link = buildShareLink(savedQuote.share_token);
     document.getElementById('share-link-input').value = link;
@@ -927,9 +1014,12 @@ async function saveAndSendForSignature() {
     const pill = document.getElementById('quote-status-pill');
     pill.textContent = (lang === 'fr' ? 'Envoyée' : 'Sent');
     pill.className = 'status-pill sent';
+    refreshSendButtonForState();
 
     renderFinalQuote();
-    showToast(t('saved'));
+    showToast(isReSend
+      ? (lang === 'fr' ? 'Soumission mise à jour.' : 'Quote updated.')
+      : t('saved'));
     document.getElementById('share-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     console.error(err);

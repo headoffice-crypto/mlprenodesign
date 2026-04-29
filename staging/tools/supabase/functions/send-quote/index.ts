@@ -54,6 +54,8 @@ async function sbInsert(url, key, body) {
 function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
   const fr = lang === "fr";
   const isDraft = !!opts.draft;
+  const revision = Number(quote?.ai_conversation?.revision) || 1;
+  const isUpdate = !isDraft && revision > 1;
   const options = Array.isArray(quote.options) ? quote.options : [];
   const multi = options.length > 1;
 
@@ -75,20 +77,28 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
 
   const title = isDraft
     ? (fr ? "Brouillon de soumission" : "Draft quote")
-    : (fr ? "Votre soumission" : "Your quote");
+    : isUpdate
+      ? (fr ? "Soumission mise à jour" : "Updated quote")
+      : (fr ? "Votre soumission" : "Your quote");
   const greeting = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
   const intro = isDraft
     ? (fr
         ? `Voici un <strong>brouillon</strong> de la soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""} pour révision. Ce document n'est pas contractuel et ne peut pas être signé.`
         : `Here is a <strong>draft</strong> of quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the proposed options" : ""} for review. This document is not contractual and cannot be signed.`)
-    : (fr
-        ? `Voici votre soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""}.`
-        : `Here is your quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the proposed options" : ""}.`);
+    : isUpdate
+      ? (fr
+          ? `Voici une <strong>nouvelle version</strong> de la soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options mises à jour" : "avec les modifications demandées"}. Le lien ci-dessous remplace celui que vous aviez reçu auparavant.`
+          : `Here is an <strong>updated version</strong> of quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the revised options" : "with the requested changes"}. The link below replaces the one you received previously.`)
+      : (fr
+          ? `Voici votre soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""}.`
+          : `Here is your quote <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "with the proposed options" : ""}.`);
   const cta = fr ? "Consulter et signer la soumission" : "View and sign the quote";
 
   const draftBanner = isDraft
     ? `<div style="background:#fff3cd;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;">${fr ? "BROUILLON — Non contractuel" : "DRAFT — Not for signature"}</div>`
-    : "";
+    : isUpdate
+      ? `<div style="background:#e8f0fe;border:1px solid #aecbfa;color:#1967d2;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:700;text-align:center;letter-spacing:0.5px;">${fr ? `MISE À JOUR — Version ${revision}` : `UPDATED — Version ${revision}`}</div>`
+      : "";
 
   const ctaBlock = isDraft
     ? ""
@@ -473,6 +483,8 @@ Deno.serve(async (req) => {
 
     const lang = quote.language === "en" ? "en" : "fr";
     const link = `${APP_BASE_URL}/sign.html?token=${encodeURIComponent(quote.share_token)}`;
+    const revision = Number(quote?.ai_conversation?.revision) || 1;
+    const isUpdate = !isDraft && revision > 1;
 
     if (channel === "sms") {
       const TWILIO_SID = Deno.env.get("TWILIO_SID") ?? "";
@@ -485,9 +497,13 @@ Deno.serve(async (req) => {
       if (!digits) return jsonResp({ error: "no phone number on quote" }, 400);
       const to_e164 = raw.startsWith("+") ? raw : (digits.length === 10 ? `+1${digits}` : `+${digits}`);
 
-      const defaultMsg = lang === "fr"
-        ? `MLP Reno & Design — Votre soumission ${quote.quote_number}. Consultez et signez : ${link}`
-        : `MLP Reno & Design — Your quote ${quote.quote_number}. View and sign: ${link}`;
+      const defaultMsg = isUpdate
+        ? (lang === "fr"
+            ? `MLP Reno & Design — Mise à jour de la soumission ${quote.quote_number} (v${revision}). Consultez et signez : ${link}`
+            : `MLP Reno & Design — Updated quote ${quote.quote_number} (v${revision}). View and sign: ${link}`)
+        : (lang === "fr"
+            ? `MLP Reno & Design — Votre soumission ${quote.quote_number}. Consultez et signez : ${link}`
+            : `MLP Reno & Design — Your quote ${quote.quote_number}. View and sign: ${link}`);
       const smsBody = message || defaultMsg;
 
       const auth = btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
@@ -503,9 +519,11 @@ Deno.serve(async (req) => {
 
       await sbInsert(`${SUPABASE_URL}/rest/v1/quote_events`, SUPABASE_KEY, {
         quote_id: quote.id, event_type: "sms_sent",
-        payload: { to: to_e164, twilio_sid: twData.sid, status: twData.status },
+        payload: { to: to_e164, twilio_sid: twData.sid, status: twData.status, revision },
       });
-      if (!quote.sent_at) {
+      // Update sent_at on the very first send AND on every re-send so the
+      // contractor can see when the latest revision actually went out.
+      if (!quote.sent_at || isUpdate) {
         await sbPatch(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${encodeURIComponent(quote.id)}`, SUPABASE_KEY, {
           sent_at: new Date().toISOString(),
           status: quote.status === "draft" ? "sent" : quote.status,
@@ -527,9 +545,13 @@ Deno.serve(async (req) => {
       ? (lang === "fr"
           ? `[BROUILLON] Soumission MLP Reno & Design — ${quote.quote_number}`
           : `[DRAFT] MLP Reno & Design quote — ${quote.quote_number}`)
-      : (lang === "fr"
-          ? `Votre soumission MLP Reno & Design — ${quote.quote_number}`
-          : `Your MLP Reno & Design quote — ${quote.quote_number}`);
+      : isUpdate
+        ? (lang === "fr"
+            ? `Mise à jour — Soumission MLP Reno & Design — ${quote.quote_number} (v${revision})`
+            : `Updated — MLP Reno & Design quote — ${quote.quote_number} (v${revision})`)
+        : (lang === "fr"
+            ? `Votre soumission MLP Reno & Design — ${quote.quote_number}`
+            : `Your MLP Reno & Design quote — ${quote.quote_number}`);
 
     const payload = {
       from: FROM,
@@ -549,9 +571,11 @@ Deno.serve(async (req) => {
 
     await sbInsert(`${SUPABASE_URL}/rest/v1/quote_events`, SUPABASE_KEY, {
       quote_id: quote.id, event_type: isDraft ? "draft_email_sent" : "email_sent",
-      payload: { to: emailTo, resend_id: rData.id, draft: isDraft },
+      payload: { to: emailTo, resend_id: rData.id, draft: isDraft, revision },
     });
-    if (!isDraft && !quote.sent_at) {
+    // Update sent_at on the first send AND on every re-send so the contractor
+    // sees when the latest revision actually went out.
+    if (!isDraft && (!quote.sent_at || isUpdate)) {
       await sbPatch(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${encodeURIComponent(quote.id)}`, SUPABASE_KEY, {
         sent_at: new Date().toISOString(),
         status: quote.status === "draft" ? "sent" : quote.status,
