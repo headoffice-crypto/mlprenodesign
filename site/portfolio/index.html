@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avant / Après — Portfolio MLP Reno & Design</title>
+    <meta name="description" content="Découvrez les transformations avant/après de nos rénovations de salles de bain à Montréal, Laval et Longueuil. Travail soigné par un entrepreneur général certifié RBQ.">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mlprenodesign.ca/portfolio/">
+    <meta property="og:site_name" content="MLP Reno & Design">
+    <meta property="og:title" content="Avant / Après — Salles de bain | MLP Reno & Design">
+    <meta property="og:description" content="✨ 5 transformations complètes de salles de bain. Glissez pour comparer l'avant et l'après. Entrepreneur général RBQ • Estimation gratuite ☎ (450) 500-8936">
+    <meta property="og:image" content="https://mlprenodesign.ca/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg">
+    <meta property="og:locale" content="fr_CA">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Avant / Après — Salles de bain | MLP Reno & Design">
+    <meta name="twitter:description" content="Glissez pour comparer l'avant et l'après de nos rénovations de salles de bain.">
+    <meta name="twitter:image" content="https://mlprenodesign.ca/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg">
+
+    <meta name="theme-color" content="#1a1f2e">
+    <link rel="canonical" href="https://mlprenodesign.ca/portfolio/">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+    /* ============================================
+       Design tokens — aligned with main MLP site
+       ============================================ */
+    :root {
+        --color-dark: #1a1f2e;
+        --color-darker: #12161f;
+        --color-ink: #0d111a;
+        --color-text: #14181f;
+        --color-muted: #6a7180;
+        --color-line: #e8e9ec;
+        --color-bg: #ffffff;
+        --color-surface: #f6f5f1;
+        --color-accent: #b58e5a; /* warm copper accent for luxury feel */
+        --color-accent-deep: #8c6a3f;
+        --shadow-sm: 0 4px 16px rgba(15, 17, 25, 0.06);
+        --shadow-md: 0 12px 40px rgba(15, 17, 25, 0.10);
+        --shadow-lg: 0 24px 80px rgba(15, 17, 25, 0.14);
+        --radius-sm: 8px;
+        --radius-md: 14px;
+        --radius-lg: 22px;
+        --container: 1200px;
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: var(--font-sans);
+        color: var(--color-text);
+        background: var(--color-bg);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* ============================================
+       Top bar (minimal)
+       ============================================ */
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: saturate(180%) blur(14px);
+        -webkit-backdrop-filter: saturate(180%) blur(14px);
+        border-bottom: 1px solid rgba(15, 17, 25, 0.06);
+    }
+    .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+    }
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--color-dark);
+    }
+    .brand-mark {
+        width: 36px; height: 36px;
+        border-radius: 9px;
+        background: var(--color-dark);
+        color: white;
+        display: grid; place-items: center;
+        font-family: var(--font-serif);
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+    }
+    .brand-name {
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 0.2px;
+    }
+    .brand-name span { color: var(--color-muted); font-weight: 400; }
+    .topbar-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        background: var(--color-dark);
+        color: white;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        transition: transform .25s ease, background .25s ease;
+    }
+    .topbar-cta:hover { background: var(--color-darker); transform: translateY(-1px); }
+    @media (max-width: 540px) {
+        .topbar-cta .lbl { display: none; }
+    }
+
+    /* ============================================
+       Hero
+       ============================================ */
+    .hero {
+        position: relative;
+        padding: 120px 0 90px;
+        background:
+            radial-gradient(1200px 500px at 75% -10%, rgba(181, 142, 90, 0.10), transparent 60%),
+            radial-gradient(900px 400px at 10% 110%, rgba(26, 31, 46, 0.04), transparent 60%),
+            var(--color-surface);
+        overflow: hidden;
+    }
+    .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(to right, rgba(15, 17, 25, 0.025) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(15, 17, 25, 0.025) 1px, transparent 1px);
+        background-size: 56px 56px;
+        mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
+        -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
+        pointer-events: none;
+    }
+    .hero-inner { position: relative; }
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 14px;
+        background: white;
+        border: 1px solid var(--color-line);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--color-dark);
+        box-shadow: var(--shadow-sm);
+    }
+    .eyebrow .dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        box-shadow: 0 0 0 4px rgba(181, 142, 90, 0.18);
+    }
+    .hero-title {
+        font-family: var(--font-serif);
+        font-weight: 500;
+        font-size: clamp(40px, 7vw, 84px);
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        margin: 22px 0 18px;
+        color: var(--color-dark);
+    }
+    .hero-title em {
+        font-style: italic;
+        color: var(--color-accent-deep);
+        font-weight: 500;
+    }
+    .hero-sub {
+        max-width: 620px;
+        font-size: clamp(15px, 1.6vw, 18px);
+        color: var(--color-muted);
+        line-height: 1.65;
+    }
+
+    .hero-stats {
+        margin-top: 44px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        max-width: 640px;
+    }
+    .stat {
+        padding: 18px 20px;
+        background: white;
+        border: 1px solid var(--color-line);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+    .stat-num {
+        font-family: var(--font-serif);
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--color-dark);
+        line-height: 1;
+    }
+    .stat-lbl {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--color-muted);
+        letter-spacing: 0.3px;
+    }
+    @media (max-width: 480px) {
+        .hero { padding: 80px 0 60px; }
+        .hero-stats { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .stat { padding: 14px 12px; }
+        .stat-num { font-size: 22px; }
+        .stat-lbl { font-size: 11px; }
+    }
+
+    /* ============================================
+       Filter / categories
+       ============================================ */
+    .filters {
+        padding: 56px 0 12px;
+    }
+    .filters-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+    }
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 20px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 500;
+        background: white;
+        color: var(--color-dark);
+        border: 1px solid var(--color-line);
+        transition: all .25s ease;
+    }
+    .pill .count {
+        font-size: 11px;
+        padding: 2px 8px;
+        background: rgba(15, 17, 25, 0.06);
+        border-radius: 999px;
+        color: var(--color-muted);
+        font-weight: 600;
+    }
+    .pill.active {
+        background: var(--color-dark);
+        color: white;
+        border-color: var(--color-dark);
+    }
+    .pill.active .count {
+        background: rgba(255,255,255,0.15);
+        color: white;
+    }
+    .pill.disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+    .pill .soon {
+        font-size: 10px;
+        padding: 2px 8px;
+        background: rgba(181, 142, 90, 0.12);
+        color: var(--color-accent-deep);
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+    }
+
+    /* ============================================
+       Gallery
+       ============================================ */
+    .gallery {
+        padding: 60px 0 100px;
+    }
+    .section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 30px;
+        margin-bottom: 48px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--color-line);
+    }
+    .section-title {
+        font-family: var(--font-serif);
+        font-size: clamp(28px, 4vw, 44px);
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        color: var(--color-dark);
+        line-height: 1.1;
+    }
+    .section-meta {
+        font-size: 13px;
+        color: var(--color-muted);
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 56px;
+    }
+    @media (min-width: 980px) {
+        .grid { grid-template-columns: 1fr 1fr; gap: 56px 40px; }
+        /* feature first project full width */
+        .grid > .project:first-child { grid-column: 1 / -1; }
+    }
+
+    .project {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity .9s ease, transform .9s ease;
+    }
+    .project.in-view { opacity: 1; transform: none; }
+
+    .project-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 16px;
+    }
+    .project-num {
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-size: 14px;
+        color: var(--color-accent-deep);
+        letter-spacing: 0.5px;
+    }
+    .project-title {
+        font-family: var(--font-serif);
+        font-weight: 500;
+        font-size: clamp(22px, 2.6vw, 30px);
+        letter-spacing: -0.01em;
+        color: var(--color-dark);
+        line-height: 1.2;
+    }
+    .project-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--color-muted);
+        padding: 5px 11px;
+        background: var(--color-surface);
+        border-radius: 999px;
+    }
+
+    /* ============================================
+       Before / After toggle
+       ============================================ */
+    .ba {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: #11151c;
+        box-shadow: var(--shadow-md);
+        isolation: isolate;
+    }
+    .ba.ratio-4-3 { aspect-ratio: 4 / 3; }
+    .ba.ratio-3-4 { aspect-ratio: 3 / 4; }
+    .ba.ratio-1-1 { aspect-ratio: 1 / 1; }
+
+    .ba-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #11151c;
+        opacity: 0;
+        transition: opacity .55s ease;
+        backface-visibility: hidden;
+    }
+    .ba-img.is-active { opacity: 1; }
+
+    .ba-corner {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        padding: 6px 13px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: white;
+        background: rgba(15, 17, 25, 0.62);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 999px;
+        pointer-events: none;
+        transition: background .35s ease;
+    }
+    .ba[data-state="after"] .ba-corner {
+        background: rgba(181, 142, 90, 0.85);
+    }
+
+    .ba-toggle {
+        position: absolute;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px;
+        background: rgba(15, 17, 25, 0.62);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 999px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+    .ba-toggle button {
+        position: relative;
+        padding: 9px 22px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.7);
+        border-radius: 999px;
+        transition: color .25s ease;
+    }
+    .ba-toggle button:hover { color: white; }
+    .ba-toggle button.is-active {
+        color: var(--color-dark);
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .ba-toggle button:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 540px) {
+        .ba-corner { font-size: 10px; padding: 5px 10px; top: 12px; left: 12px; }
+        .ba-toggle { bottom: 12px; }
+        .ba-toggle button { padding: 8px 18px; font-size: 11px; }
+    }
+
+    /* ============================================
+       Featured / hover-flip variant
+       ============================================ */
+    .ba.hover-flip {
+        aspect-ratio: 3 / 4;
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+        cursor: pointer;
+    }
+    @media (max-width: 760px) {
+        .ba.hover-flip { aspect-ratio: 3 / 4; }
+    }
+    .ba.hover-flip .ba-img {
+        transition: opacity .8s ease;
+    }
+
+    .ba-flip-hint {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: white;
+        background: rgba(15, 17, 25, 0.55);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 999px;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity .35s ease, transform .35s ease;
+    }
+    .ba.hover-flip:hover .ba-flip-hint,
+    .ba.hover-flip.is-touched .ba-flip-hint {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    .ba-flip-hint svg { width: 14px; height: 14px; }
+
+    /* Subtle pulse on the hint until first interaction */
+    @keyframes baPulse {
+        0%, 100% { transform: translateY(0); }
+        50%      { transform: translateY(-3px); }
+    }
+    .ba.hover-flip:not(.is-touched) .ba-flip-hint {
+        animation: baPulse 2.4s ease-in-out infinite;
+    }
+
+    @media (max-width: 540px) {
+        .ba-flip-hint { font-size: 10px; padding: 6px 10px; top: 12px; right: 12px; }
+    }
+
+    /* Full width feature card */
+    @media (min-width: 980px) {
+        .grid > .project:first-child { grid-column: 1 / -1; }
+        .grid > .project:first-child .project-title { font-size: clamp(28px, 3.4vw, 40px); }
+    }
+
+    /* ============================================
+       CTA
+       ============================================ */
+    .cta {
+        position: relative;
+        padding: 90px 0;
+        background: var(--color-dark);
+        color: white;
+        overflow: hidden;
+    }
+    .cta::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(700px 350px at 80% 10%, rgba(181, 142, 90, 0.22), transparent 60%),
+            radial-gradient(600px 300px at 10% 110%, rgba(255, 255, 255, 0.05), transparent 60%);
+        pointer-events: none;
+    }
+    .cta-inner {
+        position: relative;
+        text-align: center;
+        max-width: 720px;
+        margin: 0 auto;
+    }
+    .cta-eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--color-accent);
+        margin-bottom: 18px;
+        font-weight: 500;
+    }
+    .cta h2 {
+        font-family: var(--font-serif);
+        font-weight: 500;
+        font-size: clamp(28px, 4.5vw, 48px);
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+        margin-bottom: 18px;
+    }
+    .cta p {
+        font-size: 16px;
+        color: rgba(255,255,255,0.72);
+        line-height: 1.6;
+        margin-bottom: 36px;
+    }
+    .cta-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+    }
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 28px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        transition: all .25s ease;
+    }
+    .btn-primary {
+        background: white;
+        color: var(--color-dark);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
+    .btn-ghost {
+        background: transparent;
+        color: white;
+        border: 1px solid rgba(255,255,255,0.25);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.5); }
+
+    /* ============================================
+       Footer
+       ============================================ */
+    .footer {
+        padding: 38px 0 44px;
+        background: var(--color-darker);
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+    }
+    .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .footer a { color: rgba(255,255,255,0.85); }
+    .footer a:hover { color: white; }
+    .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+
+    /* ============================================
+       Reduced motion
+       ============================================ */
+    @media (prefers-reduced-motion: reduce) {
+        * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        .project { opacity: 1; transform: none; }
+    }
+    </style>
+</head>
+<body>
+
+    <!-- ====================== TOP BAR ====================== -->
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a href="../index.html" class="brand" aria-label="Retour à MLP Reno & Design">
+                <span class="brand-mark">M</span>
+                <span class="brand-name">MLP Reno &amp; Design <span>· Portfolio</span></span>
+            </a>
+            <a href="../index.html#contact" class="topbar-cta">
+                <span class="lbl">Estimation gratuite</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+        </div>
+    </header>
+
+    <!-- ====================== HERO ====================== -->
+    <section class="hero">
+        <div class="container hero-inner">
+            <span class="eyebrow"><span class="dot"></span>Avant · Après · Réalisations</span>
+            <h1 class="hero-title">Des <em>transformations</em><br>qui parlent d'elles-mêmes.</h1>
+            <p class="hero-sub">
+                Survolez l'image vedette ou utilisez les onglets <strong>Avant&nbsp;/&nbsp;Après</strong> pour découvrir chaque transformation de <strong>salle de bain</strong>.
+            </p>
+
+        </div>
+    </section>
+
+    <!-- ====================== GALLERY ====================== -->
+    <section class="gallery" id="bathrooms">
+        <div class="container">
+            <div class="section-head">
+                <h2 class="section-title">Salles de bain</h2>
+                <span class="section-meta">Quelques réalisations</span>
+            </div>
+
+            <div class="grid">
+
+                <!-- Project — featured -->
+                <article class="project" data-project>
+                    <header class="project-head">
+                        <div>
+                            <h3 class="project-title">Boucherville</h3>
+                        </div>
+                        <span class="project-tag">Salle de bain</span>
+                    </header>
+                    <div class="ba ratio-3-4 hover-flip" data-ba data-state="before" aria-label="Avant et après — Boucherville" tabindex="0">
+                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-5-before.jpg" alt="Salle de bain à Boucherville — avant rénovation" loading="eager" decoding="async">
+                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-5-after.jpg" alt="Salle de bain à Boucherville — après rénovation" loading="eager" decoding="async">
+                        <span class="ba-corner" data-corner>Avant</span>
+                        <span class="ba-flip-hint">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><polyline points="21 4 21 9 16 9"></polyline></svg>
+                            Survolez pour révéler
+                        </span>
+                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
+                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
+                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 01 -->
+                <article class="project" data-project>
+                    <header class="project-head">
+                        <div>
+                            <h3 class="project-title">Brossard</h3>
+                        </div>
+                        <span class="project-tag">Salle de bain</span>
+                    </header>
+                    <div class="ba ratio-3-4" data-ba data-state="before" aria-label="Avant et après — Projet 01">
+                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg" alt="Salle de bain — avant rénovation, projet 01" loading="lazy" decoding="async">
+                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg" alt="Salle de bain — après rénovation, projet 01" loading="lazy" decoding="async">
+                        <span class="ba-corner" data-corner>Avant</span>
+                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
+                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
+                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 02 -->
+                <article class="project" data-project>
+                    <header class="project-head">
+                        <div>
+                            <h3 class="project-title">Saint-Bruno</h3>
+                        </div>
+                        <span class="project-tag">Salle de bain</span>
+                    </header>
+                    <div class="ba ratio-3-4" data-ba data-state="before" aria-label="Avant et après — Projet 02">
+                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-2-before.jpg" alt="Salle de bain — avant rénovation, projet 02" loading="lazy" decoding="async">
+                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-2-after.jpg" alt="Salle de bain — après rénovation, projet 02" loading="lazy" decoding="async">
+                        <span class="ba-corner" data-corner>Avant</span>
+                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
+                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
+                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 03 -->
+                <article class="project" data-project>
+                    <header class="project-head">
+                        <div>
+                            <h3 class="project-title">Blainville</h3>
+                        </div>
+                        <span class="project-tag">Salle de bain</span>
+                    </header>
+                    <div class="ba ratio-3-4" data-ba data-state="before" aria-label="Avant et après — Projet 03">
+                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-3-before.jpg" alt="Salle de bain — avant rénovation, projet 03" loading="lazy" decoding="async">
+                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-3-after.jpg" alt="Salle de bain — après rénovation, projet 03" loading="lazy" decoding="async">
+                        <span class="ba-corner" data-corner>Avant</span>
+                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
+                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
+                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Project 04 -->
+                <article class="project" data-project>
+                    <header class="project-head">
+                        <div>
+                            <h3 class="project-title">Sainte-Julie</h3>
+                        </div>
+                        <span class="project-tag">Salle de bain</span>
+                    </header>
+                    <div class="ba ratio-4-3" data-ba data-state="before" aria-label="Avant et après — Projet 04">
+                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-4-before.jpg" alt="Salle de bain — avant rénovation, projet 04" loading="lazy" decoding="async">
+                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-4-after.jpg" alt="Salle de bain — après rénovation, projet 04" loading="lazy" decoding="async">
+                        <span class="ba-corner" data-corner>Avant</span>
+                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
+                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
+                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
+                        </div>
+                    </div>
+                </article>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ====================== CTA ====================== -->
+    <section class="cta">
+        <div class="container cta-inner">
+            <div class="cta-eyebrow">— Prêt à transformer votre espace</div>
+            <h2>Votre salle de bain, repensée<br>du croquis à la finition.</h2>
+            <p>Estimation gratuite, transparente et sans pression. Nous nous occupons de tout — plomberie, électricité, céramique, finitions — sous une même équipe certifiée RBQ.</p>
+            <div class="cta-actions">
+                <a href="../index.html#contact" class="btn btn-primary">
+                    Demander une estimation
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </a>
+                <a href="tel:+14505008936" class="btn btn-ghost">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    (450) 500-8936
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====================== FOOTER ====================== -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div>© <span id="year"></span> MLP Reno &amp; Design — Entrepreneur général certifié RBQ</div>
+            <div class="footer-links">
+                <a href="../index.html">Site principal</a>
+                <a href="../index.html#services">Services</a>
+                <a href="../index.html#contact">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    // ============================================
+    // Before / After toggle
+    // ============================================
+    (function () {
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const LABELS = { before: 'Avant', after: 'Après' };
+
+        function initBA(el) {
+            const imgs    = el.querySelectorAll('.ba-img');
+            const buttons = el.querySelectorAll('.ba-toggle button');
+            const corner  = el.querySelector('[data-corner]');
+            const isFlip  = el.classList.contains('hover-flip');
+
+            const setState = (target) => {
+                el.dataset.state = target;
+                imgs.forEach((img) => img.classList.toggle('is-active', img.dataset.role === target));
+                buttons.forEach((btn) => {
+                    const active = btn.dataset.target === target;
+                    btn.classList.toggle('is-active', active);
+                    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+                if (corner) corner.textContent = LABELS[target];
+            };
+
+            buttons.forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setState(btn.dataset.target);
+                });
+            });
+
+            if (isFlip) {
+                let hoverState = 'before';
+                let touchTimer = null;
+
+                el.addEventListener('mouseenter', () => {
+                    hoverState = 'after';
+                    el.classList.add('is-touched');
+                    setState('after');
+                });
+                el.addEventListener('mouseleave', () => {
+                    hoverState = 'before';
+                    setState('before');
+                });
+
+                // Touch / tap: flip momentarily so mobile users still get the effect
+                el.addEventListener('touchstart', () => {
+                    el.classList.add('is-touched');
+                    setState(el.dataset.state === 'before' ? 'after' : 'before');
+                }, { passive: true });
+
+                // Keyboard accessibility on the focusable container
+                el.addEventListener('focus', () => {
+                    el.classList.add('is-touched');
+                    setState('after');
+                });
+                el.addEventListener('blur', () => setState('before'));
+
+                // Idle teaser: a single subtle preview animation a moment after load
+                setTimeout(() => {
+                    if (el.classList.contains('is-touched')) return;
+                    setState('after');
+                    setTimeout(() => {
+                        if (!el.classList.contains('is-touched')) setState('before');
+                    }, 1400);
+                }, 1800);
+            }
+        }
+
+        document.querySelectorAll('[data-ba]').forEach(initBA);
+
+        // ============================================
+        // Reveal on scroll
+        // ============================================
+        if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                        io.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            document.querySelectorAll('[data-project]').forEach((el) => io.observe(el));
+        } else {
+            document.querySelectorAll('[data-project]').forEach((el) => el.classList.add('in-view'));
+        }
+    })();
+    </script>
+</body>
+</html>
