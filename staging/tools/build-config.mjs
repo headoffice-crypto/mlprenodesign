@@ -1,6 +1,9 @@
 import { writeFileSync } from 'node:fs';
 
-const required = ['OPENAI_API_KEY', 'SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+// ANTHROPIC_API_KEY is intentionally NOT shipped to the browser — it lives
+// on the Supabase Edge Function `analyze-project` instead (set via
+// `supabase secrets set ANTHROPIC_API_KEY=...`).
+const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
 for (const k of required) {
   if (!process.env[k]) {
     console.error(`[build-config] missing env var: ${k}`);
@@ -11,7 +14,6 @@ for (const k of required) {
 const escape = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
 const out = `/* GENERATED at deploy time from Vercel env vars — do not edit by hand. */
-const OPENAI_API_KEY = '${escape(process.env.OPENAI_API_KEY)}';
 const SUPABASE_URL = '${escape(process.env.SUPABASE_URL)}';
 const SUPABASE_ANON_KEY = '${escape(process.env.SUPABASE_ANON_KEY)}';
 const PUBLIC_APP_URL = '${escape(process.env.PUBLIC_APP_URL || '')}';

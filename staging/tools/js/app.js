@@ -415,10 +415,6 @@ async function runAnalysis() {
     setPdfError(t('analyze_empty'));
     return;
   }
-  if (typeof OPENAI_API_KEY !== 'string' || !OPENAI_API_KEY.startsWith('sk-')) {
-    setPdfError('OpenAI API key is missing or invalid. Check js/config.js.');
-    return;
-  }
   if (typeof analyzeProjectInput !== 'function') {
     setPdfError('Analyzer not loaded. Hard-refresh (Ctrl+Shift+R).');
     return;
