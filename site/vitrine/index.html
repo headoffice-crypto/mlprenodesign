@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Vitrine MLP — Diaporama</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    html, body { height: 100%; overflow: hidden; background: #000; color: #fff; }
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    /* Stage holds every slide stacked; only one is .is-active at a time. */
+    .stage { position: fixed; inset: 0; }
+
+    .slide {
+      position: absolute; inset: 0;
+      opacity: 0;
+      transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      will-change: opacity;
+    }
+    .slide.is-active { opacity: 1; }
+
+    /* Photo — slow Ken Burns when active */
+    .photo {
+      position: absolute; inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    .photo img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scale(1.04);
+    }
+    .slide.is-active .photo img {
+      animation: kenburns var(--dur, 7s) ease-out forwards;
+    }
+    @keyframes kenburns {
+      from { transform: scale(1.03) translate(0, 0); }
+      to   { transform: scale(1.12) translate(-2%, -1%); }
+    }
+
+    /* Bottom-up gradient for caption legibility */
+    .photo::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.25) 0%,
+        rgba(0,0,0,0)    35%,
+        rgba(0,0,0,0)    55%,
+        rgba(0,0,0,0.75) 100%);
+      pointer-events: none;
+    }
+
+    /* AVANT / APRÈS chip — top-left */
+    .tag {
+      position: absolute; top: 32px; left: 32px; z-index: 3;
+      padding: 12px 22px; border-radius: 999px;
+      background: rgba(0,0,0,.72); color: #fff;
+      font-size: 14px; letter-spacing: .28em; text-transform: uppercase; font-weight: 700;
+      backdrop-filter: blur(8px);
+    }
+    .tag.after { background: var(--gold); color: #1a1208; }
+
+    /* Caption — bottom-left, large + elegant */
+    .caption {
+      position: absolute; left: 56px; right: 380px; bottom: 56px; z-index: 3;
+      display: flex; flex-direction: column; gap: 8px;
+      transform: translateY(12px); opacity: 0;
+      transition: opacity .8s ease, transform .8s ease;
+      transition-delay: .25s;
+    }
+    .slide.is-active .caption { opacity: 1; transform: none; }
+    .caption .eyebrow {
+      color: var(--gold);
+      font-size: 12px; letter-spacing: .32em; text-transform: uppercase; font-weight: 700;
+    }
+    .caption .title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(2rem, 3.4vw, 3.4rem);
+      line-height: 1.05; margin: 0;
+      max-width: 22ch;
+      color: #fff;
+    }
+    .caption .sub {
+      font-size: clamp(.95rem, 1.1vw, 1.15rem);
+      color: rgba(255,255,255,.78);
+      max-width: 48ch; margin: 0; line-height: 1.4;
+    }
+    @media (max-width: 900px) {
+      .caption { left: 28px; right: 28px; bottom: 220px; }
+    }
+
+    /* Persistent overlay — brand top-left, QR bottom-right.
+       These live OUTSIDE the slides so they don't fade with content. */
+    .brand-mark {
+      position: fixed; top: 30px; left: 32px; z-index: 50;
+      display: flex; align-items: center; gap: 12px;
+      pointer-events: none;
+    }
+    .brand-mark .logo {
+      width: 44px; height: 44px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center;
+      color: #1a1208; font-family: var(--serif); font-weight: 700; font-size: 22px;
+    }
+    .brand-mark .txt { display: flex; flex-direction: column; line-height: 1.15; }
+    .brand-mark .name { font-family: var(--serif); color: #fff; font-size: 18px; font-weight: 600; }
+    .brand-mark .tag  { color: rgba(255,255,255,.7); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; }
+
+    /* Right-side QR card — always visible, large enough to scan across a booth */
+    .qr-card {
+      position: fixed; right: 36px; bottom: 36px; z-index: 50;
+      background: #fff; color: #1a1208;
+      border-radius: 22px; padding: 18px;
+      display: grid; gap: 10px; justify-items: center; text-align: center;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,.7);
+      min-width: 240px;
+    }
+    .qr-card img { width: 220px; height: 220px; display: block; }
+    .qr-card .qr-cta {
+      font-size: 11px; letter-spacing: .26em; text-transform: uppercase;
+      color: var(--terra); font-weight: 700;
+    }
+    .qr-card .qr-url {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      color: #5b4a2b;
+    }
+    .qr-card .qr-prize {
+      font-family: var(--serif); color: #1a1208; font-size: 1.4rem; line-height: 1;
+      padding-top: 4px;
+    }
+    .qr-card .qr-prize-l {
+      font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #7a5a1c; font-weight: 700;
+    }
+    @media (max-width: 900px) {
+      .qr-card { right: 16px; bottom: 16px; padding: 12px; min-width: 0; }
+      .qr-card img { width: 140px; height: 140px; }
+    }
+
+    /* Top-right tagline — reminds people what's at stake */
+    .stake {
+      position: fixed; top: 38px; right: 36px; z-index: 50;
+      text-align: right;
+      pointer-events: none;
+    }
+    .stake .stake-l { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+    .stake .stake-v { font-family: var(--serif); color: #fff; font-size: 24px; margin-top: 2px; line-height: 1; }
+    .stake .stake-w { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: 6px; }
+
+    /* Subtle slide-counter so the operator can verify it's playing */
+    .ping {
+      position: fixed; bottom: 16px; left: 22px; z-index: 50;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 0 rgba(200,167,102,.5);
+      animation: ping 2.4s ease-out infinite;
+    }
+    @keyframes ping {
+      0%   { box-shadow: 0 0 0 0 rgba(200,167,102,.6); }
+      80%  { box-shadow: 0 0 0 14px rgba(200,167,102,0); }
+      100% { box-shadow: 0 0 0 0 rgba(200,167,102,0); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Persistent chrome -->
+  <div class="brand-mark">
+    <div class="logo">M</div>
+    <div class="txt">
+      <div class="name">MLP Reno &amp; Design</div>
+      <div class="tag">Gestion · Accompagnement · Rénovation</div>
+    </div>
+  </div>
+
+  <div class="stake">
+    <div class="stake-l">À gagner ce soir</div>
+    <div class="stake-v">14 000 $</div>
+    <div class="stake-w">Tirage fin mai</div>
+  </div>
+
+  <div class="qr-card">
+    <img id="qr-img" alt="QR — Participez au tirage">
+    <div class="qr-prize-l">Participez au tirage</div>
+    <div class="qr-prize">Scannez</div>
+    <div class="qr-url" id="qr-url"></div>
+    <div class="qr-cta">30 secondes</div>
+  </div>
+
+  <main class="stage" id="stage"></main>
+  <div class="ping" title="Vitrine en lecture"></div>
+
+  <script>
+    /* Pair = a before/after sequence shown back to back.
+       Solo = a single finished-work hero shot (no before image).        */
+    const PROJECTS = [
+      // Thomas-Dubuc — Façade
+      { kind: 'pair',
+        eyebrow: 'Maison Thomas-Dubuc · Façade',
+        title:   "Sous-évaluée. Maintenant, un actif.",
+        sub:     "+ valeur de revente · + revenus locatifs · permis pour la conversion.",
+        before:  '/event-media/thomas-dubuc/before/Before-frontage.jpeg',
+        after:   '/event-media/thomas-dubuc/after/Frontage-1.jpeg' },
+
+      // Thomas-Dubuc — Salon
+      { kind: 'pair',
+        eyebrow: 'Maison Thomas-Dubuc · Salon principal',
+        title:   "Mêmes murs. Autre maison.",
+        sub:     "Plancher d'ingénierie, mur d'accent, ouverture sur la cuisine.",
+        before:  '/event-media/thomas-dubuc/before/Before-Living-room.jpeg',
+        after:   '/event-media/thomas-dubuc/after/Living-room-1.jpeg' },
+
+      // Salle de bain · Projet 1
+      { kind: 'pair',
+        eyebrow: 'Salle de bain · Projet 1',
+        title:   "D'un cube vieillot à un spa lumineux.",
+        sub:     "Douche italienne. Vanité sur mesure. Luminosité travaillée.",
+        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg',
+        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg' },
+
+      // Salle de bain · Projet 2
+      { kind: 'pair',
+        eyebrow: 'Salle de bain · Projet 2',
+        title:   "Spa à la maison.",
+        sub:     "Bain autoportant, douche italienne en verre, plafond mouluré.",
+        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-2-before.jpg',
+        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-2-after.jpg' },
+
+      // Salle de bain · Projet 3
+      { kind: 'pair',
+        eyebrow: 'Salle de bain · Projet 3',
+        title:   "Remise à neuf complète.",
+        sub:     "Plomberie refaite. Finis modernes. Espace optimisé.",
+        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-3-before.jpg',
+        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-3-after.jpg' },
+
+      // Salle de bain · Projet 4
+      { kind: 'pair',
+        eyebrow: 'Salle de bain · Projet 4',
+        title:   "Du fonctionnel à l'élégant.",
+        sub:     "Carreaux grand format. Vanité flottante. Robinetterie noire.",
+        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-4-before.jpg',
+        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-4-after.jpg' },
+
+      // Salle de bain · Projet 5
+      { kind: 'pair',
+        eyebrow: 'Salle de bain · Projet 5',
+        title:   "Chaque centimètre carré, repensé.",
+        sub:     "Optimisation maximale d'un petit volume.",
+        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-5-before.jpg',
+        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-5-after.jpg' },
+
+      // Bonus finished-only hero shots
+      { kind: 'solo',
+        eyebrow: 'Maison Thomas-Dubuc · Cuisine',
+        title:   "La cuisine, refaite à neuf.",
+        sub:     "Îlot central. Quincaillerie noire. Plan de travail en quartz.",
+        src:     '/event-media/thomas-dubuc/after/Kitchen-2.jpeg' },
+
+      { kind: 'solo',
+        eyebrow: 'Maison Thomas-Dubuc · Sous-sol locatif',
+        title:   "Un sous-sol qui paie l'hypothèque.",
+        sub:     "Conversion légale en unité locative — permis obtenu, finitions livrées.",
+        src:     '/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg' },
+
+      { kind: 'solo',
+        eyebrow: 'Maison Thomas-Dubuc · Cour arrière',
+        title:   "L'extérieur, prolongement du salon.",
+        sub:     "Aménagement complet de la cour — gazon, terrasse, intimité.",
+        src:     '/event-media/thomas-dubuc/after/Backyard.jpeg' },
+    ];
+
+    /* Build the slide queue: each pair → 2 slides (avant 5s, après 7s).
+       Solos → 1 slide (6s). */
+    const QUEUE = [];
+    PROJECTS.forEach(p => {
+      if (p.kind === 'pair') {
+        QUEUE.push({
+          src: p.before, tag: 'Avant', tagClass: '',
+          eyebrow: p.eyebrow, title: "Avant qu'on s'en occupe.", sub: '',
+          dur: 5000,
+        });
+        QUEUE.push({
+          src: p.after, tag: 'Après', tagClass: 'after',
+          eyebrow: p.eyebrow, title: p.title, sub: p.sub,
+          dur: 7000,
+        });
+      } else {
+        QUEUE.push({
+          src: p.src, tag: '', tagClass: '',
+          eyebrow: p.eyebrow, title: p.title, sub: p.sub,
+          dur: 6500,
+        });
+      }
+    });
+
+    const STAGE = document.getElementById('stage');
+
+    function buildSlide(s) {
+      const el = document.createElement('section');
+      el.className = 'slide';
+      el.style.setProperty('--dur', (s.dur + 2000) + 'ms'); // ken burns a bit longer than the slide so it doesn't snap
+      el.innerHTML = `
+        <div class="photo"><img src="${s.src}" alt="" loading="lazy"></div>
+        ${s.tag ? `<div class="tag ${s.tagClass}">${s.tag}</div>` : ''}
+        <div class="caption">
+          ${s.eyebrow ? `<div class="eyebrow">${s.eyebrow}</div>` : ''}
+          <h1 class="title">${s.title}</h1>
+          ${s.sub ? `<p class="sub">${s.sub}</p>` : ''}
+        </div>`;
+      return el;
+    }
+
+    QUEUE.forEach(s => STAGE.appendChild(buildSlide(s)));
+
+    const slides = STAGE.querySelectorAll('.slide');
+    let cur = 0;
+    let timer = null;
+
+    function show(i) {
+      slides[cur].classList.remove('is-active');
+      cur = ((i % slides.length) + slides.length) % slides.length;
+      slides[cur].classList.add('is-active');
+      clearTimeout(timer);
+      timer = setTimeout(() => show(cur + 1), QUEUE[cur].dur);
+    }
+    show(0);
+
+    // QR target — pre-fill the tirage form
+    const url = location.origin + '/event';
+    document.getElementById('qr-url').textContent = url.replace(/^https?:\/\//, '');
+    document.getElementById('qr-img').src =
+      'https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&data=' + encodeURIComponent(url);
+
+    // Keyboard shortcuts — F for fullscreen, → / ← for manual step
+    document.addEventListener('keydown', e => {
+      if (e.key === 'f' || e.key === 'F') document.documentElement.requestFullscreen?.();
+      if (e.key === 'Escape') document.exitFullscreen?.();
+      if (e.key === 'ArrowRight') show(cur + 1);
+      if (e.key === 'ArrowLeft')  show(cur - 1);
+    });
+
+    // If anything fails to load, advance past it after a short timeout instead of stalling
+    STAGE.querySelectorAll('img').forEach(img => {
+      img.addEventListener('error', () => {
+        const idx = Array.from(slides).findIndex(s => s.contains(img));
+        if (idx === cur) show(cur + 1);
+      });
+    });
+  </script>
+</body>
+</html>
