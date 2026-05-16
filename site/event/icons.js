@@ -28,6 +28,7 @@
   I.chart      = `<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 17v-5M12 17V8M16 17v-3"/>`;
   I.qr         = `<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3z"/><path d="M20 14v3M14 20h7M20 20v1"/>`;
   I.edit       = `<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>`;
+  I.trash      = `<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"/><path d="M10 11v6M14 11v6"/>`;
   I.gift       = `<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9"/><path d="M12 8v13"/><path d="M12 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/><path d="M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>`;
   I.trophy     = `<path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5a2 2 0 0 0 2 5"/><path d="M16 6h3a2 2 0 0 1-2 5"/><path d="M10 14h4l-1 4h-2l-1-4z"/><path d="M8 21h8"/>`;
 

@@ -20,20 +20,50 @@
   const SUPABASE_ANON_KEY = 'sb_publishable_pKoh315uCCLBMxY0EFSf9g_MyS1nQ_F';
   const NOTIFY_ENDPOINT   = SUPABASE_URL + '/functions/v1/send-event-lead';
   const LIST_ENDPOINT     = SUPABASE_URL + '/functions/v1/list-event-leads';
+  const UPDATE_ENDPOINT   = SUPABASE_URL + '/functions/v1/update-event-lead';
+  const DELETE_ENDPOINT   = SUPABASE_URL + '/functions/v1/delete-event-lead';
+
+  function _sbHeaders(json) {
+    const h = {
+      apikey:        SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+    };
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  }
 
   /* Fetch all event leads stored in Supabase. Used by /admin so the operator
      sees leads from every device that submitted the QR form, not just leads
      stored in this browser's localStorage. */
   async function fetchEventLeads() {
-    const r = await fetch(LIST_ENDPOINT, {
-      headers: {
-        apikey:        SUPABASE_ANON_KEY,
-        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-      },
-    });
+    const r = await fetch(LIST_ENDPOINT, { headers: _sbHeaders(false) });
     if (!r.ok) throw new Error('list-event-leads ' + r.status);
     const data = await r.json();
     return Array.isArray(data.leads) ? data.leads : [];
+  }
+
+  /* Patch a remote lead. `lead` should contain the full desired state — the
+     edge function rebuilds the metadata block from scratch. */
+  async function updateEventLead(customerId, lead) {
+    const r = await fetch(UPDATE_ENDPOINT, {
+      method: 'POST',
+      headers: _sbHeaders(true),
+      body: JSON.stringify({ customerId, lead }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'update-event-lead ' + r.status);
+    return data;
+  }
+
+  async function deleteEventLead(customerId) {
+    const r = await fetch(DELETE_ENDPOINT, {
+      method: 'POST',
+      headers: _sbHeaders(true),
+      body: JSON.stringify({ customerId }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'delete-event-lead ' + r.status);
+    return data;
   }
 
   /* ---------- Segments (3 — used to be 10) ---------- */
@@ -379,7 +409,8 @@
   global.MLP_EVENT = {
     SUPABASE_URL, SUPABASE_ANON_KEY,
     SEGMENTS, GIVEAWAYS, REGIONS, LEAD_GOAL,
-    addLead, updateLead, deleteLead, getLeads, computeScore, fetchEventLeads,
+    addLead, updateLead, deleteLead, getLeads, computeScore,
+    fetchEventLeads, updateEventLead, deleteEventLead,
     setSegment, getSegment, clearSegment,
     drawWinners, getWinners, clearWinners,
     exportCSV, trackStep, getFunnel, wipeAll,

@@ -26,6 +26,41 @@
     .lead-tbl tr:last-child td { border-bottom: 0; }
     .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; background: #f0ead9; color: #5b4a2b; }
     .prize-pill { background: rgba(200,167,102,.18); color: #7a5a1c; font-weight: 700; }
+
+    .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .row-actions button {
+      background: transparent; border: 1px solid rgba(26,18,8,.12);
+      padding: 6px 10px; border-radius: 8px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+      color: #5b4a2b; font-size: 12px;
+    }
+    .row-actions button:hover { border-color: var(--gold); color: var(--terra); }
+    .row-actions .danger:hover { border-color: #c84444; color: #c84444; }
+
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(26,18,8,.55);
+      display: none; place-items: center; z-index: 100;
+      padding: 5vh 5vw; overflow: auto;
+    }
+    .modal-bg.is-open { display: grid; }
+    .modal {
+      background: #fff; color: #1a1208;
+      max-width: 540px; width: 100%;
+      border-radius: 16px; padding: 28px;
+      box-shadow: 0 30px 60px -20px rgba(0,0,0,.4);
+    }
+    .modal h2 { font-family: var(--serif); font-size: 1.5rem; margin: 0 0 18px; }
+    .modal .ev-field { margin-bottom: 14px; }
+    .modal .ev-label { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #5b4a2b; margin-bottom: 6px; }
+    .modal .ev-input, .modal .ev-select {
+      width: 100%; padding: 10px 12px; font-size: 14px;
+      border: 1.5px solid rgba(26,18,8,.15); border-radius: 8px;
+      background: #fff; color: #1a1208; font-family: inherit;
+    }
+    .modal .ev-input:focus, .modal .ev-select:focus { outline: none; border-color: var(--gold); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .modal-actions .spacer { flex: 1; }
+    .modal-error { color: #c84444; font-size: 13px; margin-top: 8px; min-height: 18px; }
   </style>
 </head>
 <body class="theme-light">
@@ -62,7 +97,7 @@
     <div style="overflow-x:auto;">
       <table class="lead-tbl">
         <thead><tr>
-          <th>Nom</th><th>Contact</th><th>Profil</th><th>Région</th><th>Cadeau ciblé</th><th>Date</th>
+          <th>Nom</th><th>Contact</th><th>Profil</th><th>Région</th><th>Cadeau ciblé</th><th>Date</th><th></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -75,6 +110,41 @@
       <a href="/presentation-live" class="ev-btn ev-btn-ghost" target="_blank">Présentation principale</a>
     </div>
   </main>
+
+  <!-- Edit modal -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal">
+      <h2 id="modal-title">Modifier le lead</h2>
+      <input type="hidden" id="m-customerId">
+      <input type="hidden" id="m-leadId">
+      <div class="ev-field">
+        <label class="ev-label" for="m-name">Nom *</label>
+        <input class="ev-input" id="m-name" required>
+      </div>
+      <div class="ev-field">
+        <label class="ev-label" for="m-phone">Téléphone</label>
+        <input class="ev-input" id="m-phone" type="tel">
+      </div>
+      <div class="ev-field">
+        <label class="ev-label" for="m-email">Courriel</label>
+        <input class="ev-input" id="m-email" type="email">
+      </div>
+      <div class="ev-field">
+        <label class="ev-label" for="m-segment">Profil</label>
+        <select class="ev-select" id="m-segment"></select>
+      </div>
+      <div class="ev-field">
+        <label class="ev-label" for="m-region">Région</label>
+        <select class="ev-select" id="m-region"></select>
+      </div>
+      <div class="modal-error" id="m-error"></div>
+      <div class="modal-actions">
+        <button class="ev-btn ev-btn-ghost" id="m-cancel" type="button">Annuler</button>
+        <span class="spacer"></span>
+        <button class="ev-btn ev-btn-primary" id="m-save" type="button">Enregistrer</button>
+      </div>
+    </div>
+  </div>
 
   <div id="footer"></div>
 
@@ -158,15 +228,127 @@
         const seg = MLP_EVENT.SEGMENTS[l.segment] || {};
         const reg = MLP_EVENT.REGIONS[l.region]   || {};
         const g   = MLP_EVENT.GIVEAWAYS[l.giveawayKey] || {};
-        return `<tr>
+        const canRemote = !!l.customerId;
+        return `<tr data-id="${l.id}">
           <td><strong>${l.name || '—'}</strong></td>
           <td><div>${l.phone || ''}</div><div style="color:#5b4a2b;font-size:12px;">${l.email || ''}</div></td>
           <td><span class="pill">${seg.icon ? ic(seg.icon, 14) : ''} ${seg.label || l.segment || '—'}</span></td>
           <td><span class="pill">${ic('mapPin', 14)} ${reg.label || '—'}</span></td>
           <td><span class="pill prize-pill">${ic('gift', 14)} ${g.short || '—'} · ${g.value || 0}&nbsp;$</span></td>
           <td><span style="font-size:12px;color:#5b4a2b;">${fmtDate(l.createdAt)}</span></td>
+          <td>
+            <div class="row-actions">
+              <button data-edit="${l.id}" ${canRemote ? '' : 'disabled title="Pas encore synchronisé"'}>${ic('edit', 12)} Modifier</button>
+              <button class="danger" data-del="${l.id}" ${canRemote ? '' : 'disabled title="Pas encore synchronisé"'}>${ic('trash', 12)} Supprimer</button>
+            </div>
+          </td>
         </tr>`;
       }).join('');
+
+      // Attach handlers
+      rows.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.edit)));
+      rows.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => confirmDelete(b.dataset.del)));
+    }
+
+    /* ---------- Edit + Delete ---------- */
+
+    function leadById(id) { return mergedLeads().find(l => l.id === id); }
+
+    function populateModalSelectors() {
+      const segSel = document.getElementById('m-segment');
+      segSel.innerHTML = '';
+      Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s]) => {
+        const o = document.createElement('option'); o.value = k; o.textContent = s.label;
+        segSel.appendChild(o);
+      });
+      const regSel = document.getElementById('m-region');
+      regSel.innerHTML = '';
+      Object.entries(MLP_EVENT.REGIONS).forEach(([k, r]) => {
+        const o = document.createElement('option'); o.value = k; o.textContent = r.label;
+        regSel.appendChild(o);
+      });
+    }
+    populateModalSelectors();
+
+    function openEdit(leadId) {
+      const lead = leadById(leadId);
+      if (!lead || !lead.customerId) return;
+      document.getElementById('m-leadId').value     = lead.id;
+      document.getElementById('m-customerId').value = lead.customerId;
+      document.getElementById('m-name').value       = lead.name  || '';
+      document.getElementById('m-phone').value      = lead.phone || '';
+      document.getElementById('m-email').value      = lead.email || '';
+      document.getElementById('m-segment').value    = lead.segment || 'proprietaire';
+      document.getElementById('m-region').value     = lead.region  || 'montreal';
+      document.getElementById('m-error').textContent = '';
+      document.getElementById('modal-bg').classList.add('is-open');
+      document.getElementById('m-name').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('modal-bg').classList.remove('is-open');
+    }
+    document.getElementById('m-cancel').onclick = closeModal;
+    document.getElementById('modal-bg').addEventListener('click', e => {
+      if (e.target.id === 'modal-bg') closeModal();
+    });
+
+    document.getElementById('m-save').onclick = async () => {
+      const leadId     = document.getElementById('m-leadId').value;
+      const customerId = document.getElementById('m-customerId').value;
+      const lead       = leadById(leadId);
+      if (!lead) return;
+
+      const segmentKey = document.getElementById('m-segment').value;
+      const regionKey  = document.getElementById('m-region').value;
+      const segment = MLP_EVENT.SEGMENTS[segmentKey] || {};
+      const region  = MLP_EVENT.REGIONS[regionKey]   || {};
+      const giveawayKey   = segment.primaryPrize || lead.giveawayKey || '';
+      const giveaway      = MLP_EVENT.GIVEAWAYS[giveawayKey] || {};
+
+      const updatedLead = Object.assign({}, lead, {
+        name:         document.getElementById('m-name').value.trim(),
+        phone:        document.getElementById('m-phone').value.trim(),
+        email:        document.getElementById('m-email').value.trim(),
+        segment:      segmentKey,
+        segmentLabel: segment.label || '',
+        region:       regionKey,
+        regionLabel:  region.label || '',
+        giveawayKey,
+        giveawayTitle: giveaway.title || '',
+        giveawayValue: giveaway.value || 0,
+      });
+
+      if (!updatedLead.name) {
+        document.getElementById('m-error').textContent = 'Le nom est requis.';
+        return;
+      }
+
+      const saveBtn = document.getElementById('m-save');
+      saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement…';
+      try {
+        await MLP_EVENT.updateEventLead(customerId, updatedLead);
+        MLP_EVENT.updateLead(leadId, updatedLead); // mirror to localStorage if present
+        closeModal();
+        await refreshRemote();
+      } catch (e) {
+        document.getElementById('m-error').textContent = e.message || String(e);
+      } finally {
+        saveBtn.disabled = false; saveBtn.textContent = 'Enregistrer';
+      }
+    };
+
+    async function confirmDelete(leadId) {
+      const lead = leadById(leadId);
+      if (!lead || !lead.customerId) return;
+      if (!confirm(`Supprimer le lead "${lead.name || '—'}"? Cette action est irréversible.`)) return;
+      try {
+        await MLP_EVENT.deleteEventLead(lead.customerId);
+        MLP_EVENT.deleteLead(leadId);  // also drop from localStorage
+        await refreshRemote();
+      } catch (e) {
+        alert('Erreur — ' + (e.message || String(e)));
+      }
     }
 
     ['search','filter-segment','filter-region'].forEach(id => {
