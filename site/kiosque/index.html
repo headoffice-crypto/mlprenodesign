@@ -7,345 +7,504 @@
   <title>Kiosque — MLP</title>
   <link rel="stylesheet" href="/event/event.css">
   <style>
-    /* ----- Kiosk display — predictable, no overlap, broadcast-grade ----- */
-    html, body { height: 100%; overflow: hidden; background: #0b0f17; }
+    :root { --pad: clamp(36px, 4.5vw, 72px); }
+    html, body { height: 100%; overflow: hidden; background: #0b0f17; color: #fff; }
 
-    .stage { position: fixed; inset: 0; }
-
-    .slide {
-      position: absolute; inset: 0;
-      display: grid; grid-template-rows: 1fr auto;   /* media top, text panel bottom */
-      opacity: 0; transition: opacity .9s ease;
+    /* Top chrome */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px var(--pad);
+      font-size: 13px; letter-spacing: .22em; text-transform: uppercase;
+      color: rgba(255,255,255,.6);
       pointer-events: none;
     }
-    .slide.is-active { opacity: 1; pointer-events: auto; }
+    .topbar .brand { color: var(--gold); font-weight: 700; }
+    .topbar .idx   { color: var(--gold); font-family: var(--serif); font-size: 18px; letter-spacing: 0; text-transform: none; }
 
-    /* MEDIA — top 75% of the screen */
-    .media {
-      position: relative; background: #000; overflow: hidden;
+    /* Stage */
+    main.stage {
+      position: fixed; inset: 0;
+      display: grid; grid-template-rows: 1fr auto;
     }
-    .media > img,
-    .media > video {
-      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+    .scene {
+      position: absolute; inset: 0;
+      padding: 90px var(--pad) 110px;
+      display: flex; flex-direction: column;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity .35s ease, transform .35s ease;
+      pointer-events: none;
+      overflow: hidden;
     }
-    /* Avant/Après tag — single image per slide */
-    .media .tag {
+    .scene.is-active { opacity: 1; transform: none; pointer-events: auto; }
+
+    .eyebrow { font-size: 13px; letter-spacing: .3em; text-transform: uppercase; color: var(--gold); }
+    h1.head {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(2.4rem, 5.2vw, 5.2rem);
+      line-height: 1.05; margin: 12px 0 18px;
+      max-width: 22ch;
+    }
+    p.lead {
+      color: rgba(255,255,255,.78);
+      font-size: clamp(1.05rem, 1.4vw, 1.45rem);
+      line-height: 1.5; max-width: 60ch; margin: 0;
+    }
+
+    /* Start screen: 3 large segment buttons */
+    .pick-grid {
+      display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 22px; flex: 1; min-height: 0; margin-top: 28px;
+    }
+    @media (max-width: 900px) { .pick-grid { grid-template-columns: 1fr; gap: 14px; } }
+    .pick {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 22px; padding: 40px 28px;
+      background: rgba(255,255,255,.04);
+      border: 1.5px solid rgba(200,167,102,.28);
+      border-radius: 22px;
+      color: #fff; text-align: center;
+      cursor: pointer; user-select: none;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+    .pick:hover, .pick:focus-visible {
+      border-color: var(--gold);
+      background: rgba(200,167,102,.08);
+      transform: translateY(-2px);
+      outline: none;
+    }
+    .pick .pick-ic {
+      width: clamp(96px, 9vw, 120px); height: clamp(96px, 9vw, 120px);
+      border-radius: 26px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center; color: #1a1208;
+    }
+    .pick .pick-ic .icon { width: 56%; height: 56%; }
+    .pick h2 { font-family: var(--serif); font-size: clamp(1.6rem, 2.4vw, 2.2rem); margin: 0; }
+    .pick p  { color: rgba(255,255,255,.6); font-size: .95rem; margin: 0; max-width: 24ch; }
+
+    /* Pitch screen */
+    .pitch-grid {
+      display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px;
+      flex: 1; min-height: 0; align-items: center;
+    }
+    @media (max-width: 900px) { .pitch-grid { grid-template-columns: 1fr; gap: 24px; } }
+    .pitch-icon {
+      width: clamp(160px, 18vw, 260px); height: clamp(160px, 18vw, 260px);
+      border-radius: 38px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center; color: #1a1208;
+      box-shadow: 0 30px 70px -20px rgba(200,167,102,.4);
+      justify-self: center;
+    }
+    .pitch-icon .icon { width: 56%; height: 56%; }
+    .bullets { display: grid; gap: 16px; margin-top: 22px; }
+    .bullets li {
+      display: grid; grid-template-columns: 28px 1fr; gap: 14px;
+      align-items: start;
+      list-style: none;
+      font-size: clamp(1.05rem, 1.3vw, 1.3rem);
+      color: rgba(255,255,255,.85); line-height: 1.45;
+    }
+    .bullets li::before {
+      content: ""; width: 20px; height: 2px; background: var(--gold);
+      margin-top: 14px; border-radius: 2px;
+    }
+
+    /* Solo image */
+    .solo {
+      flex: 1; min-height: 0; position: relative;
+      border-radius: 18px; overflow: hidden; background: #000;
+      margin-top: 14px;
+    }
+    .solo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .solo .tag {
       position: absolute; top: 22px; left: 22px;
-      padding: 9px 18px; border-radius: 999px;
+      padding: 9px 20px; border-radius: 999px;
       background: rgba(0,0,0,.72); color: #fff;
       font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700;
       z-index: 2;
     }
-    .media .tag.after { background: var(--gold); color: #1a1208; }
+    .solo .tag.after { background: var(--gold); color: #1a1208; }
 
-    /* TEXT PANEL — bottom strip, fixed-ish height */
-    .panel {
-      background: linear-gradient(135deg, #0b0f17 0%, #1a1208 100%);
-      padding: clamp(28px, 3.2vw, 48px) clamp(36px, 5vw, 80px);
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: clamp(24px, 4vw, 56px);
-      align-items: center;
-      border-top: 2px solid var(--gold);
-    }
+    /* Results grid (Thomas-Dubuc outcome) */
+    .results { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; margin-top: 24px; flex: 0 0 auto; }
+    @media (max-width: 700px) { .results { grid-template-columns: 1fr; } }
+    .result-card { padding: 22px 26px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(200,167,102,.25); }
+    .result-card .n { font-family: var(--serif); font-size: clamp(2rem, 3.4vw, 3rem); color: var(--gold); line-height: 1; }
+    .result-card .l { font-size: 13px; color: rgba(255,255,255,.78); margin-top: 8px; line-height: 1.4; }
 
-    .panel .text {
-      display: flex; flex-direction: column; gap: 8px;
-      min-width: 0;
+    /* Prize reveal */
+    .prize {
+      display: grid; align-content: center; justify-items: center;
+      gap: 24px; text-align: center; flex: 1; min-height: 0;
     }
-    .panel .brand {
-      display: flex; align-items: center; gap: 10px;
-      color: var(--ink-soft); font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
-    }
-    .panel .brand .logo {
-      width: 26px; height: 26px; border-radius: 7px;
-      background: linear-gradient(135deg, var(--gold), var(--terra));
-      display: grid; place-items: center; font-weight: 800; color: #1a1208; font-size: 13px;
-    }
-    .panel .eyebrow {
-      color: var(--gold);
-      font-size: clamp(11px, 1vw, 13px);
-      letter-spacing: .32em; text-transform: uppercase; font-weight: 700;
-    }
-    .panel h1 {
-      font-family: var(--serif); font-weight: 600;
-      font-size: clamp(1.8rem, 3.4vw, 3.4rem);
-      line-height: 1.1;
-      margin: 4px 0 0;
-      color: #fff;
-      max-width: 28ch;
-    }
-    .panel .sub {
-      font-size: clamp(.95rem, 1.15vw, 1.15rem);
+    .prize .pz-tag {
+      font-size: 13px; letter-spacing: .26em; text-transform: uppercase;
       color: rgba(255,255,255,.7);
-      max-width: 60ch;
-      margin: 0;
-      line-height: 1.45;
+      padding: 8px 18px; border: 1px solid rgba(200,167,102,.35); border-radius: 999px;
     }
+    .prize .pz-icon {
+      width: clamp(120px, 12vw, 170px); height: clamp(120px, 12vw, 170px);
+      border-radius: 32px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center; color: #1a1208;
+      box-shadow: 0 30px 70px -20px rgba(200,167,102,.45);
+    }
+    .prize .pz-icon .icon { width: 56%; height: 56%; }
+    .prize .pz-title {
+      font-family: var(--serif); font-size: clamp(2.2rem, 4.4vw, 4rem); line-height: 1.05;
+      margin: 0; max-width: 22ch;
+    }
+    .prize .pz-value {
+      font-family: var(--serif); font-size: clamp(3rem, 6.4vw, 5.4rem); line-height: 1;
+      color: var(--gold);
+    }
+    .prize .pz-when { color: rgba(255,255,255,.65); font-size: clamp(.95rem, 1.2vw, 1.15rem); }
+    /* staggered entrance when scene becomes active */
+    .scene.is-active .prize .pz-tag   { animation: rise .5s ease-out .1s both; }
+    .scene.is-active .prize .pz-icon  { animation: pop  .55s cubic-bezier(.4,1.6,.6,1) .25s both; }
+    .scene.is-active .prize .pz-title { animation: rise .5s ease-out .55s both; }
+    .scene.is-active .prize .pz-value { animation: rise .5s ease-out .85s both; }
+    .scene.is-active .prize .pz-when  { animation: rise .5s ease-out 1.05s both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes pop  { 0% { opacity: 0; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
 
-    .panel .qr {
-      display: flex; align-items: center; gap: 18px;
-      padding: 14px 18px;
-      background: rgba(200,167,102,.08);
-      border: 1px solid rgba(200,167,102,.32);
-      border-radius: 14px;
-      flex-shrink: 0;
+    /* CTA: QR + manual button */
+    .cta-grid {
+      display: grid; grid-template-columns: 1fr auto; gap: 56px; align-items: center;
+      flex: 1; min-height: 0;
     }
-    .panel .qr img {
-      width: clamp(96px, 9vw, 130px);
-      height: clamp(96px, 9vw, 130px);
-      background: #fff; padding: 6px; border-radius: 10px;
+    @media (max-width: 900px) { .cta-grid { grid-template-columns: 1fr; } }
+    .qr-box {
+      background: #fff; color: #1a1208; padding: 26px;
+      border-radius: 22px; display: grid; gap: 14px; justify-items: center; text-align: center;
     }
-    .panel .qr-text { display: flex; flex-direction: column; gap: 4px; }
-    .panel .qr-cta {
-      color: var(--gold); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
-    }
-    .panel .qr-url {
-      font-family: 'JetBrains Mono', monospace; font-size: clamp(13px, 1vw, 15px); color: #fff;
-    }
-    .panel .qr-tip {
-      font-size: 11px; color: var(--ink-soft); letter-spacing: .08em;
-    }
+    .qr-box img { width: clamp(220px, 24vw, 320px); height: auto; aspect-ratio: 1/1; }
+    .qr-box .qr-cta { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--terra); font-weight: 700; }
+    .qr-box .qr-url { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+    .cta-actions { display: grid; gap: 14px; }
+    .cta-actions .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .cta-or { color: rgba(255,255,255,.5); font-size: 13px; letter-spacing: .26em; text-transform: uppercase; }
 
-    /* Stack on portrait / narrow */
-    @media (max-width: 900px) {
-      .slide { grid-template-rows: 60vh auto; }
-      .panel { grid-template-columns: 1fr; gap: 18px; }
-      .panel .qr { align-self: flex-start; }
+    /* Bottom navigation bar */
+    .footbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px var(--pad);
+      gap: 12px;
     }
+    .footbar .left, .footbar .right { display: flex; gap: 10px; }
+    .footbar .ev-btn { font-size: 14px; padding: 12px 22px; }
+    .footbar .ev-btn-xl { padding: 18px 30px; font-size: 16px; }
 
-    /* Progress bar — top edge */
-    .progress {
-      position: fixed; top: 0; left: 0; height: 4px; background: var(--gold);
-      width: 0%; transition: width .2s linear; z-index: 50;
-    }
-
-    /* Operator controls — always visible, top-right */
-    .ops {
-      position: fixed; top: 16px; right: 16px;
-      display: flex; gap: 6px; z-index: 100;
-      opacity: .55; transition: opacity .2s ease;
-    }
-    .ops:hover { opacity: 1; }
-    .ops button, .ops a {
-      background: rgba(0,0,0,.55);
-      border: 1px solid rgba(255,255,255,.18);
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      letter-spacing: .14em; text-transform: uppercase;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      font-family: inherit;
-    }
-    .ops button:hover, .ops a:hover { background: rgba(0,0,0,.8); border-color: var(--gold); color: var(--gold); }
-
-    /* Slide index — bottom-right, subtle */
-    .index {
-      position: fixed; bottom: 14px; right: 18px;
-      font-family: var(--serif); color: var(--gold); font-size: 14px;
-      z-index: 40; opacity: .7;
-    }
+    /* When the operator hits F for fullscreen */
+    .clean .topbar, .clean .footbar { display: none; }
+    .clean .scene { padding-top: 60px; padding-bottom: 60px; }
   </style>
 </head>
 <body>
-  <div class="progress" id="progress"></div>
-
-  <nav class="ops">
-    <button id="pause" type="button"></button>
-    <button id="prev"  type="button"></button>
-    <button id="next"  type="button"></button>
-    <button id="fs"    type="button"></button>
-    <a href="/event-dashboard" id="back"></a>
-  </nav>
+  <div class="topbar">
+    <div class="brand">MLP · Kiosque</div>
+    <div class="idx" id="topidx"></div>
+  </div>
 
   <main class="stage" id="stage"></main>
 
-  <div class="index"><span id="cur">1</span> / <span id="tot">1</span></div>
+  <nav class="footbar">
+    <div class="left">
+      <button class="ev-btn ev-btn-ghost" id="btn-restart" type="button">↺ Recommencer</button>
+      <button class="ev-btn ev-btn-outline" id="btn-back" type="button">← Précédent</button>
+    </div>
+    <div class="right">
+      <button class="ev-btn ev-btn-ghost" id="btn-fs" type="button">⛶</button>
+      <button class="ev-btn ev-btn-primary ev-btn-xl" id="btn-next" type="button">Continuer →</button>
+    </div>
+  </nav>
 
-  <script src="/lib/mediaAssets.js"></script>
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 14 });
-    document.getElementById('pause').innerHTML = ic('pause', 14) + 'Pause';
-    document.getElementById('prev').innerHTML  = ic('chevronLeft',  14);
-    document.getElementById('next').innerHTML  = ic('chevronRight', 14);
-    document.getElementById('fs').innerHTML    = ic('fullscreen', 14) + 'Plein écran';
-    document.getElementById('back').innerHTML  = ic('arrowLeft', 14) + 'Tableau de bord';
+    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 20 });
 
-    const M = window.MLP_MEDIA;
-    const SLIDE_MS = 7000;
-    const qrUrl = location.origin + '/diagnostic';
-    const qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=0&data=' + encodeURIComponent(qrUrl);
+    /* ----- Step model ----- */
+    // The deck is built per-segment when the presenter picks the audience.
+    // Steps reference reusable scene builders below.
 
-    // Source pairs — each "ba" entry expands into two sequential slides
-    // (Avant alone, then Après alone). Never both at once.
-    const source = [
-      { type: 'single', media: '/event-media/thomas-dubuc/after/Living-room-1.jpeg',
-        eyebrow: 'Pour les propriétaires',
-        title:   'Votre maison vaut plus que vous pensez.',
-        sub:     'Et son sous-sol cache probablement un revenu mensuel.' },
+    const PRIZE_ICON = {
+      'plan-optimisation':  'layers',
+      'feasibility-coord':  'shieldCheck',
+      'roi-evaluation':     'trendingUp',
+      'kitchen-island':     'chefHat',
+      'bath-shower':        'bath',
+      'redesign':           'sparkle',
+      'gift-1000':          'gift',
+      'gift-2000':          'gift',
+    };
 
-      { type: 'ba',
-        room: 'Salon principal',
-        before: '/event-media/thomas-dubuc/before/Before-Living-room.jpeg',
-        after:  '/event-media/thomas-dubuc/after/Living-room-1.jpeg',
-        beforeTitle: 'Voici comment il était.',
-        beforeSub:   'Salon principal, état d\'origine. Avant qu\'on s\'en occupe.',
-        afterTitle:  'Voici ce qu\'il est devenu.',
-        afterSub:    'Mêmes murs. Autre maison.' },
-
-      { type: 'single', media: '/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg',
-        eyebrow: 'Pour les investisseurs',
-        title:   'Vos murs cachent des revenus.',
-        sub:     'Conversion légale, agrandissement, optimisation. Nous trouvons les revenus que personne n\'a vus.' },
-
-      { type: 'ba',
-        room: 'Façade — Thomas-Dubuc',
-        before: '/event-media/thomas-dubuc/before/Before-frontage.jpeg',
-        after:  '/event-media/thomas-dubuc/after/Frontage-1.jpeg',
-        beforeTitle: 'La façade, au moment de l\'achat.',
-        beforeSub:   'Sous-évaluée. Sous-utilisée. Sans permis pour l\'unité du bas.',
-        afterTitle:  'La même façade, aujourd\'hui.',
-        afterSub:    '+ valeur de revente. + revenus locatifs. + qualité de vie.' },
-
-      { type: 'single', media: '/event-media/thomas-dubuc/after/Kitchen-2.jpeg',
+    const AUDIENCE_PITCH = {
+      acheteur: {
         eyebrow: 'Pour les acheteurs',
-        title:   'Avant de signer, on regarde avec vous.',
-        sub:     'Vous évitez les pièges. Vous payez le bon prix. Vous arrivez à la négociation en position de force.' },
+        head:    'On regarde la propriété avant que vous signiez.',
+        bullets: [
+          "Accompagnement côté construction et rénovation — vous savez ce qui se cache derrière les murs.",
+          "Étude de faisabilité auprès de la ville — permis, conversions, agrandissements.",
+          "Vous arrivez à la négociation en position de force.",
+        ],
+        icon: 'key',
+      },
+      investisseur: {
+        eyebrow: 'Pour les investisseurs',
+        head:    'On maximise votre rendement.',
+        bullets: [
+          "Stratégies de rénovation pour augmenter les revenus locatifs.",
+          "Optimisation des unités existantes et création de nouvelles unités légales.",
+          "Gestion locative — votre portefeuille travaille pendant que vous dormez.",
+        ],
+        icon: 'trendingUp',
+      },
+      proprietaire: {
+        eyebrow: 'Pour les propriétaires',
+        head:    'On augmente la valeur de votre propriété.',
+        bullets: [
+          "Fonctionnalité — vous habitez mieux dans la même maison.",
+          "Valeur de revente — chaque dollar de rénovation devrait en rapporter trois.",
+          "Conversion en revenu — sous-sol, agrandissement, garderie, location.",
+        ],
+        icon: 'home',
+      },
+    };
 
-      { type: 'video', media: M.pickFeaturedVideo().src,
-        eyebrow: 'Maison Thomas-Dubuc',
-        title:   'Une transformation complète.',
-        sub:     'Étage par étage — Montréal.' },
+    /* ----- State ----- */
+    let segment = null;
+    let stepIndex = 0;
+    let steps = [];
 
-      { type: 'prize-intro', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'plan-optimisation' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'feasibility-coord' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'roi-evaluation' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'kitchen-island' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'bath-shower' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'redesign' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'gift-1000' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'gift-2000' },
+    /* ----- Build the deck for a given segment ----- */
+    function buildSteps(seg) {
+      const segDef   = MLP_EVENT.SEGMENTS[seg];
+      const groupKey = segDef ? segDef.group : 'A';
+      const prizes   = Object.entries(MLP_EVENT.GIVEAWAYS)
+        .filter(([, p]) => p.group === groupKey)
+        .map(([k, p]) => Object.assign({ key: k }, p));
 
-      { type: 'single', media: '/event-media/thomas-dubuc/after/Backyard.jpeg',
-        eyebrow: 'Diagnostic + tirage · 30 secondes',
-        title:   'Scannez. Choisissez votre situation. Participez.',
-        sub:     'Trois questions, trois boutons. Vous voyez ce qu\'on peut faire pour vous, et vous êtes inscrit au tirage.' },
-    ];
+      const out = [
+        { kind: 'pitch',           segment: seg },
+        { kind: 'thomas-avant'                  },
+        { kind: 'thomas-apres'                  },
+        { kind: 'thomas-results'                },
+        { kind: 'bath-avant'                    },
+        { kind: 'bath-apres'                    },
+        { kind: 'prizes-intro',    segment: seg, groupKey, prizes },
+      ];
+      prizes.forEach((p, i) => out.push({ kind: 'prize', prize: p, i, total: prizes.length, groupKey }));
+      out.push({ kind: 'cta', segment: seg });
+      return out;
+    }
 
-    // Expand each "ba" entry into two single-image slides (Avant, then Après).
-    // Expand "prize-intro" and "prize" using MLP_EVENT.GIVEAWAYS so the kiosque
-    // shows one cadeau per slide, in sync with the rest of the ecosystem.
-    const slides = [];
-    source.forEach(s => {
-      if (s.type === 'ba') {
-        slides.push({ type: 'single', media: s.before, tag: 'avant',
-          eyebrow: s.room + ' — Avant',
-          title:   s.beforeTitle, sub: s.beforeSub });
-        slides.push({ type: 'single', media: s.after,  tag: 'apres',
-          eyebrow: s.room + ' — Après',
-          title:   s.afterTitle,  sub: s.afterSub });
-      } else if (s.type === 'prize-intro') {
-        slides.push({ type: 'single', media: s.media,
-          eyebrow: 'Cadeaux à gagner · Tirage à la fin du mois de mai',
-          title:   'Huit cadeaux. 14 000 $ au total.',
-          sub:     'Tirage A pour acheteurs et investisseurs · 6 000 $. Tirage B pour propriétaires et rénovateurs · 8 000 $.' });
-      } else if (s.type === 'prize') {
-        const g  = MLP_EVENT.GIVEAWAYS[s.prizeKey] || {};
-        const gr = MLP_EVENT.GROUPS[g.group] || {};
-        const eyebrow = `${gr.short || 'Cadeau'} · ${gr.audience || ''} · ${g.value || 0} $`;
-        slides.push({ type: 'single', media: s.media,
-          eyebrow, title: g.title || '', sub: 'Tirage à la fin du mois de mai.' });
-      } else {
-        slides.push(s);
-      }
-    });
+    /* ----- Renderers ----- */
+    const STAGE = document.getElementById('stage');
 
-    const stage = document.getElementById('stage');
-    document.getElementById('tot').textContent = slides.length;
-    slides.forEach((s, i) => stage.appendChild(buildSlide(s, i)));
+    function setScene(html, { hideContinue = false, restartLabel = null } = {}) {
+      // Replace stage content; let the new scene become active on the next tick.
+      STAGE.innerHTML = `<section class="scene">${html}</section>`;
+      requestAnimationFrame(() => {
+        const s = STAGE.querySelector('.scene');
+        if (s) s.classList.add('is-active');
+      });
+      document.getElementById('btn-next').style.display = hideContinue ? 'none' : '';
+      if (restartLabel) document.getElementById('btn-restart').textContent = restartLabel;
+    }
 
-    function buildSlide(s, i) {
-      const el = document.createElement('section');
-      el.className = 'slide' + (i === 0 ? ' is-active' : '');
+    function renderStart() {
+      const cards = Object.entries(MLP_EVENT.SEGMENTS).map(([k, s]) => `
+        <button class="pick" data-pick="${k}">
+          <span class="pick-ic">${ic(s.icon, 72)}</span>
+          <h2>${s.label}</h2>
+          <p>${s.tagline || ''}</p>
+        </button>`).join('');
+      setScene(`
+        <div class="eyebrow">Pour commencer</div>
+        <h1 class="head">Qui êtes-vous?</h1>
+        <p class="lead">Choisissez la réponse qui vous correspond le mieux. On adapte la présentation.</p>
+        <div class="pick-grid">${cards}</div>
+      `, { hideContinue: true });
+      STAGE.querySelectorAll('[data-pick]').forEach(b =>
+        b.addEventListener('click', () => start(b.dataset.pick))
+      );
+      document.getElementById('btn-back').style.visibility = 'hidden';
+    }
 
-      const tagHtml = s.tag === 'avant' ? `<div class="tag">Avant</div>`
-                    : s.tag === 'apres' ? `<div class="tag after">Après</div>`
-                    : '';
+    function renderPitch(step) {
+      const a = AUDIENCE_PITCH[step.segment] || AUDIENCE_PITCH.proprietaire;
+      const bullets = a.bullets.map(b => `<li>${b}</li>`).join('');
+      setScene(`
+        <div class="eyebrow">${a.eyebrow}</div>
+        <h1 class="head">${a.head}</h1>
+        <div class="pitch-grid">
+          <ul class="bullets">${bullets}</ul>
+          <div class="pitch-icon">${ic(a.icon, 120)}</div>
+        </div>
+      `);
+    }
 
-      const mediaInner = (s.type === 'video')
-        ? `<video src="${s.media}" autoplay muted loop playsinline></video>`
-        : `<img src="${s.media}" alt="">`;
-      const mediaHtml = `<div class="media">${mediaInner}${tagHtml}</div>`;
+    function renderSolo(eyebrow, head, lead, src, tag, tagClass) {
+      setScene(`
+        <div class="eyebrow">${eyebrow}</div>
+        <h1 class="head">${head}</h1>
+        ${lead ? `<p class="lead">${lead}</p>` : ''}
+        <div class="solo">
+          <img src="${src}" alt="">
+          <div class="tag ${tagClass || ''}">${tag}</div>
+        </div>
+      `);
+    }
 
-      el.innerHTML = mediaHtml + `
-        <div class="panel">
-          <div class="text">
-            <div class="brand">
-              <div class="logo">M</div>
-              <span>MLP · Gestion · Accompagnement · Rénovation</span>
+    function renderResults() {
+      setScene(`
+        <div class="eyebrow">Maison Thomas-Dubuc · Ce qu'on a livré</div>
+        <h1 class="head">Trois étages. Deux unités. Un patrimoine.</h1>
+        <div class="results">
+          <div class="result-card"><div class="n">+ 38 %</div><div class="l">Valeur de revente estimée</div></div>
+          <div class="result-card"><div class="n">3 200 $</div><div class="l">Revenu locatif net par mois</div></div>
+          <div class="result-card"><div class="n">Permis</div><div class="l">Conversion légale obtenue auprès de la ville</div></div>
+          <div class="result-card"><div class="n">Clé en main</div><div class="l">Plans, permis, chantier — un seul partenaire</div></div>
+        </div>
+      `);
+    }
+
+    function renderPrizesIntro(step) {
+      const gr = MLP_EVENT.GROUPS[step.groupKey] || {};
+      setScene(`
+        <div class="eyebrow">Cadeaux à gagner · Tirage à la fin du mois de mai</div>
+        <h1 class="head">${gr.short} · ${gr.total.toLocaleString('fr-CA')}&nbsp;$ à gagner.</h1>
+        <p class="lead">${gr.audience}. ${step.prizes.length} cadeaux dans ce tirage. Vous êtes inscrit dès que vous remplissez le formulaire.</p>
+      `);
+    }
+
+    function renderPrize(step) {
+      const p  = step.prize;
+      const gr = MLP_EVENT.GROUPS[step.groupKey] || {};
+      setScene(`
+        <div class="eyebrow">Cadeau ${step.i + 1} sur ${step.total} · ${gr.short || ''}</div>
+        <div class="prize">
+          <div class="pz-tag">${gr.audience || ''}</div>
+          <div class="pz-icon">${ic(PRIZE_ICON[p.key] || 'gift', 96)}</div>
+          <div class="pz-title">${p.title}</div>
+          <div class="pz-value">${p.value.toLocaleString('fr-CA')}&nbsp;$</div>
+          <div class="pz-when">Tirage à la fin du mois de mai</div>
+        </div>
+      `);
+    }
+
+    function renderCTA(step) {
+      const url = location.origin + '/event?seg=' + encodeURIComponent(step.segment);
+      const qr  = 'https://api.qrserver.com/v1/create-qr-code/?size=512x512&margin=0&data=' + encodeURIComponent(url);
+      const manualUrl = '/formulaire-manuel?seg=' + encodeURIComponent(step.segment);
+      setScene(`
+        <div class="eyebrow">Pour participer au tirage</div>
+        <h1 class="head">Inscrivez-vous en 30 secondes.</h1>
+        <div class="cta-grid">
+          <div class="cta-actions">
+            <p class="lead">Scannez le QR avec votre téléphone — vous remplissez vous-même.</p>
+            <div class="cta-or">— ou —</div>
+            <div class="btn-row">
+              <a class="ev-btn ev-btn-primary ev-btn-xl" href="${manualUrl}" target="_blank" rel="noopener">
+                Je vous inscris pour vous
+              </a>
             </div>
-            <div class="eyebrow">${s.eyebrow}</div>
-            <h1>${s.title}</h1>
-            ${s.sub ? `<p class="sub">${s.sub}</p>` : ''}
           </div>
-          <div class="qr">
-            <img src="${qrImg}" alt="QR — Diagnostic">
-            <div class="qr-text">
-              <div class="qr-cta">Scannez pour participer</div>
-              <div class="qr-url">${qrUrl.replace(/^https?:\/\//, '')}</div>
-              <div class="qr-tip">Diagnostic + tirage · 30 s</div>
-            </div>
+          <div class="qr-box">
+            <img src="${qr}" alt="QR — inscription">
+            <div class="qr-cta">Scannez pour participer</div>
+            <div class="qr-url">${url.replace(/^https?:\/\//,'')}</div>
           </div>
-        </div>`;
-      return el;
+        </div>
+      `, { hideContinue: true, restartLabel: '↺ Nouvel invité' });
     }
 
-    let idx = 0, paused = false, t0 = performance.now();
-
-    function go(n) {
-      stage.children[idx].classList.remove('is-active');
-      idx = (n + slides.length) % slides.length;
-      stage.children[idx].classList.add('is-active');
-      document.getElementById('cur').textContent = idx + 1;
-      const v = stage.children[idx].querySelector('video');
-      if (v) { v.currentTime = 0; v.play().catch(() => {}); }
-      t0 = performance.now();
-    }
-    function loop() {
-      if (!paused) {
-        const e = performance.now() - t0;
-        document.getElementById('progress').style.width = Math.min(100, (e / SLIDE_MS) * 100) + '%';
-        if (e >= SLIDE_MS) go(idx + 1);
+    /* ----- Step dispatch ----- */
+    function renderStep() {
+      const step = steps[stepIndex];
+      if (!step) return;
+      switch (step.kind) {
+        case 'pitch':          renderPitch(step); break;
+        case 'thomas-avant':
+          renderSolo('Étude de cas · Maison Thomas-Dubuc',
+            "Voici la maison quand elle est arrivée chez nous.",
+            "Sous-évaluée. Sans permis pour le sous-sol. Une opportunité que personne d'autre n'avait vue.",
+            '/event-media/thomas-dubuc/before/Before-frontage.jpeg', 'Avant'); break;
+        case 'thomas-apres':
+          renderSolo('Maison Thomas-Dubuc · Après',
+            "Et voici ce qu'on en a fait.",
+            "La même maison. Un patrimoine.",
+            '/event-media/thomas-dubuc/after/Frontage-1.jpeg', 'Après', 'after'); break;
+        case 'thomas-results': renderResults(); break;
+        case 'bath-avant':
+          renderSolo('Salle de bain · Avant',
+            "Voici la salle de bain qu'on a reçue.",
+            "Surface utile gaspillée. Plomberie d'origine. Aucune luminosité.",
+            '/css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg', 'Avant'); break;
+        case 'bath-apres':
+          renderSolo('Salle de bain · Après',
+            "Et voici la transformation.",
+            "Douche italienne. Vanité sur mesure. Luminosité travaillée.",
+            '/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg', 'Après', 'after'); break;
+        case 'prizes-intro':   renderPrizesIntro(step); break;
+        case 'prize':          renderPrize(step); break;
+        case 'cta':            renderCTA(step); break;
       }
-      requestAnimationFrame(loop);
+      document.getElementById('topidx').textContent = `${stepIndex + 1} / ${steps.length}`;
+      document.getElementById('btn-back').style.visibility = stepIndex === 0 ? 'hidden' : '';
     }
 
-    const pauseBtn = document.getElementById('pause');
-    pauseBtn.addEventListener('click', () => {
-      paused = !paused;
-      pauseBtn.innerHTML = paused ? ic('play', 14) + 'Reprendre' : ic('pause', 14) + 'Pause';
-    });
-    document.getElementById('next').addEventListener('click', () => go(idx + 1));
-    document.getElementById('prev').addEventListener('click', () => go(idx - 1));
-    document.getElementById('fs').addEventListener('click', () => {
+    function start(seg) {
+      segment = seg;
+      MLP_EVENT.setSegment(seg);
+      MLP_EVENT.trackStep('kiosque-pick-' + seg);
+      steps = buildSteps(seg);
+      stepIndex = 0;
+      renderStep();
+    }
+
+    function reset() {
+      segment = null;
+      steps = [];
+      stepIndex = 0;
+      document.getElementById('btn-restart').textContent = '↺ Recommencer';
+      document.getElementById('topidx').textContent = '';
+      renderStart();
+    }
+
+    /* ----- Nav ----- */
+    document.getElementById('btn-next').onclick = () => {
+      if (!steps.length) return;
+      if (stepIndex < steps.length - 1) { stepIndex++; renderStep(); }
+    };
+    document.getElementById('btn-back').onclick = () => {
+      if (!steps.length) return;
+      if (stepIndex > 0) { stepIndex--; renderStep(); }
+    };
+    document.getElementById('btn-restart').onclick = reset;
+    document.getElementById('btn-fs').onclick = () => {
+      document.body.classList.toggle('clean');
       if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
       else document.exitFullscreen?.();
-    });
+    };
     document.addEventListener('keydown', e => {
-      if (e.key === 'ArrowRight') go(idx + 1);
-      if (e.key === 'ArrowLeft')  go(idx - 1);
-      if (e.key === ' ') { e.preventDefault(); pauseBtn.click(); }
-      if (e.key === 'f' || e.key === 'F') document.getElementById('fs').click();
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault(); document.getElementById('btn-next').click();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        document.getElementById('btn-back').click();
+      } else if (e.key === 'f' || e.key === 'F') {
+        document.getElementById('btn-fs').click();
+      } else if (e.key === 'Escape') {
+        document.body.classList.remove('clean');
+      }
     });
 
-    requestAnimationFrame(loop);
-    MLP_EVENT.trackStep('kiosk-view');
+    /* ----- Boot ----- */
+    reset();
   </script>
 </body>
 </html>

@@ -70,11 +70,14 @@
     document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 2 · Saisie manuelle', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
+    // Allow ?seg= URL prefill (from /kiosque "Je vous inscris" handoff)
+    const urlSeg = new URLSearchParams(location.search).get('seg');
+    let segment = (urlSeg && MLP_EVENT.SEGMENTS[urlSeg]) ? urlSeg : 'proprietaire';
+
     const picker = document.getElementById('seg-picker');
-    let segment = 'proprietaire';
-    Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s], i) => {
+    Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s]) => {
       const l = document.createElement('label');
-      l.innerHTML = `<input type="radio" name="seg" value="${k}" ${i === 0 ? 'checked' : ''}><span class="pad"><span class="ic">${MLP_ICONS.svg(s.icon, { size: 20 })}</span><span class="lbl">${s.label}</span></span>`;
+      l.innerHTML = `<input type="radio" name="seg" value="${k}" ${k === segment ? 'checked' : ''}><span class="pad"><span class="ic">${MLP_ICONS.svg(s.icon, { size: 20 })}</span><span class="lbl">${s.label}</span></span>`;
       l.querySelector('input').addEventListener('change', e => { segment = e.target.value; });
       picker.appendChild(l);
     });
