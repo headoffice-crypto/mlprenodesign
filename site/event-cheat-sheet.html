@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aide-mémoire de la soirée — MLP</title>
   <link rel="stylesheet" href="/event/event.css">
@@ -28,7 +29,7 @@
   <div id="header" class="no-print"></div>
 
   <main class="ev-wrap ev-section">
-    <div class="ev-eyebrow">Soirée Bamiléké · MLP</div>
+    <div class="ev-eyebrow">Soirée MLP</div>
     <h1 class="ev-h1">Aide-mémoire de la soirée</h1>
     <p class="ev-lead">Une page. Cinq étapes. Trois segments. Six prix.</p>
 
@@ -146,7 +147,7 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Aide-mémoire' });
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Aide-mémoire', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
     const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 16 });

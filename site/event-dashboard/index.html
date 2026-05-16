@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tableau de bord — MLP</title>
   <link rel="stylesheet" href="/event/event.css">
@@ -66,7 +67,7 @@
       <div class="clock" id="clock">--:--</div>
       <div class="date" id="date"></div>
 
-      <h1>Soirée Bamiléké · MLP</h1>
+      <h1>Soirée MLP</h1>
       <p>Cinq étapes, un bouton à la fois. Le mode guidé vous indique exactement quoi faire et quand — sans rien à mémoriser.</p>
 
       <div class="cta-row">
@@ -89,7 +90,7 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Centre de commande' });
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Centre de commande', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
     function tick() {

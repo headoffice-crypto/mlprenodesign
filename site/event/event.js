@@ -270,9 +270,13 @@
 
   function renderHeader(opts) {
     opts = opts || {};
+    // For operator pages, opts.operator===true links the brand back to /event-dashboard.
+    // For lead-facing pages (default), the brand links to the public homepage so leads
+    // can't navigate into the operator workspace from the QR-landed flow.
+    const href = opts.operator ? '/event-dashboard' : '/';
     return `
       <header class="ev-header">
-        <a class="ev-brand" href="/event-dashboard" style="text-decoration:none;color:inherit;">
+        <a class="ev-brand" href="${href}" style="text-decoration:none;color:inherit;">
           <div class="ev-logo">M</div>
           <div>
             <div class="ev-brand-name">MLP</div>

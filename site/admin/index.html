@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CRM · Tableau de leads — MLP</title>
   <link rel="stylesheet" href="/event/event.css">
@@ -143,7 +144,7 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 5 · CRM' });
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 5 · CRM', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
     const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 16 });
     document.getElementById('btn-test').innerHTML = ic('send', 16) + 'Envoyer un test';

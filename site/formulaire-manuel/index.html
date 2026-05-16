@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Saisie manuelle — MLP</title>
   <link rel="stylesheet" href="/event/event.css">
@@ -67,7 +68,7 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 2 · Saisie manuelle' });
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 2 · Saisie manuelle', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
     const picker = document.getElementById('seg-picker');

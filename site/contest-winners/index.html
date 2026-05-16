@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gagnants des tirages — MLP Reno & Design</title>
   <link rel="stylesheet" href="/event/event.css">
@@ -21,7 +22,7 @@
   <div id="header"></div>
   <main class="ev-wrap ev-section">
     <div class="center">
-      <div class="ev-eyebrow">Soirée Bamiléké · Tirages MLP</div>
+      <div class="ev-eyebrow">Tirages MLP</div>
       <h1 class="ev-h1">Les gagnants du soir.</h1>
       <p class="ev-lead" style="margin:0 auto;">Annoncés en direct depuis la scène.</p>
     </div>
@@ -40,7 +41,7 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 3 · Tirages live' });
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 3 · Tirages live', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
     document.getElementById('btn-draw').innerHTML = MLP_ICONS.svg('trophy', { size: 22 }) + 'Tirer les gagnants';
 

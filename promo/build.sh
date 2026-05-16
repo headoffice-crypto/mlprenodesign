@@ -141,10 +141,10 @@ echo "==> 15-16 · Salle de bain 2 B/A (NEW)"
 render_tagged_still 3.5 "$BATH/bathroom-2-before.jpg" "AVANT" "$NAVY" "$CREAM" "$TMP/s15.mp4"
 render_tagged_still 4.5 "$BATH/bathroom-2-after.jpg"  "APRÈS" "$GOLD" "$WARM"  "$TMP/s16.mp4"
 
-echo "==> 17 · Stat — 10 ans · 150+ projets (4s)"
+echo "==> 17 · Stat — 10 ans · 150+ projets (4s) — tight spacing"
 ffmpeg -y -hide_banner -loglevel error \
   -f lavfi -i "color=c=$NAVY:s=1920x1080:d=4:r=30" \
-  -vf "drawtext=fontfile=$FS:text='10':fontsize=280:fontcolor=$GOLD:x=480-text_w/2:y=280,drawtext=fontfile=$FN:text='ANS D EXPÉRIENCE':fontsize=26:fontcolor=$INK_SOFT:x=480-text_w/2:y=660,drawtext=fontfile=$FS:text='150+':fontsize=280:fontcolor=$GOLD:x=1440-text_w/2:y=280,drawtext=fontfile=$FN:text='PROJETS LIVRÉS':fontsize=26:fontcolor=$INK_SOFT:x=1440-text_w/2:y=660,drawtext=fontfile=$FS:text='Grand Montréal.':fontsize=54:fontcolor=$CREAM:x=(w-text_w)/2:y=810,fade=t=in:st=0:d=0.5,fade=t=out:st=3.5:d=0.5" \
+  -vf "drawtext=fontfile=$FS:text='10':fontsize=240:fontcolor=$GOLD:x=480-text_w/2:y=360,drawtext=fontfile=$FN:text='ANS D EXPÉRIENCE':fontsize=32:fontcolor=$INK_SOFT:x=480-text_w/2:y=610,drawtext=fontfile=$FS:text='150+':fontsize=240:fontcolor=$GOLD:x=1440-text_w/2:y=360,drawtext=fontfile=$FN:text='PROJETS LIVRÉS':fontsize=32:fontcolor=$INK_SOFT:x=1440-text_w/2:y=610,drawtext=fontfile=$FS:text='Grand Montréal.':fontsize=54:fontcolor=$CREAM:x=(w-text_w)/2:y=750,fade=t=in:st=0:d=0.5,fade=t=out:st=3.5:d=0.5" \
   "${ENC[@]}" -an "$TMP/s17.mp4"
 
 echo "==> 18 · Prize hook (4s) — 14 000 $"
