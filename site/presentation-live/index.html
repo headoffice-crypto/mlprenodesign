@@ -186,8 +186,8 @@
 
       <!-- 5 — Tirages -->
       <article class="slide">
-        <div class="eyebrow">Tirages MLP · Annoncés en direct</div>
-        <h1 id="winners-title">Et nos gagnants sont…</h1>
+        <div class="eyebrow">Cadeaux à gagner · Tirage à la fin du mois de mai</div>
+        <h1 id="winners-title">Six cadeaux · 14 000 $</h1>
         <div class="main">
           <div class="wins" id="wins"></div>
         </div>
@@ -239,13 +239,12 @@
     document.getElementById('contact-phone').innerHTML = ic('phone', 22) + '(450) 500-8936';
     document.getElementById('prev').innerHTML    = ic('arrowLeft', 16) + 'Précédent';
     document.getElementById('next').innerHTML    = 'Suivant' + ic('arrowRight', 16);
-    document.getElementById('draw').innerHTML    = ic('trophy', 18) + 'Tirer les gagnants';
+    document.getElementById('draw').remove();
     document.getElementById('clean').innerHTML   = ic('fullscreen', 16) + 'Plein écran';
     document.getElementById('ext').innerHTML     = 'Écran dédié' + ic('arrowRight', 14);
 
     const slides = document.querySelectorAll('.slide');
     const dotsC  = document.getElementById('dots');
-    const drawBtn = document.getElementById('draw');
     document.getElementById('tot').textContent = slides.length;
 
     slides.forEach((_, i) => {
@@ -262,13 +261,9 @@
       dotsC.children[n].classList.add('is-active');
       cur = n;
       document.getElementById('cur').textContent = cur + 1;
-      // The winners slide is whichever one contains #wins
-      const winnersIdx = Array.from(slides).findIndex(s => s.querySelector('#wins'));
-      drawBtn.style.display = (cur === winnersIdx) ? '' : 'none';
     }
     document.getElementById('prev').onclick = () => go(cur - 1);
     document.getElementById('next').onclick = () => go(cur + 1);
-    drawBtn.onclick = () => renderWinners(MLP_EVENT.drawWinners());
 
     document.getElementById('clean').onclick = () => {
       document.body.classList.toggle('clean');
@@ -278,30 +273,28 @@
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }
       if (e.key === 'ArrowLeft'  || e.key === 'PageUp') go(cur - 1);
       if (e.key === 'f' || e.key === 'F') { document.body.classList.toggle('clean'); document.documentElement.requestFullscreen?.(); }
-      if (e.key === 'd' || e.key === 'D') { if (drawBtn.style.display !== 'none') drawBtn.click(); }
       if (e.key === 'Escape') document.body.classList.remove('clean');
     });
 
     document.getElementById('qr-final').src =
       'https://api.qrserver.com/v1/create-qr-code/?size=512x512&margin=0&data=' + encodeURIComponent(location.origin + '/diagnostic');
 
-    function renderWinners(w) {
+    function renderPrizes() {
       const keys = Object.keys(MLP_EVENT.GIVEAWAYS);
       const c = document.getElementById('wins');
       c.innerHTML = keys.map(k => {
         const g = MLP_EVENT.GIVEAWAYS[k];
-        const won = w && w[k];
         return `<div class="win">
           <div>
             <div class="label">${g.short}${g.tier === 'primary' ? ' · Primaire' : ' · Bonus'}</div>
-            <div class="name">${won ? (won.name || '—') : '—'}</div>
+            <div class="name">${g.title || g.short}</div>
           </div>
-          <div class="city">${won ? (won.city || '') : 'En attente'}</div>
+          <div class="city">Tirage à la fin du mois de mai</div>
           <div class="price">${g.value} $</div>
         </div>`;
       }).join('');
     }
-    renderWinners(MLP_EVENT.getWinners());
+    renderPrizes();
 
     MLP_EVENT.trackStep('stage-presentation');
   </script>

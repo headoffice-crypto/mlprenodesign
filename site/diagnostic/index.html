@@ -10,40 +10,34 @@
     body { display: flex; flex-direction: column; }
 
     main.diag {
-      flex: 1;
-      display: flex; flex-direction: column;
       max-width: 1100px; width: 100%; margin: 0 auto;
-      padding: 56px 24px 32px;
+      padding: 80px 24px 32px;
     }
 
     .diag-h1 {
       font-family: var(--serif);
       font-size: clamp(2.2rem, 4.2vw, 3.6rem);
-      line-height: 1.1; margin: 0 0 12px;
-    }
-    .diag-sub {
-      color: var(--ink-soft); font-size: 1.15rem; max-width: 56ch; margin: 0 0 48px;
+      line-height: 1.1; margin: 0 0 48px;
     }
 
     .cards {
       display: grid;
       grid-template-columns: repeat(3, minmax(0,1fr));
       gap: 18px;
-      flex: 1;
-      align-items: stretch;
     }
     @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } }
 
     .card {
-      display: flex; flex-direction: column; justify-content: space-between;
-      padding: 36px 32px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 24px;
+      padding: 48px 32px;
       background: var(--bg-soft);
       border: 1.5px solid var(--line);
       border-radius: 20px;
       color: var(--ink); text-decoration: none;
       transition: border-color .2s ease, transform .2s ease, background .2s ease;
-      gap: 28px;
-      min-height: 360px;
+      min-height: 260px;
+      text-align: center;
     }
     .card:hover {
       border-color: var(--gold);
@@ -58,44 +52,21 @@
       color: #1a1208;
     }
     .card-icon .icon { width: 32px; height: 32px; }
-    .card-prize .icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; }
-    .card-top h2 {
+    .card h2 {
       font-family: var(--serif);
       font-size: clamp(1.6rem, 2.2vw, 2.2rem);
-      margin: 22px 0 12px; line-height: 1.1;
+      margin: 0; line-height: 1.1;
     }
-    .card-top p {
-      color: var(--ink-soft); font-size: 1.02rem; line-height: 1.55; margin: 0;
-    }
-    .card-bottom {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-top: 22px; border-top: 1px solid var(--line);
-    }
-    .card-prize { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
-    .card-arrow { font-family: var(--serif); font-size: 1.4rem; color: var(--gold); }
-
-    .skip {
-      margin-top: 36px;
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
-      padding-top: 20px; border-top: 1px solid var(--line);
-    }
-    .skip a { color: var(--gold); text-decoration: none; font-weight: 600; }
-    .skip a:hover { text-decoration: underline; }
+    .card-arrow { color: var(--gold); display: grid; place-items: center; }
   </style>
 </head>
 <body>
   <div id="header"></div>
 
   <main class="diag">
-    <div class="ev-eyebrow">Diagnostic · 1 question · 30 secondes</div>
-    <h1 class="diag-h1">Quelle situation vous correspond le mieux?</h1>
-    <p class="diag-sub">Choisissez la réponse la plus proche. On vous montre ce qu'on peut faire pour vous, et on vous inscrit au bon tirage.</p>
+    <h1 class="diag-h1">Vous êtes…</h1>
 
     <div class="cards" id="cards"></div>
-
-    <div class="skip">
-      <div style="color:var(--ink-soft);font-size:.95rem;">Pas envie de répondre? <a href="/event">Participez directement au tirage →</a></div>
-    </div>
   </main>
 
   <div id="footer"></div>
@@ -103,43 +74,24 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 2 · Diagnostic' });
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({});
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
-    const COPY = {
-      proprietaire: {
-        title:  'Je suis propriétaire',
-        body:   'Maison, condo, plex, immeuble. Je veux savoir comment augmenter ma valeur, mes revenus ou ma qualité de vie.',
-        prize:  'Consultation design — 1 000 $',
-      },
-      acheteur: {
-        title:  'Je cherche à acheter',
-        body:   'Première propriété ou propriété supplémentaire. Je veux savoir où je m\'embarque avant de signer.',
-        prize:  'Évaluation de propriété — 500 $',
-      },
-      investisseur: {
-        title:  'Je suis investisseur',
-        body:   'J\'ai un portefeuille — ou j\'en démarre un. Je veux acquérir et optimiser intelligemment.',
-        prize:  'Consultation investissement — 1 500 $',
-      },
+    const LABEL = {
+      proprietaire: 'Propriétaire',
+      acheteur:     'Acheteur',
+      investisseur: 'Investisseur',
     };
 
     const cards = document.getElementById('cards');
     Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s]) => {
-      const c = COPY[k] || {};
       const a = document.createElement('a');
       a.className = 'card';
       a.href = s.presentation + '?seg=' + k;
       a.innerHTML = `
-        <div class="card-top">
-          <div class="card-icon">${MLP_ICONS.svg(s.icon, { size: 32 })}</div>
-          <h2>${c.title}</h2>
-          <p>${c.body}</p>
-        </div>
-        <div class="card-bottom">
-          <div class="card-prize">${MLP_ICONS.svg('gift', { size: 14 })} ${c.prize}</div>
-          <div class="card-arrow">${MLP_ICONS.svg('arrowRight', { size: 24 })}</div>
-        </div>`;
+        <div class="card-icon">${MLP_ICONS.svg(s.icon, { size: 32 })}</div>
+        <h2>${LABEL[k] || k}</h2>
+        <div class="card-arrow">${MLP_ICONS.svg('arrowRight', { size: 24 })}</div>`;
       a.addEventListener('click', () => {
         MLP_EVENT.setSegment(k);
         MLP_EVENT.trackStep('diagnostic-' + k);

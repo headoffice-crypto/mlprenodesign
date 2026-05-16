@@ -18,20 +18,17 @@
       box-shadow: 0 0 80px rgba(0,0,0,.5);
     }
 
-    /* Scene transitions — Apple-style: opacity + light blur, long cubic ease */
+    /* Scene transitions — clean opacity crossfade only. Blur was degrading
+       frames during the in/out, so we drop it for a sharper, more pro look. */
     .scene {
       position: absolute; inset: 0;
       opacity: 0;
-      filter: blur(6px);
-      transition:
-        opacity 1.2s cubic-bezier(0.5, 0, 0.2, 1),
-        filter  1.2s cubic-bezier(0.5, 0, 0.2, 1);
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       pointer-events: none;
-      will-change: opacity, filter;
+      will-change: opacity;
     }
     .scene.is-active {
       opacity: 1;
-      filter: blur(0);
       pointer-events: auto;
     }
 
@@ -258,8 +255,7 @@
     @keyframes flash {
       0%   { opacity: 0; transform: scale(1.05); }
       12%  { opacity: 1; transform: scale(1.0); }
-      88%  { opacity: 1; transform: scale(1.03); }
-      100% { opacity: 0; transform: scale(1.04); }
+      100% { opacity: 1; transform: scale(1.04); }
     }
 
     /* Credibility / stat scene */
@@ -692,9 +688,9 @@
       <section class="scene" data-dur="4000">
         <div class="bg-solid"></div>
         <div class="prize-hook">
-          <div class="small">Tirage au sort · 8 cadeaux</div>
+          <div class="small">Cadeaux à gagner · Tirage au sort</div>
           <div class="amount">14 000 $</div>
-          <div class="small tail">selon votre profil</div>
+          <div class="small tail">Tirage à la fin du mois de mai</div>
         </div>
       </section>
 
@@ -702,8 +698,8 @@
       <section class="scene" data-dur="12000">
         <div class="bg-solid"></div>
         <div class="prize-list">
-          <div class="pl-eyebrow">Tirage 1 · Acheteur ou investisseur</div>
-          <h2 class="pl-h">Vos cadeaux. <span style="color:#c8a766;">6 000 $.</span></h2>
+          <div class="pl-eyebrow">Tirage 1 · Acheteur ou investisseur · Fin mai</div>
+          <h2 class="pl-h">Cadeaux à gagner. <span style="color:#c8a766;">6 000 $.</span></h2>
           <div class="pl-rows">
             <div class="pl-row" style="animation-delay:2.0s;">
               <div class="pl-lbl">Plan d'optimisation</div>
@@ -725,8 +721,8 @@
       <section class="scene" data-dur="14000">
         <div class="bg-solid"></div>
         <div class="prize-list">
-          <div class="pl-eyebrow">Tirage 2 · Rénovation ou projet design</div>
-          <h2 class="pl-h">Vos cadeaux. <span style="color:#c8a766;">8 000 $.</span></h2>
+          <div class="pl-eyebrow">Tirage 2 · Rénovation ou projet design · Fin mai</div>
+          <h2 class="pl-h">Cadeaux à gagner. <span style="color:#c8a766;">8 000 $.</span></h2>
           <div class="pl-rows">
             <div class="pl-row" style="animation-delay:2.0s;">
               <div class="pl-lbl">Îlot de cuisine</div>
@@ -759,7 +755,7 @@
           <div class="cta-left">
             <div class="eyebrow">Inscrivez-vous au tirage</div>
             <h2 class="h">Scannez pour participer.</h2>
-            <p class="sub">30 secondes pour s'inscrire · Tirage au sort.</p>
+            <p class="sub">30 secondes pour s'inscrire · Tirage à la fin du mois de mai.</p>
           </div>
           <div class="qrbox">
             <img id="qr-img" alt="QR — Inscription au tirage">

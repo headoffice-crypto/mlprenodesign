@@ -133,9 +133,9 @@
     const STEPS = [
       {
         id: 'setup',
-        badge: 'Étape 1 sur 5 · 18 h 45',
+        badge: 'Étape 1 sur 5',
         title: 'Branchez l\'écran et lancez le kiosque.',
-        lead:  'L\'écran du booth doit être prêt avant l\'arrivée des premiers invités à 19 h. Le diaporama tourne tout seul pendant 2 heures.',
+        lead:  'L\'écran du booth doit être prêt avant l\'arrivée des premiers invités. Le diaporama tourne tout seul.',
         primary: { href: '/kiosque',  label: 'Ouvrir le kiosque (plein écran)', icon: 'monitor', blank: true },
         extras: [
           { href: '/qr-codes', label: 'Codes QR à imprimer', icon: 'qr', blank: true },
@@ -150,7 +150,7 @@
       },
       {
         id: 'booth',
-        badge: 'Étape 2 sur 5 · 19 h — 21 h',
+        badge: 'Étape 2 sur 5',
         title: 'Booth en service. Pour chaque invité — 3 boutons, 30 secondes.',
         lead:  'Tournez l\'écran vers l\'invité et lancez le diagnostic. Il choisit Propriétaire, Acheteur ou Investisseur — la bonne présentation s\'ouvre, le bon tirage s\'enregistre. Vous n\'avez rien à mémoriser.',
         primary: { href: '/diagnostic', label: 'Lancer le diagnostic', icon: 'compass', blank: true },
@@ -168,25 +168,25 @@
       },
       {
         id: 'stage',
-        badge: 'Étape 3 sur 5 · ≈ 21 h',
+        badge: 'Étape 3 sur 5',
         title: 'Sur scène. Six diapos. Deux minutes.',
-        lead:  'Branchez le portable au projecteur, appuyez sur F pour le plein écran, puis utilisez les flèches pour avancer. Sur la diapo des gagnants, le bouton « Tirer les gagnants » fait le tirage en direct.',
+        lead:  'Branchez le portable au projecteur, appuyez sur F pour le plein écran, puis utilisez les flèches pour avancer. Sur la diapo des cadeaux, annoncez que le tirage se fera à la fin du mois de mai — pas de tirage sur scène ce soir.',
         primary: { href: '/presentation-live', label: 'Démarrer la présentation', icon: 'mic', blank: true },
         extras: [
-          { href: '/contest-winners', label: 'Écran dédié pour le tirage', icon: 'trophy', blank: true },
+          { href: '/contest-winners', label: 'Aperçu des cadeaux (opérateur)', icon: 'trophy', blank: true },
         ],
         checklist: [
           'Portable branché au projecteur',
           'Plein écran activé (touche F)',
           'Volume des haut-parleurs vérifié si vidéo',
-          'Pour le tirage : touche D ou bouton "Tirer les gagnants"',
+          'Annoncer clairement : tirage à la fin du mois de mai',
         ],
         doneLabel: 'Présentation faite — gérer les retours',
         live: 'leads',
       },
       {
         id: 'after',
-        badge: 'Étape 4 sur 5 · Après la scène',
+        badge: 'Étape 4 sur 5',
         title: 'Les curieux s\'approchent. Montrez ou réservez.',
         lead:  '« Montrez-moi vos projets » → portfolio. « Je veux en savoir plus » → consultation. Quelqu\'un veut s\'inscrire à la dernière minute → saisie manuelle.',
         primary: { href: '/projets', label: 'Ouvrir le portfolio', icon: 'image', blank: true },
@@ -204,7 +204,7 @@
       },
       {
         id: 'wrap',
-        badge: 'Étape 5 sur 5 · Lendemain',
+        badge: 'Étape 5 sur 5',
         title: 'Tout est dans le CRM. Commencez par les leads chauds.',
         lead:  'Filtrez « Score ≥ 70 ». Vérifiez que les notifications SMS/courriel sont bien parties. Les quatre modèles de relance (J+1, J+2, J+4, J+7) sont prêts à copier-coller.',
         primary: { href: '/admin', label: 'Ouvrir le CRM', icon: 'chart' },

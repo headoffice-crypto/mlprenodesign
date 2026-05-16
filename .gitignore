@@ -37,3 +37,10 @@ site/event-media/rue-du-havre/
 
 # Test: also ignore site/public locally so file system doesn't matter
 site/public/
+
+# Recorder dependencies — Playwright + Chromium pulled by `npm install` in /promo
+promo/node_modules/
+
+# Loose root-level public/ — Vercel auto-detects this as a static-output folder
+# and breaks production. Keep any QR assets under site/ instead.
+public/
