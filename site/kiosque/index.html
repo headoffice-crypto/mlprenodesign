@@ -51,6 +51,31 @@
       line-height: 1.5; max-width: 60ch; margin: 0;
     }
 
+    /* Intro screen — MLP title card, centered */
+    .intro-card {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; gap: 14px;
+    }
+    .intro-card .eyebrow { color: var(--gold); }
+    .intro-card .intro-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(3rem, 7vw, 6.4rem);
+      line-height: 1.04; margin: 8px 0 0;
+    }
+    .intro-card .intro-tag {
+      color: rgba(255,255,255,.78);
+      font-size: clamp(1.05rem, 1.5vw, 1.45rem);
+      margin: 0;
+    }
+    .intro-card .intro-stats {
+      margin: 22px 0 0;
+      display: flex; gap: 22px; align-items: center;
+      color: rgba(255,255,255,.78); font-size: clamp(.95rem, 1.1vw, 1.15rem);
+    }
+    .intro-card .intro-stats strong { color: var(--gold); font-family: var(--serif); font-size: 1.4em; margin-right: 4px; }
+    .intro-card .intro-stats .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.35); }
+
     /* Start screen: 3 large segment buttons */
     .pick-grid {
       display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
@@ -275,7 +300,12 @@
       },
     };
 
-    /* ----- State ----- */
+    /* ----- State machine -----
+       'intro'  — Qui nous sommes (MLP brand title card)
+       'picker' — Qui êtes-vous? (3 audience cards)
+       'deck'   — Audience-specific run-through (pitch, cases, prizes, CTA)
+    */
+    let mode = 'intro';
     let segment = null;
     let stepIndex = 0;
     let steps = [];
@@ -290,11 +320,20 @@
 
       const out = [
         { kind: 'pitch',           segment: seg },
-        { kind: 'thomas-avant'                  },
-        { kind: 'thomas-apres'                  },
-        { kind: 'thomas-results'                },
-        { kind: 'bath-avant'                    },
-        { kind: 'bath-apres'                    },
+        // Thomas-Dubuc — façade
+        { kind: 'thomas-frontage-avant' },
+        { kind: 'thomas-frontage-apres' },
+        // Thomas-Dubuc — salon
+        { kind: 'thomas-living-avant'   },
+        { kind: 'thomas-living-apres'   },
+        // Thomas-Dubuc — outcome
+        { kind: 'thomas-results'        },
+        // Salle de bain — 2 cas
+        { kind: 'bath1-avant'           },
+        { kind: 'bath1-apres'           },
+        { kind: 'bath2-avant'           },
+        { kind: 'bath2-apres'           },
+        // Prizes
         { kind: 'prizes-intro',    segment: seg, groupKey, prizes },
       ];
       prizes.forEach((p, i) => out.push({ kind: 'prize', prize: p, i, total: prizes.length, groupKey }));
@@ -316,7 +355,25 @@
       if (restartLabel) document.getElementById('btn-restart').textContent = restartLabel;
     }
 
-    function renderStart() {
+    function renderIntro() {
+      setScene(`
+        <div class="intro-card">
+          <div class="eyebrow">Qui nous sommes</div>
+          <h1 class="intro-title">MLP Reno &amp; Design.</h1>
+          <p class="intro-tag">Gestion · Accompagnement · Rénovation.</p>
+          <p class="intro-stats">
+            <span><strong>15+</strong> ans</span>
+            <span class="dot"></span>
+            <span><strong>200+</strong> projets livrés</span>
+            <span class="dot"></span>
+            <span><strong>RBQ</strong> certifié</span>
+          </p>
+        </div>
+      `);
+      document.getElementById('btn-back').style.visibility = 'hidden';
+    }
+
+    function renderPicker() {
       const cards = Object.entries(MLP_EVENT.SEGMENTS).map(([k, s]) => `
         <button class="pick" data-pick="${k}">
           <span class="pick-ic">${ic(s.icon, 72)}</span>
@@ -324,15 +381,15 @@
           <p>${s.tagline || ''}</p>
         </button>`).join('');
       setScene(`
-        <div class="eyebrow">Pour commencer</div>
+        <div class="eyebrow">Pour adapter la présentation</div>
         <h1 class="head">Qui êtes-vous?</h1>
-        <p class="lead">Choisissez la réponse qui vous correspond le mieux. On adapte la présentation.</p>
+        <p class="lead">Choisissez ce qui vous correspond le mieux — on personnalise la suite.</p>
         <div class="pick-grid">${cards}</div>
       `, { hideContinue: true });
       STAGE.querySelectorAll('[data-pick]').forEach(b =>
         b.addEventListener('click', () => start(b.dataset.pick))
       );
-      document.getElementById('btn-back').style.visibility = 'hidden';
+      document.getElementById('btn-back').style.visibility = '';
     }
 
     function renderPitch(step) {
@@ -429,33 +486,59 @@
       if (!step) return;
       switch (step.kind) {
         case 'pitch':          renderPitch(step); break;
-        case 'thomas-avant':
+
+        case 'thomas-frontage-avant':
           renderSolo('Étude de cas · Maison Thomas-Dubuc',
-            "Voici la maison quand elle est arrivée chez nous.",
+            "Voici la façade quand elle est arrivée chez nous.",
             "Sous-évaluée. Sans permis pour le sous-sol. Une opportunité que personne d'autre n'avait vue.",
             '/event-media/thomas-dubuc/before/Before-frontage.jpeg', 'Avant'); break;
-        case 'thomas-apres':
-          renderSolo('Maison Thomas-Dubuc · Après',
-            "Et voici ce qu'on en a fait.",
-            "La même maison. Un patrimoine.",
+        case 'thomas-frontage-apres':
+          renderSolo('Maison Thomas-Dubuc · Façade — Après',
+            "Et voici la transformation.",
+            "+ valeur de revente. + revenus locatifs. + qualité de vie.",
             '/event-media/thomas-dubuc/after/Frontage-1.jpeg', 'Après', 'after'); break;
+
+        case 'thomas-living-avant':
+          renderSolo('Maison Thomas-Dubuc · Salon — Avant',
+            "Le salon, au moment de l'achat.",
+            "Tapis usé. Rideaux d'époque. Aucune mise en valeur de l'espace.",
+            '/event-media/thomas-dubuc/before/Before-Living-room.jpeg', 'Avant'); break;
+        case 'thomas-living-apres':
+          renderSolo('Maison Thomas-Dubuc · Salon — Après',
+            "Le même espace, repensé.",
+            "Plancher d'ingénierie, mur d'accent, ouverture sur la cuisine.",
+            '/event-media/thomas-dubuc/after/Living-room-1.jpeg', 'Après', 'after'); break;
+
         case 'thomas-results': renderResults(); break;
-        case 'bath-avant':
-          renderSolo('Salle de bain · Avant',
+
+        case 'bath1-avant':
+          renderSolo('Salle de bain · Projet 1 — Avant',
             "Voici la salle de bain qu'on a reçue.",
             "Surface utile gaspillée. Plomberie d'origine. Aucune luminosité.",
             '/css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg', 'Avant'); break;
-        case 'bath-apres':
-          renderSolo('Salle de bain · Après',
+        case 'bath1-apres':
+          renderSolo('Salle de bain · Projet 1 — Après',
             "Et voici la transformation.",
             "Douche italienne. Vanité sur mesure. Luminosité travaillée.",
             '/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg', 'Après', 'after'); break;
+
+        case 'bath2-avant':
+          renderSolo('Salle de bain · Projet 2 — Avant',
+            "Une autre salle de bain — état d'origine.",
+            "Démontage complet : plomberie, plancher, fenêtre, isolation.",
+            '/css/js/assets/images/portfolio/bathrooms/bathroom-2-before.jpg', 'Avant'); break;
+        case 'bath2-apres':
+          renderSolo('Salle de bain · Projet 2 — Après',
+            "Spa à la maison.",
+            "Bain autoportant, douche italienne en verre, plafond mouluré.",
+            '/css/js/assets/images/portfolio/bathrooms/bathroom-2-after.jpg', 'Après', 'after'); break;
+
         case 'prizes-intro':   renderPrizesIntro(step); break;
         case 'prize':          renderPrize(step); break;
         case 'cta':            renderCTA(step); break;
       }
       document.getElementById('topidx').textContent = `${stepIndex + 1} / ${steps.length}`;
-      document.getElementById('btn-back').style.visibility = stepIndex === 0 ? 'hidden' : '';
+      document.getElementById('btn-back').style.visibility = '';
     }
 
     function start(seg) {
@@ -464,26 +547,46 @@
       MLP_EVENT.trackStep('kiosque-pick-' + seg);
       steps = buildSteps(seg);
       stepIndex = 0;
+      mode = 'deck';
       renderStep();
     }
 
     function reset() {
+      mode = 'intro';
       segment = null;
       steps = [];
       stepIndex = 0;
       document.getElementById('btn-restart').textContent = '↺ Recommencer';
       document.getElementById('topidx').textContent = '';
-      renderStart();
+      renderIntro();
+    }
+
+    function goPicker() {
+      mode = 'picker';
+      segment = null;
+      steps = [];
+      stepIndex = 0;
+      document.getElementById('topidx').textContent = '';
+      renderPicker();
     }
 
     /* ----- Nav ----- */
     document.getElementById('btn-next').onclick = () => {
-      if (!steps.length) return;
+      if (mode === 'intro') return goPicker();
+      if (mode === 'picker') return; // must click a segment card
+      // mode === 'deck'
       if (stepIndex < steps.length - 1) { stepIndex++; renderStep(); }
     };
     document.getElementById('btn-back').onclick = () => {
-      if (!steps.length) return;
+      if (mode === 'intro') return;
+      if (mode === 'picker') {
+        mode = 'intro';
+        renderIntro();
+        return;
+      }
+      // mode === 'deck'
       if (stepIndex > 0) { stepIndex--; renderStep(); }
+      else { goPicker(); }
     };
     document.getElementById('btn-restart').onclick = reset;
     document.getElementById('btn-fs').onclick = () => {
