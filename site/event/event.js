@@ -19,6 +19,22 @@
   const SUPABASE_URL      = 'https://lhewggoajbccegpowkas.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_pKoh315uCCLBMxY0EFSf9g_MyS1nQ_F';
   const NOTIFY_ENDPOINT   = SUPABASE_URL + '/functions/v1/send-event-lead';
+  const LIST_ENDPOINT     = SUPABASE_URL + '/functions/v1/list-event-leads';
+
+  /* Fetch all event leads stored in Supabase. Used by /admin so the operator
+     sees leads from every device that submitted the QR form, not just leads
+     stored in this browser's localStorage. */
+  async function fetchEventLeads() {
+    const r = await fetch(LIST_ENDPOINT, {
+      headers: {
+        apikey:        SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+    });
+    if (!r.ok) throw new Error('list-event-leads ' + r.status);
+    const data = await r.json();
+    return Array.isArray(data.leads) ? data.leads : [];
+  }
 
   /* ---------- Segments (3 — used to be 10) ---------- */
 
@@ -152,6 +168,7 @@
 
     const giveaway = GIVEAWAYS[lead.giveawayKey] || {};
     const segment  = SEGMENTS[lead.segment] || {};
+    const region   = REGIONS[lead.region]   || {};
 
     const payload = {
       lead: {
@@ -165,6 +182,9 @@
         source:      lead.source,
         segment:     lead.segment,
         segmentLabel: segment.label,
+        region:       lead.region,
+        regionLabel:  region.label,
+        giveawayKey:   lead.giveawayKey,
         giveawayTitle: giveaway.title,
         giveawayValue: giveaway.value,
       },
@@ -359,7 +379,7 @@
   global.MLP_EVENT = {
     SUPABASE_URL, SUPABASE_ANON_KEY,
     SEGMENTS, GIVEAWAYS, REGIONS, LEAD_GOAL,
-    addLead, updateLead, deleteLead, getLeads, computeScore,
+    addLead, updateLead, deleteLead, getLeads, computeScore, fetchEventLeads,
     setSegment, getSegment, clearSegment,
     drawWinners, getWinners, clearWinners,
     exportCSV, trackStep, getFunnel, wipeAll,

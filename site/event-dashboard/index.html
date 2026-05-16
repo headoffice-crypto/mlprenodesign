@@ -100,6 +100,18 @@
     document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Centre de commande', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
+    let remoteLeads = [];
+    function mergedLeads() {
+      const map = new Map();
+      MLP_EVENT.getLeads().forEach(l => map.set(l.id, l));
+      remoteLeads.forEach(l => map.set(l.id, Object.assign({}, map.get(l.id) || {}, l)));
+      return Array.from(map.values());
+    }
+    async function refreshRemote() {
+      try { remoteLeads = await MLP_EVENT.fetchEventLeads(); } catch {}
+      renderStrip();
+    }
+
     function renderGoal(leads) {
       const goal = MLP_EVENT.LEAD_GOAL || 100;
       const n = leads.length;
@@ -109,7 +121,7 @@
     }
 
     function renderStrip() {
-      const leads = MLP_EVENT.getLeads();
+      const leads = mergedLeads();
       renderGoal(leads);
       const segCount = (k) => leads.filter(l => l.segment === k).length;
       const regCount = (k) => leads.filter(l => l.region  === k).length;
@@ -119,7 +131,9 @@
         <div class="s"><div class="n">${segCount('investisseur')}</div><div class="l">Investisseurs</div></div>
         <div class="s"><div class="n">${regCount('montreal') + regCount('rivesud') + regCount('rivenord')}</div><div class="l">Avec région</div></div>`;
     }
-    renderStrip(); setInterval(renderStrip, 5000);
+    renderStrip();
+    refreshRemote();
+    setInterval(refreshRemote, 8000);
 
     const TILES = [
       { href:'/kiosque',           icon:'monitor',    t:'Kiosque',               s:'Diaporama auto' },

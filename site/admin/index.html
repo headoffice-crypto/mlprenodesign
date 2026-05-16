@@ -110,8 +110,30 @@
       document.getElementById('goal-bar-fill').style.width = pct + '%';
     }
 
+    // Cache the remote leads here so re-renders don't have to refetch.
+    let remoteLeads = [];
+    let remoteError = null;
+
+    async function refreshRemote() {
+      try {
+        remoteLeads = await MLP_EVENT.fetchEventLeads();
+        remoteError = null;
+      } catch (e) {
+        remoteError = e.message || String(e);
+      }
+      render();
+    }
+
+    // Merge local + remote, keyed by lead id, remote takes precedence.
+    function mergedLeads() {
+      const map = new Map();
+      MLP_EVENT.getLeads().forEach(l => map.set(l.id, l));
+      remoteLeads.forEach(l => map.set(l.id, Object.assign({}, map.get(l.id) || {}, l)));
+      return Array.from(map.values());
+    }
+
     function render() {
-      const all = MLP_EVENT.getLeads();
+      const all = mergedLeads();
       renderGoal(all);
       const q = document.getElementById('search').value.trim().toLowerCase();
       const fSeg = document.getElementById('filter-segment').value;
@@ -159,8 +181,8 @@
     };
 
     render();
-    // Auto-refresh in case a lead comes in while operator is watching
-    setInterval(render, 5000);
+    refreshRemote();                       // initial fetch from Supabase
+    setInterval(refreshRemote, 8000);      // and poll every 8s
   </script>
 </body>
 </html>

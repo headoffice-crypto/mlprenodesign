@@ -180,14 +180,22 @@ Deno.serve(async (req) => {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
       const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
       if (SUPABASE_URL && SUPABASE_KEY) {
+        // The CRM uses a flat customers.notes column today. We keep all event
+        // metadata in a structured tag block so /admin can parse it back out.
         const notesText = [
-          `Lead événement · Segment: ${lead.segmentLabel || lead.segment || '?'}`,
-          `Tirage: ${lead.giveawayTitle || '?'} (${lead.giveawayValue || 0}$)`,
-          `Score: ${lead.score ?? '?'}/100`,
-          `Source: ${lead.source || '?'}`,
-          lead.city  ? `Ville: ${lead.city}` : null,
-          lead.notes ? `Notes lead: ${lead.notes}` : null,
-          `Lead ID: ${lead.id}`,
+          `[MLP-EVENT]`,
+          `Segment: ${lead.segment || '?'}`,
+          `SegmentLabel: ${lead.segmentLabel || ''}`,
+          `Region: ${lead.region || ''}`,
+          `RegionLabel: ${lead.regionLabel || ''}`,
+          `Tirage: ${lead.giveawayKey || ''}`,
+          `TirageTitle: ${lead.giveawayTitle || ''}`,
+          `TirageValue: ${lead.giveawayValue || 0}`,
+          `Score: ${lead.score ?? 0}`,
+          `Source: ${lead.source || ''}`,
+          `City: ${lead.city || ''}`,
+          `LeadId: ${lead.id}`,
+          lead.notes ? `Notes: ${lead.notes}` : '',
         ].filter(Boolean).join("\n");
 
         try {
