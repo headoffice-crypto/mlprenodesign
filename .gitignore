@@ -32,3 +32,8 @@ site/event-media/rue-du-havre/
 .claude/
 
 .vercel
+
+.vercel
+
+# Test: also ignore site/public locally so file system doesn't matter
+site/public/
