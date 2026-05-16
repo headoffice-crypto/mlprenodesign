@@ -66,44 +66,108 @@
     return data;
   }
 
-  /* ---------- Segments (3 — used to be 10) ---------- */
+  /* ---------- Segments (3) — each segment is mapped to a prize GROUP ----------
+     Two groups of cadeaux:
+       A — for acheteurs + investisseurs (acquisition-side)   · 6 000 $ total
+       B — for propriétaires / rénovateurs (renovation-side)  · 8 000 $ total
+  */
 
   const SEGMENTS = {
     proprietaire: {
       label:        'Propriétaire',
       tagline:      'J\'ai déjà une maison ou un immeuble et je veux en tirer plus.',
-      icon:         'home',          // → MLP_ICONS.svg('home')
+      icon:         'home',
       presentation: '/presentation/proprietaire',
-      primaryPrize: 'design',
+      group:        'B',
+      primaryPrize: 'kitchen-island',   // the highlight prize used in CRM + SMS
     },
     acheteur: {
       label:        'Acheteur',
       tagline:      'Je veux acheter — première propriété ou propriété supplémentaire.',
       icon:         'key',
       presentation: '/presentation/acheteur',
-      primaryPrize: 'evaluation',
+      group:        'A',
+      primaryPrize: 'roi-evaluation',
     },
     investisseur: {
       label:        'Investisseur',
       tagline:      'Je veux acquérir, optimiser ou agrandir un portefeuille.',
       icon:         'trendingUp',
       presentation: '/presentation/investisseur',
-      primaryPrize: 'investissement',
+      group:        'A',
+      primaryPrize: 'roi-evaluation',
     },
   };
 
-  /* ---------- Giveaways ---------- */
+  /* ---------- Prize groups ---------- */
+
+  const GROUPS = {
+    A: {
+      label: 'Tirage acheteurs et investisseurs',
+      short: 'Tirage A',
+      total: 6000,
+      audience: 'Pour les acheteurs et les investisseurs',
+    },
+    B: {
+      label: 'Tirage propriétaires et rénovateurs',
+      short: 'Tirage B',
+      total: 8000,
+      audience: 'Pour les propriétaires et les rénovateurs',
+    },
+  };
+
+  /* ---------- Giveaways (8 cadeaux total · 14 000 $) ---------- */
 
   const GIVEAWAYS = {
-    // Primary — tied to a segment, only that segment competes
-    evaluation:     { title: "Évaluation gratuite d'une propriété", value: 500,  short: 'Évaluation propriété',  tier: 'primary', segment: 'acheteur' },
-    design:         { title: "Consultation de design rénovation",   value: 1000, short: 'Consultation design',   tier: 'primary', segment: 'proprietaire' },
-    investissement: { title: "Consultation investissement immo",    value: 1500, short: 'Consultation invest.',  tier: 'primary', segment: 'investisseur' },
-    // Bonus — open to all leads
-    faisabilite:    { title: "Étude de faisabilité municipale",     value: 750,  short: 'Étude faisabilité',     tier: 'bonus' },
-    vanite:         { title: "Vanité de salle de bain offerte",     value: 1000, short: 'Vanité salle de bain',  tier: 'bonus' },
-    cuisine:        { title: "Îlot de cuisine offert",              value: 2000, short: 'Îlot de cuisine',       tier: 'bonus' },
+    // GROUP A — Acheteurs / Investisseurs · 6 000 $
+    'plan-optimisation': {
+      title: "Plan d'optimisation pour augmenter la valeur de votre propriété",
+      short: "Plan d'optimisation",
+      value: 1500, group: 'A',
+    },
+    'feasibility-coord': {
+      title: "Étude de faisabilité et coordination avec la ville",
+      short: "Faisabilité + coord. ville",
+      value: 2000, group: 'A',
+    },
+    'roi-evaluation': {
+      title: "Évaluation de 3 propriétés · potentiel ROI selon rénovations",
+      short: "Évaluation ROI · 3 propriétés",
+      value: 2500, group: 'A',
+    },
+    // GROUP B — Propriétaires / Rénovateurs · 8 000 $
+    'kitchen-island': {
+      title: "Îlot de cuisine offert · pour une rénovation complète de cuisine",
+      short: "Îlot de cuisine",
+      value: 2000, group: 'B',
+    },
+    'bath-shower': {
+      title: "Bain ou douche avec installation · pour une rénovation complète de salle de bain",
+      short: "Bain ou douche installé",
+      value: 1500, group: 'B',
+    },
+    'redesign': {
+      title: "Redesign — cuisine, salle de bain ou sous-sol",
+      short: "Redesign cuisine / SDB / sous-sol",
+      value: 1500, group: 'B',
+    },
+    'gift-1000': {
+      title: "Carte-cadeau MLP · pour vous ou pour un proche",
+      short: "Carte-cadeau MLP",
+      value: 1000, group: 'B',
+    },
+    'gift-2000': {
+      title: "Carte-cadeau MLP · pour vous ou pour un proche",
+      short: "Carte-cadeau MLP",
+      value: 2000, group: 'B',
+    },
   };
+
+  function giveawaysByGroup(g) {
+    return Object.entries(GIVEAWAYS)
+      .filter(([, x]) => x.group === g)
+      .map(([k, x]) => Object.assign({ key: k }, x));
+  }
 
   /* ---------- Regions (Greater Montréal) ---------- */
   const REGIONS = {
@@ -150,6 +214,7 @@
       notes:       (input.notes || '').trim(),
       segment,
       region,
+      group:       seg.group || 'A',
       giveawayKey: seg.primaryPrize,
       source:      input.source || 'event-booth',
       consent:     input.consent !== false,
@@ -199,6 +264,8 @@
     const giveaway = GIVEAWAYS[lead.giveawayKey] || {};
     const segment  = SEGMENTS[lead.segment] || {};
     const region   = REGIONS[lead.region]   || {};
+    const groupKey = lead.group || segment.group || 'A';
+    const group    = GROUPS[groupKey] || {};
 
     const payload = {
       lead: {
@@ -214,6 +281,9 @@
         segmentLabel: segment.label,
         region:       lead.region,
         regionLabel:  region.label,
+        group:        groupKey,
+        groupLabel:   group.label || '',
+        groupTotal:   group.total || 0,
         giveawayKey:   lead.giveawayKey,
         giveawayTitle: giveaway.title,
         giveawayValue: giveaway.value,
@@ -408,7 +478,8 @@
 
   global.MLP_EVENT = {
     SUPABASE_URL, SUPABASE_ANON_KEY,
-    SEGMENTS, GIVEAWAYS, REGIONS, LEAD_GOAL,
+    SEGMENTS, GIVEAWAYS, GROUPS, REGIONS, LEAD_GOAL,
+    giveawaysByGroup,
     addLead, updateLead, deleteLead, getLeads, computeScore,
     fetchEventLeads, updateEventLead, deleteEventLead,
     setSegment, getSegment, clearSegment,

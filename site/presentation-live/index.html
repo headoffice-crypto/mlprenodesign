@@ -53,19 +53,21 @@
       margin-top: 8px;
     }
 
-    /* Stats row (slide 1) */
-    .stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 24px; }
-    .stats .stat .n { font-family: var(--serif); font-size: clamp(3rem, 6vw, 5.4rem); color: var(--gold); line-height: 1; }
-    .stats .stat .l { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: 6px; }
+    /* Intro slide — centered title card */
+    .intro-slide .intro-main { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px; flex: 1; }
+    .intro-slide .intro-title { font-family: var(--serif); font-size: clamp(3rem, 7vw, 6rem); margin: 0; max-width: none; }
+    .intro-slide .intro-tag   { color: rgba(255,255,255,.72); font-size: clamp(1rem, 1.4vw, 1.4rem); margin: 0; letter-spacing: .04em; }
 
     /* Single hero image (slide 2) */
     .media-fill { flex: 1 1 auto; min-height: 0; border-radius: 18px; overflow: hidden; background: #000; }
     .media-fill img, .media-fill video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    /* Solo image (before OR after on its own slide — never both at once) */
+    /* Solo image (before OR after on its own slide — never both at once).
+       We use object-fit: contain so the whole house is visible even when
+       the photo aspect ratio doesn't match the stage. */
     .solo { flex: 1 1 auto; min-height: 0; position: relative; border-radius: 18px; overflow: hidden; background: #000; }
-    .solo img { width: 100%; height: 100%; object-fit: cover; }
-    .solo .tag { position: absolute; top: 22px; left: 22px; padding: 9px 20px; border-radius: 999px; background: rgba(0,0,0,.72); color: #fff; font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
+    .solo img { width: 100%; height: 100%; object-fit: contain; }
+    .solo .tag { position: absolute; top: 22px; left: 22px; padding: 9px 20px; border-radius: 999px; background: rgba(0,0,0,.72); color: #fff; font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; z-index: 2; }
     .solo .tag.after { background: var(--gold); color: #1a1208; }
 
     /* Audience slide — one big icon + the value prop */
@@ -159,17 +161,12 @@
 
     <section class="deck-body" id="body">
 
-      <!-- 1 — Qui nous sommes (intro) -->
-      <article class="slide is-active">
-        <div class="eyebrow">Qui nous sommes</div>
-        <h1>MLP Reno &amp; Design.</h1>
-        <p class="sub">Gestion · Accompagnement · Rénovation. Trois profils. Une équipe.</p>
-        <div class="main">
-          <div class="stats">
-            <div class="stat"><div class="n">15+</div><div class="l">Années d'expérience</div></div>
-            <div class="stat"><div class="n">200+</div><div class="l">Projets livrés</div></div>
-            <div class="stat"><div class="n">RBQ</div><div class="l">Entrepreneur certifié</div></div>
-          </div>
+      <!-- 1 — Qui nous sommes (intro — minimal title card) -->
+      <article class="slide is-active intro-slide">
+        <div class="main intro-main">
+          <div class="eyebrow">Qui nous sommes</div>
+          <h1 class="intro-title">MLP Reno &amp; Design.</h1>
+          <p class="intro-tag">Gestion · Accompagnement · Rénovation.</p>
         </div>
       </article>
 
@@ -246,8 +243,8 @@
       <!-- 8 — Prizes intro -->
       <article class="slide">
         <div class="eyebrow">Cadeaux à gagner · Tirage à la fin du mois de mai</div>
-        <h1 id="prizes-headline">Six cadeaux. Un tirage.</h1>
-        <p class="sub">Inscrivez-vous ce soir. Le tirage au sort se fait à la fin du mois de mai. On contacte les gagnants directement.</p>
+        <h1 id="prizes-headline">Huit cadeaux. Deux tirages. 14 000 $.</h1>
+        <p class="sub">Tirage A pour les acheteurs et les investisseurs · 6 000 $. Tirage B pour les propriétaires et les rénovateurs · 8 000 $. Inscrivez-vous ce soir, on tire à la fin du mois de mai.</p>
       </article>
 
       <!-- 9-14 — One prize per slide, generated from MLP_EVENT.GIVEAWAYS -->
@@ -305,35 +302,33 @@
 
     /* Build one slide per cadeau, inserted before the QR slide. */
     const PRIZE_ICON = {
-      design:         'sparkle',
-      evaluation:     'compass',
-      investissement: 'trendingUp',
-      faisabilite:    'shieldCheck',
-      vanite:         'bath',
-      cuisine:        'chefHat',
-    };
-    const SEGMENT_LABEL = {
-      design:         'Pour les propriétaires',
-      evaluation:     'Pour les acheteurs',
-      investissement: 'Pour les investisseurs',
-      faisabilite:    'Cadeau bonus · pour tous',
-      vanite:         'Cadeau bonus · pour tous',
-      cuisine:        'Cadeau bonus · pour tous',
+      'plan-optimisation':  'layers',
+      'feasibility-coord':  'shieldCheck',
+      'roi-evaluation':     'trendingUp',
+      'kitchen-island':     'chefHat',
+      'bath-shower':        'bath',
+      'redesign':           'sparkle',
+      'gift-1000':          'gift',
+      'gift-2000':          'gift',
     };
     function buildPrizeSlides() {
       const body  = document.getElementById('body');
       const qrEl  = document.getElementById('qr-slide');
-      const order = ['design','evaluation','investissement','faisabilite','vanite','cuisine'];
+      const order = [
+        'plan-optimisation','feasibility-coord','roi-evaluation',
+        'kitchen-island','bath-shower','redesign','gift-1000','gift-2000',
+      ];
       order.forEach((k, i) => {
         const g = MLP_EVENT.GIVEAWAYS[k]; if (!g) return;
+        const groupInfo = MLP_EVENT.GROUPS[g.group] || {};
         const art = document.createElement('article');
         art.className = 'slide';
         art.innerHTML = `
-          <div class="eyebrow">Cadeau ${i + 1} sur ${order.length} · Tirage à la fin du mois de mai</div>
+          <div class="eyebrow">Cadeau ${i + 1} sur ${order.length} · ${groupInfo.short || ''} · Tirage à la fin du mois de mai</div>
           <h1 class="visually-hidden" style="position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);overflow:hidden;">${g.title}</h1>
           <div class="main">
             <div class="prize-stage">
-              <div class="pz-tag">${SEGMENT_LABEL[k] || ''}</div>
+              <div class="pz-tag">${groupInfo.audience || ''}</div>
               <div class="pz-icon">${ic(PRIZE_ICON[k] || 'gift', 88)}</div>
               <div class="pz-title">${g.title}</div>
               <div class="pz-value">${g.value.toLocaleString('fr-CA')}&nbsp;$</div>

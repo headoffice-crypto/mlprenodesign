@@ -223,12 +223,14 @@
         sub:     'Étage par étage — Montréal.' },
 
       { type: 'prize-intro', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'design' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'evaluation' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'investissement' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'faisabilite' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'vanite' },
-      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'cuisine' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'plan-optimisation' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'feasibility-coord' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'roi-evaluation' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'kitchen-island' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'bath-shower' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'redesign' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'gift-1000' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'gift-2000' },
 
       { type: 'single', media: '/event-media/thomas-dubuc/after/Backyard.jpeg',
         eyebrow: 'Diagnostic + tirage · 30 secondes',
@@ -251,14 +253,12 @@
       } else if (s.type === 'prize-intro') {
         slides.push({ type: 'single', media: s.media,
           eyebrow: 'Cadeaux à gagner · Tirage à la fin du mois de mai',
-          title:   'Six cadeaux. 6 750 $ au total.',
-          sub:     'Inscrivez-vous au tirage — chaque cadeau est tiré au sort à la fin du mois de mai.' });
+          title:   'Huit cadeaux. 14 000 $ au total.',
+          sub:     'Tirage A pour acheteurs et investisseurs · 6 000 $. Tirage B pour propriétaires et rénovateurs · 8 000 $.' });
       } else if (s.type === 'prize') {
-        const g = MLP_EVENT.GIVEAWAYS[s.prizeKey] || {};
-        const seg = g.segment ? MLP_EVENT.SEGMENTS[g.segment] : null;
-        const eyebrow = g.tier === 'primary'
-          ? `Cadeau · ${seg ? seg.label + 's' : ''} · ${g.value} $`
-          : `Cadeau bonus · Pour tous · ${g.value} $`;
+        const g  = MLP_EVENT.GIVEAWAYS[s.prizeKey] || {};
+        const gr = MLP_EVENT.GROUPS[g.group] || {};
+        const eyebrow = `${gr.short || 'Cadeau'} · ${gr.audience || ''} · ${g.value || 0} $`;
         slides.push({ type: 'single', media: s.media,
           eyebrow, title: g.title || '', sub: 'Tirage à la fin du mois de mai.' });
       } else {

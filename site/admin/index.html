@@ -227,7 +227,10 @@
       rows.innerHTML = filtered.map(l => {
         const seg = MLP_EVENT.SEGMENTS[l.segment] || {};
         const reg = MLP_EVENT.REGIONS[l.region]   || {};
-        const g   = MLP_EVENT.GIVEAWAYS[l.giveawayKey] || {};
+        // Prefer the group total over the single-prize value; the lead is
+        // entered in the whole group pool, not just one cadeau.
+        const grKey = l.group || seg.group || '';
+        const gr    = MLP_EVENT.GROUPS[grKey] || {};
         const localOnly = !l.customerId;
         const localTag = localOnly ? ' <span style="color:#9aa0a6;font-size:11px;font-weight:400;">· local</span>' : '';
         return `<tr data-id="${l.id}">
@@ -235,7 +238,7 @@
           <td><div>${l.phone || ''}</div><div style="color:#5b4a2b;font-size:12px;">${l.email || ''}</div></td>
           <td><span class="pill">${seg.icon ? ic(seg.icon, 14) : ''} ${seg.label || l.segment || '—'}</span></td>
           <td><span class="pill">${ic('mapPin', 14)} ${reg.label || '—'}</span></td>
-          <td><span class="pill prize-pill">${ic('gift', 14)} ${g.short || '—'} · ${g.value || 0}&nbsp;$</span></td>
+          <td><span class="pill prize-pill">${ic('gift', 14)} ${gr.short || 'Tirage'} · ${(gr.total || 0).toLocaleString('fr-CA')}&nbsp;$</span></td>
           <td><span style="font-size:12px;color:#5b4a2b;">${fmtDate(l.createdAt)}</span></td>
           <td>
             <div class="row-actions">
@@ -304,6 +307,8 @@
       const regionKey  = document.getElementById('m-region').value;
       const segment = MLP_EVENT.SEGMENTS[segmentKey] || {};
       const region  = MLP_EVENT.REGIONS[regionKey]   || {};
+      const groupKey      = segment.group || lead.group || 'A';
+      const groupInfo     = MLP_EVENT.GROUPS[groupKey] || {};
       const giveawayKey   = segment.primaryPrize || lead.giveawayKey || '';
       const giveaway      = MLP_EVENT.GIVEAWAYS[giveawayKey] || {};
 
@@ -315,6 +320,9 @@
         segmentLabel: segment.label || '',
         region:       regionKey,
         regionLabel:  region.label || '',
+        group:        groupKey,
+        groupLabel:   groupInfo.label || '',
+        groupTotal:   groupInfo.total || 0,
         giveawayKey,
         giveawayTitle: giveaway.title || '',
         giveawayValue: giveaway.value || 0,
