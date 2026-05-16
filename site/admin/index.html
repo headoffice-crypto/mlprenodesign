@@ -228,9 +228,10 @@
         const seg = MLP_EVENT.SEGMENTS[l.segment] || {};
         const reg = MLP_EVENT.REGIONS[l.region]   || {};
         const g   = MLP_EVENT.GIVEAWAYS[l.giveawayKey] || {};
-        const canRemote = !!l.customerId;
+        const localOnly = !l.customerId;
+        const localTag = localOnly ? ' <span style="color:#9aa0a6;font-size:11px;font-weight:400;">· local</span>' : '';
         return `<tr data-id="${l.id}">
-          <td><strong>${l.name || '—'}</strong></td>
+          <td><strong>${l.name || '—'}</strong>${localTag}</td>
           <td><div>${l.phone || ''}</div><div style="color:#5b4a2b;font-size:12px;">${l.email || ''}</div></td>
           <td><span class="pill">${seg.icon ? ic(seg.icon, 14) : ''} ${seg.label || l.segment || '—'}</span></td>
           <td><span class="pill">${ic('mapPin', 14)} ${reg.label || '—'}</span></td>
@@ -238,8 +239,8 @@
           <td><span style="font-size:12px;color:#5b4a2b;">${fmtDate(l.createdAt)}</span></td>
           <td>
             <div class="row-actions">
-              <button data-edit="${l.id}" ${canRemote ? '' : 'disabled title="Pas encore synchronisé"'}>${ic('edit', 12)} Modifier</button>
-              <button class="danger" data-del="${l.id}" ${canRemote ? '' : 'disabled title="Pas encore synchronisé"'}>${ic('trash', 12)} Supprimer</button>
+              <button data-edit="${l.id}">${ic('edit', 12)} Modifier</button>
+              <button class="danger" data-del="${l.id}">${ic('trash', 12)} Supprimer</button>
             </div>
           </td>
         </tr>`;
@@ -272,9 +273,9 @@
 
     function openEdit(leadId) {
       const lead = leadById(leadId);
-      if (!lead || !lead.customerId) return;
+      if (!lead) return;
       document.getElementById('m-leadId').value     = lead.id;
-      document.getElementById('m-customerId').value = lead.customerId;
+      document.getElementById('m-customerId').value = lead.customerId || '';
       document.getElementById('m-name').value       = lead.name  || '';
       document.getElementById('m-phone').value      = lead.phone || '';
       document.getElementById('m-email').value      = lead.email || '';
@@ -327,8 +328,10 @@
       const saveBtn = document.getElementById('m-save');
       saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement…';
       try {
-        await MLP_EVENT.updateEventLead(customerId, updatedLead);
-        MLP_EVENT.updateLead(leadId, updatedLead); // mirror to localStorage if present
+        if (customerId) {
+          await MLP_EVENT.updateEventLead(customerId, updatedLead);
+        }
+        MLP_EVENT.updateLead(leadId, updatedLead); // also patch localStorage copy
         closeModal();
         await refreshRemote();
       } catch (e) {
@@ -340,12 +343,15 @@
 
     async function confirmDelete(leadId) {
       const lead = leadById(leadId);
-      if (!lead || !lead.customerId) return;
+      if (!lead) return;
       if (!confirm(`Supprimer le lead "${lead.name || '—'}"? Cette action est irréversible.`)) return;
       try {
-        await MLP_EVENT.deleteEventLead(lead.customerId);
-        MLP_EVENT.deleteLead(leadId);  // also drop from localStorage
+        if (lead.customerId) {
+          await MLP_EVENT.deleteEventLead(lead.customerId);
+        }
+        MLP_EVENT.deleteLead(leadId);  // always clear from localStorage too
         await refreshRemote();
+        render();
       } catch (e) {
         alert('Erreur — ' + (e.message || String(e)));
       }
