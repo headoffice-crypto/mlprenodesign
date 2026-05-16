@@ -68,23 +68,60 @@
     .solo .tag { position: absolute; top: 22px; left: 22px; padding: 9px 20px; border-radius: 999px; background: rgba(0,0,0,.72); color: #fff; font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
     .solo .tag.after { background: var(--gold); color: #1a1208; }
 
-    /* Three-card audience grid (slide 4) */
-    .quad { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
-    .quad .q { padding: 24px 26px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(200,167,102,.25); display: flex; flex-direction: column; justify-content: center; }
-    .quad .q h3 { font-family: var(--serif); font-size: clamp(1.4rem, 2vw, 1.8rem); margin: 0 0 8px; color: var(--gold); display: flex; align-items: center; gap: 12px; }
-    .quad .q p  { margin: 0; color: rgba(255,255,255,.78); font-size: clamp(.95rem, 1.1vw, 1.15rem); line-height: 1.5; }
-
-    /* Winners (slide 5) */
-    .wins { flex: 1 1 auto; min-height: 0; display: grid; gap: 10px; overflow: auto; padding-right: 4px; align-content: start; }
-    .win {
-      display: grid; grid-template-columns: 1fr auto auto; gap: 18px; align-items: center;
-      padding: 14px 22px; border-radius: 14px;
-      background: rgba(255,255,255,.04); border: 1px solid rgba(200,167,102,.25);
+    /* Audience slide — one big icon + the value prop */
+    .audience { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr; align-content: center; justify-items: start; gap: 24px; }
+    .audience .ic {
+      width: clamp(96px, 9vw, 140px); height: clamp(96px, 9vw, 140px);
+      border-radius: 28px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center;
+      color: #1a1208;
     }
-    .win .label  { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.55); }
-    .win .name   { font-family: var(--serif); font-size: 1.4rem; color: #fff; margin-top: 2px; line-height: 1.1; }
-    .win .city   { font-size: 13px; color: rgba(255,255,255,.55); }
-    .win .price  { font-family: var(--serif); font-size: 1.6rem; color: var(--gold); }
+    .audience .ic .icon { width: 56%; height: 56%; }
+
+    /* Results bullets (Thomas-Dubuc outcome) */
+    .results { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; align-content: center; }
+    .result { padding: 22px 26px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(200,167,102,.25); }
+    .result .n { font-family: var(--serif); font-size: clamp(2.2rem, 4vw, 3.4rem); color: var(--gold); line-height: 1; }
+    .result .l { font-size: 13px; color: rgba(255,255,255,.78); margin-top: 8px; line-height: 1.4; }
+
+    /* PRIZE slide — one cadeau at a time, dramatic */
+    .prize-stage { flex: 1 1 auto; min-height: 0; display: grid; align-content: center; justify-items: center; gap: 28px; text-align: center; }
+    .prize-stage .pz-tag {
+      font-size: 13px; letter-spacing: .26em; text-transform: uppercase;
+      color: rgba(255,255,255,.6); padding: 8px 18px; border: 1px solid rgba(200,167,102,.35); border-radius: 999px;
+    }
+    .prize-stage .pz-icon {
+      width: clamp(110px, 11vw, 160px); height: clamp(110px, 11vw, 160px);
+      border-radius: 32px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center;
+      color: #1a1208;
+      box-shadow: 0 24px 60px -16px rgba(200,167,102,.45);
+    }
+    .prize-stage .pz-icon .icon { width: 56%; height: 56%; }
+    .prize-stage .pz-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(2.4rem, 5vw, 4.4rem); line-height: 1.05;
+      margin: 0; max-width: 22ch;
+    }
+    .prize-stage .pz-value {
+      font-family: var(--serif); font-weight: 700;
+      font-size: clamp(3.4rem, 8vw, 6.4rem); line-height: 1;
+      color: var(--gold);
+    }
+    .prize-stage .pz-when {
+      font-size: clamp(.95rem, 1.2vw, 1.15rem);
+      color: rgba(255,255,255,.7);
+    }
+    /* Entrance animations when slide becomes active */
+    .slide.is-active .prize-stage .pz-tag   { animation: pzRise .55s ease-out .1s both; }
+    .slide.is-active .prize-stage .pz-icon  { animation: pzPop  .65s cubic-bezier(.4,1.6,.6,1) .25s both; }
+    .slide.is-active .prize-stage .pz-title { animation: pzRise .55s ease-out .55s both; }
+    .slide.is-active .prize-stage .pz-value { animation: pzRise .55s ease-out .85s both; }
+    .slide.is-active .prize-stage .pz-when  { animation: pzRise .55s ease-out 1.05s both; }
+    @keyframes pzRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+    @keyframes pzPop  { 0% { opacity: 0; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
 
     /* Final QR (slide 6) */
     .final { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; }
@@ -121,11 +158,12 @@
     </header>
 
     <section class="deck-body" id="body">
-      <!-- 1 — Qui nous sommes -->
+
+      <!-- 1 — Qui nous sommes (intro) -->
       <article class="slide is-active">
         <div class="eyebrow">Qui nous sommes</div>
-        <h1>Nous transformons des propriétés en patrimoines.</h1>
-        <p class="sub">Gestion · Accompagnement · Rénovation. Pour les propriétaires, les acheteurs et les investisseurs du Grand Montréal.</p>
+        <h1>MLP Reno &amp; Design.</h1>
+        <p class="sub">Gestion · Accompagnement · Rénovation. Trois profils. Une équipe.</p>
         <div class="main">
           <div class="stats">
             <div class="stat"><div class="n">15+</div><div class="l">Années d'expérience</div></div>
@@ -135,21 +173,41 @@
         </div>
       </article>
 
-      <!-- 2 — Opportunités cachées -->
+      <!-- 2 — Pour les acheteurs -->
       <article class="slide">
-        <div class="eyebrow">Ce que personne ne vous a dit</div>
-        <h1>Votre propriété cache 1 200 $ par mois.</h1>
-        <p class="sub">Sous-sol, agrandissement, conversion, garderie. Si la ville l'autorise — et elle l'autorise plus souvent que vous pensez.</p>
+        <div class="eyebrow">Si vous achetez</div>
+        <h1>On regarde la propriété avant que vous signiez.</h1>
+        <p class="sub">Accompagnement côté construction et rénovation. Étude des possibilités auprès de la ville. Vous savez exactement où vous mettez les pieds.</p>
         <div class="main">
-          <div class="media-fill"><img src="/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg" alt=""></div>
+          <div class="audience"><div class="ic" id="aud-acheteur"></div></div>
         </div>
       </article>
 
-      <!-- 3 — Avant SEUL -->
+      <!-- 3 — Pour les investisseurs -->
       <article class="slide">
-        <div class="eyebrow">Maison Thomas-Dubuc · Façade — Avant</div>
-        <h1>Voici la façade quand nous l'avons reçue.</h1>
-        <p class="sub">Sous-évaluée, sans permis pour le sous-sol. Une opportunité que personne n'avait vue.</p>
+        <div class="eyebrow">Si vous investissez</div>
+        <h1>On maximise votre rendement.</h1>
+        <p class="sub">Stratégies de rénovation, optimisation des unités, gestion locative. Votre portefeuille travaille plus fort sans que vous travailliez plus.</p>
+        <div class="main">
+          <div class="audience"><div class="ic" id="aud-invest"></div></div>
+        </div>
+      </article>
+
+      <!-- 4 — Pour les propriétaires -->
+      <article class="slide">
+        <div class="eyebrow">Si vous êtes propriétaire</div>
+        <h1>On augmente la valeur de votre propriété.</h1>
+        <p class="sub">Fonctionnalité. Valeur de revente. Conversion en revenu. Votre maison vaut plus que vous pensez — et on vous montre comment l'activer.</p>
+        <div class="main">
+          <div class="audience"><div class="ic" id="aud-proprio"></div></div>
+        </div>
+      </article>
+
+      <!-- 5 — Étude de cas: Thomas-Dubuc AVANT -->
+      <article class="slide">
+        <div class="eyebrow">Étude de cas · Maison Thomas-Dubuc</div>
+        <h1>Voici comment elle est arrivée chez nous.</h1>
+        <p class="sub">Sous-évaluée. Sans permis pour le sous-sol. Une opportunité que personne d'autre n'avait vue.</p>
         <div class="main">
           <div class="solo">
             <img src="/event-media/thomas-dubuc/before/Before-frontage.jpeg" alt="">
@@ -158,11 +216,11 @@
         </div>
       </article>
 
-      <!-- 4 — Après SEUL -->
+      <!-- 6 — Thomas-Dubuc APRÈS -->
       <article class="slide">
-        <div class="eyebrow">Maison Thomas-Dubuc · Façade — Après</div>
-        <h1>Et voici ce qu'elle est devenue.</h1>
-        <p class="sub">+ valeur de revente. + revenus locatifs. + qualité de vie. La même maison.</p>
+        <div class="eyebrow">Maison Thomas-Dubuc · Après</div>
+        <h1>Et voici ce qu'on en a fait.</h1>
+        <p class="sub">La même maison. Un patrimoine.</p>
         <div class="main">
           <div class="solo">
             <img src="/event-media/thomas-dubuc/after/Frontage-1.jpeg" alt="">
@@ -171,33 +229,35 @@
         </div>
       </article>
 
-      <!-- 5 — Qui nous aidons -->
+      <!-- 7 — Thomas-Dubuc résultats -->
       <article class="slide">
-        <div class="eyebrow">Qui nous aidons</div>
-        <h1>Trois profils. Une équipe.</h1>
+        <div class="eyebrow">Ce qu'on a livré</div>
+        <h1>Trois étages. Deux unités. Un patrimoine.</h1>
         <div class="main">
-          <div class="quad">
-            <div class="q"><h3 id="q-home"></h3><p>Augmenter la valeur et la qualité de vie de votre maison.</p></div>
-            <div class="q"><h3 id="q-key"></h3><p>Acheter intelligemment, éviter les pièges, négocier en force.</p></div>
-            <div class="q"><h3 id="q-trend"></h3><p>Acquérir, optimiser, agrandir un portefeuille rentable.</p></div>
+          <div class="results">
+            <div class="result"><div class="n">+ 38 %</div><div class="l">Valeur de revente estimée</div></div>
+            <div class="result"><div class="n">3 200 $</div><div class="l">Revenu locatif net par mois</div></div>
+            <div class="result"><div class="n">Permis</div><div class="l">Conversion légale obtenue auprès de la ville</div></div>
+            <div class="result"><div class="n">Clé en main</div><div class="l">Plans, permis, chantier — un seul partenaire</div></div>
           </div>
         </div>
       </article>
 
-      <!-- 5 — Tirages -->
+      <!-- 8 — Prizes intro -->
       <article class="slide">
         <div class="eyebrow">Cadeaux à gagner · Tirage à la fin du mois de mai</div>
-        <h1 id="winners-title">Six cadeaux · 14 000 $</h1>
-        <div class="main">
-          <div class="wins" id="wins"></div>
-        </div>
+        <h1 id="prizes-headline">Six cadeaux. Un tirage.</h1>
+        <p class="sub">Inscrivez-vous ce soir. Le tirage au sort se fait à la fin du mois de mai. On contacte les gagnants directement.</p>
       </article>
 
-      <!-- 6 — QR final -->
-      <article class="slide">
+      <!-- 9-14 — One prize per slide, generated from MLP_EVENT.GIVEAWAYS -->
+      <!-- Inserted dynamically before the QR slide -->
+
+      <!-- 15 — QR final -->
+      <article class="slide" id="qr-slide">
         <div class="eyebrow">Avant de partir</div>
-        <h1>Scannez. Parlez-nous.</h1>
-        <p class="sub">Un diagnostic en 30 secondes. Une consultation offerte. Un projet qui change votre patrimoine.</p>
+        <h1>Scannez. Participez.</h1>
+        <p class="sub">30 secondes. Inscription au tirage. Une équipe qui transforme votre prochaine décision immobilière.</p>
         <div class="main">
           <div class="final">
             <div class="text">
@@ -231,17 +291,59 @@
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
   <script>
-    // Populate icon-bearing labels
     const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 16 });
-    document.getElementById('q-home').innerHTML  = ic('home',  22)  + ' Propriétaires';
-    document.getElementById('q-key').innerHTML   = ic('key',   22)  + ' Acheteurs';
-    document.getElementById('q-trend').innerHTML = ic('trendingUp', 22) + ' Investisseurs';
+    // Audience hero icons (big — sized via CSS .ic .icon)
+    document.getElementById('aud-acheteur').innerHTML = ic('key',        96);
+    document.getElementById('aud-invest').innerHTML   = ic('trendingUp', 96);
+    document.getElementById('aud-proprio').innerHTML  = ic('home',       96);
     document.getElementById('contact-phone').innerHTML = ic('phone', 22) + '(450) 500-8936';
     document.getElementById('prev').innerHTML    = ic('arrowLeft', 16) + 'Précédent';
     document.getElementById('next').innerHTML    = 'Suivant' + ic('arrowRight', 16);
     document.getElementById('draw').remove();
     document.getElementById('clean').innerHTML   = ic('fullscreen', 16) + 'Plein écran';
     document.getElementById('ext').innerHTML     = 'Écran dédié' + ic('arrowRight', 14);
+
+    /* Build one slide per cadeau, inserted before the QR slide. */
+    const PRIZE_ICON = {
+      design:         'sparkle',
+      evaluation:     'compass',
+      investissement: 'trendingUp',
+      faisabilite:    'shieldCheck',
+      vanite:         'bath',
+      cuisine:        'chefHat',
+    };
+    const SEGMENT_LABEL = {
+      design:         'Pour les propriétaires',
+      evaluation:     'Pour les acheteurs',
+      investissement: 'Pour les investisseurs',
+      faisabilite:    'Cadeau bonus · pour tous',
+      vanite:         'Cadeau bonus · pour tous',
+      cuisine:        'Cadeau bonus · pour tous',
+    };
+    function buildPrizeSlides() {
+      const body  = document.getElementById('body');
+      const qrEl  = document.getElementById('qr-slide');
+      const order = ['design','evaluation','investissement','faisabilite','vanite','cuisine'];
+      order.forEach((k, i) => {
+        const g = MLP_EVENT.GIVEAWAYS[k]; if (!g) return;
+        const art = document.createElement('article');
+        art.className = 'slide';
+        art.innerHTML = `
+          <div class="eyebrow">Cadeau ${i + 1} sur ${order.length} · Tirage à la fin du mois de mai</div>
+          <h1 class="visually-hidden" style="position:absolute;width:1px;height:1px;clip:rect(0 0 0 0);overflow:hidden;">${g.title}</h1>
+          <div class="main">
+            <div class="prize-stage">
+              <div class="pz-tag">${SEGMENT_LABEL[k] || ''}</div>
+              <div class="pz-icon">${ic(PRIZE_ICON[k] || 'gift', 88)}</div>
+              <div class="pz-title">${g.title}</div>
+              <div class="pz-value">${g.value.toLocaleString('fr-CA')}&nbsp;$</div>
+              <div class="pz-when">Tirage à la fin du mois de mai · Inscription au QR ci-dessous</div>
+            </div>
+          </div>`;
+        body.insertBefore(art, qrEl);
+      });
+    }
+    buildPrizeSlides();
 
     const slides = document.querySelectorAll('.slide');
     const dotsC  = document.getElementById('dots');
@@ -278,23 +380,6 @@
 
     document.getElementById('qr-final').src =
       'https://api.qrserver.com/v1/create-qr-code/?size=512x512&margin=0&data=' + encodeURIComponent(location.origin + '/diagnostic');
-
-    function renderPrizes() {
-      const keys = Object.keys(MLP_EVENT.GIVEAWAYS);
-      const c = document.getElementById('wins');
-      c.innerHTML = keys.map(k => {
-        const g = MLP_EVENT.GIVEAWAYS[k];
-        return `<div class="win">
-          <div>
-            <div class="label">${g.short}${g.tier === 'primary' ? ' · Primaire' : ' · Bonus'}</div>
-            <div class="name">${g.title || g.short}</div>
-          </div>
-          <div class="city">Tirage à la fin du mois de mai</div>
-          <div class="price">${g.value} $</div>
-        </div>`;
-      }).join('');
-    }
-    renderPrizes();
 
     MLP_EVENT.trackStep('stage-presentation');
   </script>
