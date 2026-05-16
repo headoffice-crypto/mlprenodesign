@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pour les propriétaires — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: stretch; margin: 32px 0 56px; }
+    @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+    .hero-text { display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+    .hero-media { border-radius: 18px; overflow: hidden; aspect-ratio: 4/3; background: #000; }
+    .hero-media img { width: 100%; height: 100%; object-fit: cover; }
+    .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 56px; }
+    @media (max-width: 900px) { .three { grid-template-columns: 1fr; } }
+    .three .ev-card h3 { color: var(--gold); font-family: var(--serif); font-size: 1.6rem; margin: 0 0 10px; }
+    .three .ev-card p  { color: var(--ink-soft); margin: 0; line-height: 1.6; }
+
+    .ba-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 56px; }
+    @media (max-width: 900px) { .ba-row { grid-template-columns: 1fr; } }
+
+    .prize {
+      padding: 36px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      color: #1a1208;
+      display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;
+    }
+    @media (max-width: 700px) { .prize { grid-template-columns: 1fr; } }
+    .prize h2 { font-family: var(--serif); margin: 0 0 6px; color: #1a1208; }
+    .prize .label { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; opacity: .8; }
+    .prize .desc { opacity: .85; max-width: 50ch; }
+    .prize .ev-btn { background: #1a1208; color: var(--gold); border: 0; }
+    .prize .ev-btn:hover { background: #000; }
+
+    .footer-nav { display: flex; justify-content: space-between; gap: 16px; margin-top: 56px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="ev-wrap ev-section">
+
+    <div class="ev-eyebrow">Pour les propriétaires</div>
+    <div class="hero">
+      <div class="hero-text">
+        <h1 class="ev-h1">Votre maison vaut probablement plus que vous pensez.</h1>
+        <p class="ev-lead">On ne fait pas que rénover : on identifie ce qui augmente la valeur, ce qui débloque des revenus, ce que la ville autorise. Vous décidez ensuite.</p>
+      </div>
+      <div class="hero-media"><img src="/event-media/thomas-dubuc/after/Living-room-1.jpeg" alt=""></div>
+    </div>
+
+    <div class="three">
+      <div class="ev-card"><h3>Valeur</h3><p>Nous identifions les rénovations qui augmentent <strong>réellement</strong> la valeur — pas les modes qui plaisent un an.</p></div>
+      <div class="ev-card"><h3>Revenus</h3><p>Sous-sol, agrandissement, conversion, bachelor. Souvent <strong>+ 1 200 $ à 1 800 $ par mois</strong>.</p></div>
+      <div class="ev-card"><h3>Faisabilité</h3><p>Avant de rénover, on valide avec la ville : zonage, permis, marges, hauteurs.</p></div>
+    </div>
+
+    <h2 class="ev-h2 mb-4">Avant — après</h2>
+    <p style="color:var(--ink-soft);margin:0 0 18px;font-size:.95rem;">Touchez les pastilles pour basculer entre l'avant et l'après. (Bascule automatique aux 4 secondes.)</p>
+    <div class="ba-row">
+      <div class="ba-toggle">
+        <div class="ba-tabs">
+          <button class="ba-tab is-active" data-state="before" type="button">Avant</button>
+          <button class="ba-tab"            data-state="after"  type="button">Après</button>
+        </div>
+        <div class="ba-stage">
+          <img class="is-active" data-state="before" src="/event-media/thomas-dubuc/before/Before-Living-room.jpeg" alt="Salon avant">
+          <img                   data-state="after"  src="/event-media/thomas-dubuc/after/Living-room-1.jpeg"       alt="Salon après">
+        </div>
+      </div>
+      <div class="ba-toggle">
+        <div class="ba-tabs">
+          <button class="ba-tab is-active" data-state="before" type="button">Avant</button>
+          <button class="ba-tab"            data-state="after"  type="button">Après</button>
+        </div>
+        <div class="ba-stage">
+          <img class="is-active" data-state="before" src="/event-media/thomas-dubuc/before/Before-frontage.jpeg" alt="Façade avant">
+          <img                   data-state="after"  src="/event-media/thomas-dubuc/after/Frontage-1.jpeg"       alt="Façade après">
+        </div>
+      </div>
+    </div>
+
+    <div class="prize">
+      <div>
+        <div class="label">Tirage du soir · Pour les propriétaires</div>
+        <h2 class="ev-h2">Consultation de design rénovation — 1 000 $</h2>
+        <p class="desc">Une rencontre stratégique avec un designer + un entrepreneur pour planifier votre prochaine rénovation.</p>
+      </div>
+      <a href="/event?seg=proprietaire" class="ev-btn ev-btn-lg">Je m'inscris →</a>
+    </div>
+
+    <div class="footer-nav">
+      <a href="/diagnostic" class="ev-btn ev-btn-outline">← Diagnostic</a>
+      <a href="/event?seg=proprietaire" class="ev-btn ev-btn-primary">Continuer vers le formulaire →</a>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Présentation · Propriétaires' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+    const seg = new URLSearchParams(location.search).get('seg'); if (seg) MLP_EVENT.setSegment(seg);
+    MLP_EVENT.trackStep('pres-proprietaire');
+  </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réservez votre consultation — MLP Reno & Design</title>
+  <link rel="stylesheet" href="/event/event.css">
+</head>
+<body>
+  <div id="header"></div>
+  <main class="ev-wrap ev-section">
+    <div id="form-view" class="ev-grid ev-grid-2" style="gap:48px;align-items:start;">
+      <div>
+        <div class="ev-eyebrow">Phase 4 · Consultation</div>
+        <h1 class="ev-h1">Réservez votre rencontre stratégique.</h1>
+        <p class="ev-lead">Une discussion de 45 à 60 minutes — par téléphone ou en personne — pour comprendre votre situation, identifier les opportunités et chiffrer une première approche.</p>
+
+        <div class="ev-card mt-8" style="background:linear-gradient(135deg,#1a1208,#2a1d10);border-color:rgba(200,167,102,.3);">
+          <div class="ev-eyebrow">Ce que vous repartez avec</div>
+          <ul style="color:var(--ink-soft);line-height:1.9;margin:14px 0 0;padding-left:18px;">
+            <li>Une lecture claire de la valeur réelle de votre propriété</li>
+            <li>Les opportunités cachées chiffrées</li>
+            <li>Les prochaines étapes concrètes</li>
+            <li>Un échéancier réaliste</li>
+          </ul>
+        </div>
+
+        <div class="ev-card mt-4">
+          <h3 class="ev-h3">Sans engagement.</h3>
+          <p style="color:var(--ink-soft);margin:0;">Cette rencontre vous appartient. Vous décidez ensuite si nous travaillons ensemble.</p>
+        </div>
+      </div>
+
+      <form class="ev-card ev-form" id="consult-form">
+        <div class="ev-eyebrow">Demande de consultation</div>
+        <div class="ev-grid ev-grid-2">
+          <div class="ev-field"><label class="ev-label" for="name">Nom *</label><input class="ev-input" id="name" required></div>
+          <div class="ev-field"><label class="ev-label" for="phone">Téléphone *</label><input class="ev-input" id="phone" type="tel" required></div>
+        </div>
+        <div class="ev-field"><label class="ev-label" for="email">Courriel *</label><input class="ev-input" id="email" type="email" required></div>
+        <div class="ev-field"><label class="ev-label" for="city">Ville</label><input class="ev-input" id="city"></div>
+        <div class="ev-field"><label class="ev-label" for="segment">Sujet principal</label><select class="ev-select" id="segment"></select></div>
+        <div class="ev-grid ev-grid-2">
+          <div class="ev-field"><label class="ev-label" for="format">Format préféré</label>
+            <select class="ev-select" id="format">
+              <option value="telephone">Téléphone</option>
+              <option value="visio">Vidéo-conférence</option>
+              <option value="personne">En personne</option>
+            </select>
+          </div>
+          <div class="ev-field"><label class="ev-label" for="window">Plage horaire</label>
+            <select class="ev-select" id="window">
+              <option>Semaine — matin</option>
+              <option>Semaine — après-midi</option>
+              <option>Semaine — soir</option>
+              <option>Fin de semaine</option>
+            </select>
+          </div>
+        </div>
+        <div class="ev-field"><label class="ev-label" for="notes">Décrivez votre projet *</label><textarea class="ev-textarea" id="notes" required></textarea></div>
+        <button class="ev-btn ev-btn-primary ev-btn-lg ev-btn-block" type="submit">Demander ma consultation →</button>
+        <p style="color:var(--ink-soft);font-size:12px;margin:0;">Nous vous contactons dans les 24 heures ouvrables.</p>
+      </form>
+    </div>
+
+    <div id="thanks-view" class="hidden center" style="padding:80px 20px;">
+      <div class="ev-pill">Demande reçue</div>
+      <h1 class="ev-h1 mt-4">Merci, <span id="thanks-name">vous</span>.</h1>
+      <p class="ev-lead" style="margin:0 auto;">Un membre de l’équipe MLP vous contacte d’ici 24 heures pour confirmer votre rencontre.</p>
+      <div class="row mt-8" style="justify-content:center;">
+        <a href="/projets" class="ev-btn ev-btn-outline">Voir nos projets</a>
+        <a href="tel:+14505008936" class="ev-btn ev-btn-primary">Appeler maintenant · (450) 500-8936</a>
+      </div>
+    </div>
+  </main>
+  <div id="footer"></div>
+
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 4 · Consultation' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    const segSel = document.getElementById('segment');
+    Object.entries(MLP_EVENT.SEGMENTS).forEach(([k,s]) => {
+      const o = document.createElement('option'); o.value = k; o.textContent = s.label;
+      segSel.appendChild(o);
+    });
+    segSel.value = MLP_EVENT.getSegment() || 'curieux';
+
+    document.getElementById('consult-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const notes = `Format: ${document.getElementById('format').value} · Plage: ${document.getElementById('window').value}\n\n${document.getElementById('notes').value}`;
+      const lead = MLP_EVENT.addLead({
+        name:    document.getElementById('name').value,
+        phone:   document.getElementById('phone').value,
+        email:   document.getElementById('email').value,
+        city:    document.getElementById('city').value,
+        segment: segSel.value,
+        notes,
+        source:  'consultation',
+      });
+      MLP_EVENT.updateLead(lead.id, { status: 'à-rappeler' });
+      document.getElementById('thanks-name').textContent = lead.name.split(' ')[0] || 'vous';
+      document.getElementById('form-view').classList.add('hidden');
+      document.getElementById('thanks-view').classList.remove('hidden');
+      MLP_EVENT.trackStep('lead-consultation');
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+
+    MLP_EVENT.trackStep('consultation-view');
+  </script>
+</body>
+</html>

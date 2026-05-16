@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Présentation live — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    /* ---- Stage (rewritten for projectors — no absolute overlap) ---- */
+    :root { --pad: clamp(36px, 5vw, 72px); }
+    html, body { height: 100%; overflow: hidden; background: #0b0f17; }
+    body { color: #fff; }
+
+    .deck { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+    .deck-head { padding: 22px var(--pad) 0; display: flex; justify-content: space-between; align-items: center; font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+    .deck-head .brand { color: var(--gold); font-weight: 700; }
+    .deck-head .index { color: var(--gold); font-family: var(--serif); font-size: 20px; letter-spacing: 0; text-transform: none; }
+
+    .deck-body { position: relative; overflow: hidden; }
+    .slide {
+      position: absolute; inset: 0;
+      padding: var(--pad);
+      display: flex; flex-direction: column;
+      gap: 14px;
+      opacity: 0;
+      transition: opacity .45s ease;
+      pointer-events: none;
+    }
+    .slide.is-active { opacity: 1; pointer-events: auto; }
+
+    .slide .eyebrow { font-size: 14px; letter-spacing: .3em; text-transform: uppercase; color: var(--gold); flex: 0 0 auto; }
+    .slide h1 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(2.4rem, 5vw, 5rem);
+      line-height: 1.06;
+      margin: 0;
+      max-width: 22ch;
+      flex: 0 0 auto;
+    }
+    .slide > p.sub {
+      font-size: clamp(1.05rem, 1.4vw, 1.4rem);
+      line-height: 1.5;
+      color: rgba(255,255,255,.78);
+      max-width: 55ch;
+      margin: 0;
+      flex: 0 0 auto;
+    }
+    .slide .main {
+      flex: 1 1 auto; min-height: 0;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      gap: 22px;
+      margin-top: 8px;
+    }
+
+    /* Stats row (slide 1) */
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 24px; }
+    .stats .stat .n { font-family: var(--serif); font-size: clamp(3rem, 6vw, 5.4rem); color: var(--gold); line-height: 1; }
+    .stats .stat .l { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: 6px; }
+
+    /* Single hero image (slide 2) */
+    .media-fill { flex: 1 1 auto; min-height: 0; border-radius: 18px; overflow: hidden; background: #000; }
+    .media-fill img, .media-fill video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Solo image (before OR after on its own slide — never both at once) */
+    .solo { flex: 1 1 auto; min-height: 0; position: relative; border-radius: 18px; overflow: hidden; background: #000; }
+    .solo img { width: 100%; height: 100%; object-fit: cover; }
+    .solo .tag { position: absolute; top: 22px; left: 22px; padding: 9px 20px; border-radius: 999px; background: rgba(0,0,0,.72); color: #fff; font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
+    .solo .tag.after { background: var(--gold); color: #1a1208; }
+
+    /* Three-card audience grid (slide 4) */
+    .quad { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .quad .q { padding: 24px 26px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(200,167,102,.25); display: flex; flex-direction: column; justify-content: center; }
+    .quad .q h3 { font-family: var(--serif); font-size: clamp(1.4rem, 2vw, 1.8rem); margin: 0 0 8px; color: var(--gold); display: flex; align-items: center; gap: 12px; }
+    .quad .q p  { margin: 0; color: rgba(255,255,255,.78); font-size: clamp(.95rem, 1.1vw, 1.15rem); line-height: 1.5; }
+
+    /* Winners (slide 5) */
+    .wins { flex: 1 1 auto; min-height: 0; display: grid; gap: 10px; overflow: auto; padding-right: 4px; align-content: start; }
+    .win {
+      display: grid; grid-template-columns: 1fr auto auto; gap: 18px; align-items: center;
+      padding: 14px 22px; border-radius: 14px;
+      background: rgba(255,255,255,.04); border: 1px solid rgba(200,167,102,.25);
+    }
+    .win .label  { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+    .win .name   { font-family: var(--serif); font-size: 1.4rem; color: #fff; margin-top: 2px; line-height: 1.1; }
+    .win .city   { font-size: 13px; color: rgba(255,255,255,.55); }
+    .win .price  { font-family: var(--serif); font-size: 1.6rem; color: var(--gold); }
+
+    /* Final QR (slide 6) */
+    .final { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; }
+    .final .text { display: flex; flex-direction: column; justify-content: center; }
+    .final .qr-box {
+      background: #fff; color: #1a1208; border-radius: 22px;
+      padding: 28px;
+      display: grid; gap: 14px; justify-items: center; text-align: center;
+    }
+    .final .qr-box img { width: clamp(220px, 28vw, 340px); height: auto; aspect-ratio: 1/1; }
+    .final .qr-url { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+    .final .qr-cta { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--terra); font-weight: 700; }
+    @media (max-width: 900px) { .final { grid-template-columns: 1fr; } }
+
+    /* Footer controls */
+    .deck-foot { padding: 16px var(--pad) 22px; display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+    .dots { display: flex; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.18); }
+    .dot.is-active { background: var(--gold); width: 24px; border-radius: 4px; }
+    .ev-btn { font-size: 13px; }
+    .deck-foot .row { display: flex; gap: 10px; }
+
+    /* When the operator hides chrome (presenter F11) */
+    .clean .deck-head, .clean .deck-foot { display: none; }
+    .clean .deck { grid-template-rows: 1fr; }
+  </style>
+</head>
+<body>
+  <main class="deck" id="deck">
+
+    <header class="deck-head">
+      <div class="brand">MLP · Soirée Bamiléké</div>
+      <div class="index"><span id="cur">1</span> <span style="color:rgba(255,255,255,.4);">/</span> <span id="tot">6</span></div>
+    </header>
+
+    <section class="deck-body" id="body">
+      <!-- 1 — Qui nous sommes -->
+      <article class="slide is-active">
+        <div class="eyebrow">Qui nous sommes</div>
+        <h1>Nous transformons des propriétés en patrimoines.</h1>
+        <p class="sub">Gestion · Accompagnement · Rénovation. Pour les propriétaires, les acheteurs et les investisseurs du Grand Montréal.</p>
+        <div class="main">
+          <div class="stats">
+            <div class="stat"><div class="n">15+</div><div class="l">Années d'expérience</div></div>
+            <div class="stat"><div class="n">200+</div><div class="l">Projets livrés</div></div>
+            <div class="stat"><div class="n">RBQ</div><div class="l">Entrepreneur certifié</div></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2 — Opportunités cachées -->
+      <article class="slide">
+        <div class="eyebrow">Ce que personne ne vous a dit</div>
+        <h1>Votre propriété cache 1 200 $ par mois.</h1>
+        <p class="sub">Sous-sol, agrandissement, conversion, garderie. Si la ville l'autorise — et elle l'autorise plus souvent que vous pensez.</p>
+        <div class="main">
+          <div class="media-fill"><img src="/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg" alt=""></div>
+        </div>
+      </article>
+
+      <!-- 3 — Avant SEUL -->
+      <article class="slide">
+        <div class="eyebrow">Maison Thomas-Dubuc · Façade — Avant</div>
+        <h1>Voici la façade quand nous l'avons reçue.</h1>
+        <p class="sub">Sous-évaluée, sans permis pour le sous-sol. Une opportunité que personne n'avait vue.</p>
+        <div class="main">
+          <div class="solo">
+            <img src="/event-media/thomas-dubuc/before/Before-frontage.jpeg" alt="">
+            <div class="tag">Avant</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4 — Après SEUL -->
+      <article class="slide">
+        <div class="eyebrow">Maison Thomas-Dubuc · Façade — Après</div>
+        <h1>Et voici ce qu'elle est devenue.</h1>
+        <p class="sub">+ valeur de revente. + revenus locatifs. + qualité de vie. La même maison.</p>
+        <div class="main">
+          <div class="solo">
+            <img src="/event-media/thomas-dubuc/after/Frontage-1.jpeg" alt="">
+            <div class="tag after">Après</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5 — Qui nous aidons -->
+      <article class="slide">
+        <div class="eyebrow">Qui nous aidons</div>
+        <h1>Trois profils. Une équipe.</h1>
+        <div class="main">
+          <div class="quad">
+            <div class="q"><h3 id="q-home"></h3><p>Augmenter la valeur et la qualité de vie de votre maison.</p></div>
+            <div class="q"><h3 id="q-key"></h3><p>Acheter intelligemment, éviter les pièges, négocier en force.</p></div>
+            <div class="q"><h3 id="q-trend"></h3><p>Acquérir, optimiser, agrandir un portefeuille rentable.</p></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5 — Tirages -->
+      <article class="slide">
+        <div class="eyebrow">Tirages MLP · Annoncés en direct</div>
+        <h1 id="winners-title">Et nos gagnants sont…</h1>
+        <div class="main">
+          <div class="wins" id="wins"></div>
+        </div>
+      </article>
+
+      <!-- 6 — QR final -->
+      <article class="slide">
+        <div class="eyebrow">Avant de partir</div>
+        <h1>Scannez. Parlez-nous.</h1>
+        <p class="sub">Un diagnostic en 30 secondes. Une consultation offerte. Un projet qui change votre patrimoine.</p>
+        <div class="main">
+          <div class="final">
+            <div class="text">
+              <div style="font-size:1.4rem;color:var(--gold);font-family:var(--serif);display:flex;align-items:center;gap:12px;" id="contact-phone"></div>
+              <div style="color:rgba(255,255,255,0.7);margin-top:10px;font-size:1rem;">mlprenodesign.ca</div>
+            </div>
+            <div class="qr-box">
+              <img id="qr-final" alt="QR — mlprenodesign.ca/diagnostic">
+              <div class="qr-cta">Diagnostic + tirage</div>
+              <div class="qr-url">mlprenodesign.ca/diagnostic</div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <footer class="deck-foot">
+      <div class="row">
+        <button class="ev-btn ev-btn-ghost" id="prev"></button>
+        <button class="ev-btn ev-btn-primary" id="next"></button>
+        <button class="ev-btn ev-btn-outline" id="draw" style="display:none;"></button>
+      </div>
+      <div class="dots" id="dots"></div>
+      <div class="row">
+        <button class="ev-btn ev-btn-ghost" id="clean"></button>
+        <a class="ev-btn ev-btn-ghost" href="/contest-winners" target="_blank" id="ext"></a>
+      </div>
+    </footer>
+  </main>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    // Populate icon-bearing labels
+    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 16 });
+    document.getElementById('q-home').innerHTML  = ic('home',  22)  + ' Propriétaires';
+    document.getElementById('q-key').innerHTML   = ic('key',   22)  + ' Acheteurs';
+    document.getElementById('q-trend').innerHTML = ic('trendingUp', 22) + ' Investisseurs';
+    document.getElementById('contact-phone').innerHTML = ic('phone', 22) + '(450) 500-8936';
+    document.getElementById('prev').innerHTML    = ic('arrowLeft', 16) + 'Précédent';
+    document.getElementById('next').innerHTML    = 'Suivant' + ic('arrowRight', 16);
+    document.getElementById('draw').innerHTML    = ic('trophy', 18) + 'Tirer les gagnants';
+    document.getElementById('clean').innerHTML   = ic('fullscreen', 16) + 'Plein écran';
+    document.getElementById('ext').innerHTML     = 'Écran dédié' + ic('arrowRight', 14);
+
+    const slides = document.querySelectorAll('.slide');
+    const dotsC  = document.getElementById('dots');
+    const drawBtn = document.getElementById('draw');
+    document.getElementById('tot').textContent = slides.length;
+
+    slides.forEach((_, i) => {
+      const d = document.createElement('div'); d.className = 'dot' + (i === 0 ? ' is-active' : '');
+      dotsC.appendChild(d);
+    });
+
+    let cur = 0;
+    function go(n) {
+      n = Math.max(0, Math.min(slides.length - 1, n));
+      slides[cur].classList.remove('is-active');
+      slides[n].classList.add('is-active');
+      dotsC.children[cur].classList.remove('is-active');
+      dotsC.children[n].classList.add('is-active');
+      cur = n;
+      document.getElementById('cur').textContent = cur + 1;
+      // The winners slide is whichever one contains #wins
+      const winnersIdx = Array.from(slides).findIndex(s => s.querySelector('#wins'));
+      drawBtn.style.display = (cur === winnersIdx) ? '' : 'none';
+    }
+    document.getElementById('prev').onclick = () => go(cur - 1);
+    document.getElementById('next').onclick = () => go(cur + 1);
+    drawBtn.onclick = () => renderWinners(MLP_EVENT.drawWinners());
+
+    document.getElementById('clean').onclick = () => {
+      document.body.classList.toggle('clean');
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    };
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }
+      if (e.key === 'ArrowLeft'  || e.key === 'PageUp') go(cur - 1);
+      if (e.key === 'f' || e.key === 'F') { document.body.classList.toggle('clean'); document.documentElement.requestFullscreen?.(); }
+      if (e.key === 'd' || e.key === 'D') { if (drawBtn.style.display !== 'none') drawBtn.click(); }
+      if (e.key === 'Escape') document.body.classList.remove('clean');
+    });
+
+    document.getElementById('qr-final').src =
+      'https://api.qrserver.com/v1/create-qr-code/?size=512x512&margin=0&data=' + encodeURIComponent(location.origin + '/diagnostic');
+
+    function renderWinners(w) {
+      const keys = Object.keys(MLP_EVENT.GIVEAWAYS);
+      const c = document.getElementById('wins');
+      c.innerHTML = keys.map(k => {
+        const g = MLP_EVENT.GIVEAWAYS[k];
+        const won = w && w[k];
+        return `<div class="win">
+          <div>
+            <div class="label">${g.short}${g.tier === 'primary' ? ' · Primaire' : ' · Bonus'}</div>
+            <div class="name">${won ? (won.name || '—') : '—'}</div>
+          </div>
+          <div class="city">${won ? (won.city || '') : 'En attente'}</div>
+          <div class="price">${g.value} $</div>
+        </div>`;
+      }).join('');
+    }
+    renderWinners(MLP_EVENT.getWinners());
+
+    MLP_EVENT.trackStep('stage-presentation');
+  </script>
+</body>
+</html>

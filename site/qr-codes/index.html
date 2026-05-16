@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Codes QR · MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .qr-card { text-align: center; }
+    .qr-card img { width: 100%; max-width: 280px; height: auto; background: #fff; padding: 14px; border-radius: 12px; }
+    .qr-url { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-soft); word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+  <main class="ev-wrap ev-section">
+    <div class="ev-eyebrow">Outils · Impression</div>
+    <h1 class="ev-h1">Codes QR de l’événement</h1>
+    <p class="ev-lead">Quatre codes prêts à imprimer. Modifiez le domaine si votre site est servi ailleurs, puis téléchargez en haute résolution.</p>
+
+    <div class="ev-card mt-8">
+      <div class="ev-grid ev-grid-2">
+        <div class="ev-field">
+          <label class="ev-label" for="base">Domaine de base</label>
+          <input class="ev-input" id="base" value="https://mlprenodesign.ca">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="size">Résolution (px)</label>
+          <input class="ev-input" id="size" type="number" value="1024" min="256" max="2048" step="64">
+        </div>
+      </div>
+    </div>
+
+    <div class="ev-grid ev-grid-4 mt-8" id="grid"></div>
+
+    <div class="ev-divider"></div>
+    <h2 class="ev-h2">Fichiers prêts (versions actuelles)</h2>
+    <p style="color:var(--ink-soft);">Ces fichiers ont été générés au moment du déploiement et sont stockés dans <code>/public/qr</code>. Ils utilisent le domaine <strong>mlprenodesign.ca</strong>.</p>
+    <div class="ev-grid ev-grid-4 mt-4">
+      <div class="ev-card qr-card"><img src="/public/qr/qr-event.png"><div class="mt-2"><strong>/event</strong></div><a class="ev-btn ev-btn-outline mt-2" href="/public/qr/qr-event.png" download>Télécharger</a></div>
+      <div class="ev-card qr-card"><img src="/public/qr/qr-diagnostic.png"><div class="mt-2"><strong>/diagnostic</strong></div><a class="ev-btn ev-btn-outline mt-2" href="/public/qr/qr-diagnostic.png" download>Télécharger</a></div>
+      <div class="ev-card qr-card"><img src="/public/qr/qr-projets.png"><div class="mt-2"><strong>/projets</strong></div><a class="ev-btn ev-btn-outline mt-2" href="/public/qr/qr-projets.png" download>Télécharger</a></div>
+      <div class="ev-card qr-card"><img src="/public/qr/qr-consultation.png"><div class="mt-2"><strong>/consultation</strong></div><a class="ev-btn ev-btn-outline mt-2" href="/public/qr/qr-consultation.png" download>Télécharger</a></div>
+    </div>
+
+    <div class="ev-divider"></div>
+    <a href="/event-dashboard" class="ev-btn ev-btn-outline">← Tableau de bord</a>
+  </main>
+  <div id="footer"></div>
+
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Outils · Codes QR' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    const SLUGS = [
+      { slug: '/event',        label: 'Inscription au tirage',  filename: 'qr-event' },
+      { slug: '/diagnostic',   label: 'Diagnostic',             filename: 'qr-diagnostic' },
+      { slug: '/projets',      label: 'Portfolio',              filename: 'qr-projets' },
+      { slug: '/consultation', label: 'Consultation',           filename: 'qr-consultation' },
+    ];
+
+    function render() {
+      const base = document.getElementById('base').value.trim().replace(/\/+$/, '');
+      const size = Math.max(256, Math.min(2048, parseInt(document.getElementById('size').value, 10) || 1024));
+      document.getElementById('grid').innerHTML = SLUGS.map(s => {
+        const url = base + s.slug;
+        const img = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=2&data=${encodeURIComponent(url)}`;
+        return `<div class="ev-card qr-card">
+          <img src="${img}" alt="QR ${s.slug}">
+          <div class="mt-2" style="font-weight:700;">${s.label}</div>
+          <div class="qr-url mt-2">${url}</div>
+          <a class="ev-btn ev-btn-primary mt-4" href="${img}" download="${s.filename}.png">Télécharger</a>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('base').addEventListener('input', render);
+    document.getElementById('size').addEventListener('input', render);
+    render();
+  </script>
+</body>
+</html>

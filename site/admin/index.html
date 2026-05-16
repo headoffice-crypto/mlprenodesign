@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM · Tableau de leads — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-tile { padding: 16px 18px; background: #fff; border-radius: 12px; border: 1px solid rgba(26,18,8,.08); }
+    .stat-tile .n { font-family: var(--serif); font-size: 2rem; color: var(--terra); line-height: 1; }
+    .stat-tile .l { color: #5b4a2b; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-top: 6px; }
+    @media (max-width:800px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 18px; align-items: center; }
+    .lead-tbl { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 22px -10px rgba(26,18,8,.18); }
+    .lead-tbl th, .lead-tbl td { padding: 14px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(26,18,8,.06); font-size: 14px; }
+    .lead-tbl th { background: #f0ead9; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #5b4a2b; }
+    .lead-tbl tr:last-child td { border-bottom: 0; }
+    .lead-tbl tr.is-winner td { background: rgba(200,167,102,.12); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .badge-new { background: #e0eaff; color: #1c3d7a; } .badge-rappel { background: #fff1c4; color: #7a5a1c; }
+    .badge-contacte { background: #d4f0d8; color: #1c5a2a; } .badge-perdu { background: #f3d3d3; color: #7a1c1c; }
+    .badge-converti { background: #c8a766; color: #1a1208; }
+    .score { font-weight: 700; }
+    .score-hi { color: #1c5a2a; } .score-mid { color: #b88a14; } .score-lo { color: #7a1c1c; }
+    .notif-yes { color: #1c5a2a; } .notif-no { color: #7a1c1c; }
+
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; place-items: center; z-index: 100; padding: 5vh 5vw; overflow: auto; }
+    .modal-bg.is-open { display: grid; }
+    .modal { background: #fff; color: #1a1208; max-width: 720px; width: 100%; border-radius: 16px; padding: 28px; }
+    .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; }
+
+    .panel {
+      padding: 24px;
+      background: linear-gradient(135deg, #fff8e6, #fff); border: 1px solid #ecd9a9;
+      border-radius: 16px; margin-bottom: 24px;
+    }
+    .panel .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width:700px) { .panel .grid { grid-template-columns: 1fr; } }
+    .toggles { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0; }
+    .toggles label { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #1a1208; }
+    .test-result {
+      margin-top: 12px; padding: 12px 16px; border-radius: 10px; font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; line-height: 1.5; white-space: pre-wrap; max-height: 220px; overflow: auto;
+    }
+    .test-result.ok    { background: #e8f5e9; border: 1px solid #a5d6a7; color: #1b5e20; }
+    .test-result.error { background: #fdecea; border: 1px solid #f5c6c2; color: #7a1c1c; }
+
+    .follow { background: #fff8e6; padding: 16px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; white-space: pre-wrap; }
+  </style>
+</head>
+<body class="theme-light">
+  <div id="header"></div>
+
+  <main class="ev-wrap ev-section">
+    <div class="ev-eyebrow" style="color:var(--terra);">Phase 5 · CRM après-événement</div>
+    <h1 class="ev-h1">Tableau de leads</h1>
+    <p class="ev-lead">Tous les contacts collectés ce soir. Twilio et Resend sont branchés — chaque nouveau lead vous arrive en direct par SMS et courriel.</p>
+
+    <!-- TWILIO / RESEND SETTINGS PANEL -->
+    <section class="panel mt-8">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="ev-eyebrow" style="color:var(--terra);">Notifications en direct · Twilio + Resend</div>
+          <h2 class="ev-h2" style="margin:6px 0 0;">Réglages opérateur</h2>
+          <p style="color:#5b4a2b;margin:6px 0 16px;">Ces paramètres restent sur votre appareil. Chaque nouveau lead les envoie au edge function Supabase qui les pousse via Twilio et Resend.</p>
+        </div>
+        <button class="ev-btn ev-btn-primary" id="btn-test"></button>
+      </div>
+
+      <div class="grid">
+        <div class="ev-field"><label class="ev-label" for="opsName">Votre prénom</label><input class="ev-input" id="opsName"></div>
+        <div class="ev-field"><label class="ev-label" for="opsPhone">Votre téléphone (SMS)</label><input class="ev-input" id="opsPhone" placeholder="4505008936"></div>
+        <div class="ev-field"><label class="ev-label" for="opsEmail">Votre courriel</label><input class="ev-input" id="opsEmail"></div>
+      </div>
+
+      <div class="toggles mt-2">
+        <label><input type="checkbox" id="notifyOpsSms">   SMS à moi (à chaque lead)</label>
+        <label><input type="checkbox" id="notifyOpsEmail"> Courriel à moi</label>
+        <label><input type="checkbox" id="notifyLeadSms">  SMS de remerciement au lead</label>
+        <label><input type="checkbox" id="notifyLeadEmail">Courriel de remerciement au lead</label>
+        <label><input type="checkbox" id="dryRun">         Mode test (n'envoie rien, prévisualise seulement)</label>
+      </div>
+
+      <div id="test-result" class="test-result" style="display:none;"></div>
+    </section>
+
+    <!-- LIVE STATS -->
+    <div class="stats" id="stats"></div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <input id="search" class="ev-input" placeholder="Rechercher nom, téléphone, courriel…" style="max-width:340px;">
+      <select id="filter-segment" class="ev-select" style="max-width:200px;"><option value="">Tous segments</option></select>
+      <select id="filter-status" class="ev-select" style="max-width:180px;">
+        <option value="">Tous statuts</option>
+        <option value="nouveau">Nouveau</option>
+        <option value="à-rappeler">À rappeler</option>
+        <option value="contacté">Contacté</option>
+        <option value="converti">Converti</option>
+        <option value="perdu">Perdu</option>
+      </select>
+      <select id="filter-winner" class="ev-select" style="max-width:180px;">
+        <option value="">Tous</option>
+        <option value="winner">Gagnants</option>
+        <option value="hot">Score ≥ 70</option>
+      </select>
+      <span style="flex:1"></span>
+      <button class="ev-btn ev-btn-outline" id="btn-export">Exporter CSV</button>
+      <button class="ev-btn ev-btn-ghost" id="btn-wipe" style="color:#7a1c1c;">Réinitialiser</button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="lead-tbl">
+        <thead><tr>
+          <th>Nom</th><th>Contact</th><th>Segment · Tirage</th><th>Statut</th><th>Score</th><th>Notif</th><th>Créé</th><th></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p id="empty" class="hidden mt-8" style="color:#5b4a2b;text-align:center;">Aucun lead pour l'instant. Quand quelqu'un scanne le QR ou remplit le formulaire manuel, il apparaît ici.</p>
+
+    <div class="ev-divider"></div>
+    <h2 class="ev-h2">Modèles de relance</h2>
+    <div class="ev-grid ev-grid-2 mt-4">
+      <div class="ev-card"><h3 class="ev-h3">Jour 1 — Remerciement</h3><div class="follow" id="t-day1"></div></div>
+      <div class="ev-card"><h3 class="ev-h3">Jour 2 — Portfolio</h3>     <div class="follow" id="t-day2"></div></div>
+      <div class="ev-card"><h3 class="ev-h3">Jour 4 — Consultation</h3>  <div class="follow" id="t-day4"></div></div>
+      <div class="ev-card"><h3 class="ev-h3">Jour 7 — Dernière</h3>      <div class="follow" id="t-day7"></div></div>
+    </div>
+
+    <div class="ev-divider"></div>
+    <div class="row">
+      <a href="/event-dashboard" class="ev-btn ev-btn-outline">← Tableau de bord</a>
+      <a href="/contest-winners" class="ev-btn ev-btn-ghost">Écran des gagnants</a>
+    </div>
+  </main>
+
+  <div class="modal-bg" id="modal-bg"><div class="modal" id="modal"></div></div>
+  <div id="footer"></div>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 5 · CRM' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 16 });
+    document.getElementById('btn-test').innerHTML = ic('send', 16) + 'Envoyer un test';
+
+    /* ---- Ops settings panel ---- */
+    const ops = MLP_EVENT.getOps();
+    document.getElementById('opsName').value  = ops.opsName;
+    document.getElementById('opsPhone').value = ops.opsPhone;
+    document.getElementById('opsEmail').value = ops.opsEmail;
+    document.getElementById('notifyOpsSms').checked   = ops.notifyOpsSms;
+    document.getElementById('notifyOpsEmail').checked = ops.notifyOpsEmail;
+    document.getElementById('notifyLeadSms').checked  = ops.notifyLeadSms;
+    document.getElementById('notifyLeadEmail').checked= ops.notifyLeadEmail;
+    document.getElementById('dryRun').checked         = ops.dryRun;
+
+    ['opsName','opsPhone','opsEmail'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => MLP_EVENT.saveOps({ [id]: document.getElementById(id).value }));
+    });
+    ['notifyOpsSms','notifyOpsEmail','notifyLeadSms','notifyLeadEmail','dryRun'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => MLP_EVENT.saveOps({ [id]: document.getElementById(id).checked }));
+    });
+
+    document.getElementById('btn-test').addEventListener('click', async () => {
+      const r = document.getElementById('test-result');
+      r.style.display = 'block';
+      r.classList.remove('ok', 'error');
+      r.textContent = 'Envoi en cours…';
+      try {
+        const data = await MLP_EVENT.sendTestNotification();
+        const anyErr = ['opsSms','opsEmail','leadSms','leadEmail'].some(k => data && data[k] && data[k].ok === false);
+        r.classList.add(anyErr ? 'error' : 'ok');
+        r.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        r.classList.add('error');
+        r.textContent = (e && e.message) ? e.message : String(e);
+      }
+    });
+
+    /* ---- Segment filter (3 options) ---- */
+    const segFilter = document.getElementById('filter-segment');
+    Object.entries(MLP_EVENT.SEGMENTS).forEach(([k,s]) => {
+      const o = document.createElement('option'); o.value = k; o.textContent = s.label;
+      segFilter.appendChild(o);
+    });
+
+    const stateBadge = {
+      'nouveau':'badge-new','à-rappeler':'badge-rappel','contacté':'badge-contacte','converti':'badge-converti','perdu':'badge-perdu'
+    };
+    function scoreClass(s) { return s >= 70 ? 'score-hi' : s >= 40 ? 'score-mid' : 'score-lo'; }
+    function fmtDate(iso) { return new Date(iso).toLocaleString('fr-CA', { dateStyle:'short', timeStyle:'short' }); }
+
+    function renderStats(leads) {
+      const winners = leads.filter(l => l.winner).length;
+      const hot = leads.filter(l => l.score >= 70).length;
+      const consults = leads.filter(l => l.source === 'consultation').length;
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-tile"><div class="n">${leads.length}</div><div class="l">Leads totaux</div></div>
+        <div class="stat-tile"><div class="n">${hot}</div><div class="l">Leads chauds (≥ 70)</div></div>
+        <div class="stat-tile"><div class="n">${winners}</div><div class="l">Gagnants</div></div>
+        <div class="stat-tile"><div class="n">${consults}</div><div class="l">Demandes consultation</div></div>`;
+    }
+
+    function render() {
+      const all = MLP_EVENT.getLeads();
+      renderStats(all);
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      const fSeg = document.getElementById('filter-segment').value;
+      const fStat = document.getElementById('filter-status').value;
+      const fW = document.getElementById('filter-winner').value;
+
+      const filtered = all.filter(l => {
+        if (q) {
+          const blob = [l.name,l.email,l.phone,l.city,l.notes].join(' ').toLowerCase();
+          if (blob.indexOf(q) === -1) return false;
+        }
+        if (fSeg && l.segment !== fSeg) return false;
+        if (fStat && l.status !== fStat) return false;
+        if (fW === 'winner' && !l.winner) return false;
+        if (fW === 'hot' && l.score < 70) return false;
+        return true;
+      }).sort((a,b) => (b.score - a.score) || (b.createdAt.localeCompare(a.createdAt)));
+
+      const rows = document.getElementById('rows');
+      const empty = document.getElementById('empty');
+      if (filtered.length === 0) { rows.innerHTML = ''; empty.classList.remove('hidden'); return; }
+      empty.classList.add('hidden');
+
+      rows.innerHTML = filtered.map(l => {
+        const seg = MLP_EVENT.SEGMENTS[l.segment] || {};
+        const g = MLP_EVENT.GIVEAWAYS[l.giveawayKey] || {};
+        const n = l.notified;
+        const notifBadge = n
+          ? (n.ok ? `<span class="notif-yes" title="${new Date(n.at).toLocaleString('fr-CA')}">✓</span>`
+                  : `<span class="notif-no"  title="${new Date(n.at).toLocaleString('fr-CA')} — erreur">✗</span>`)
+          : '<span style="color:#9aa0a6;">·</span>';
+        return `<tr class="${l.winner ? 'is-winner' : ''}" data-id="${l.id}">
+          <td><strong>${l.name || '—'}</strong>${l.winner ? ' <span style="color:var(--terra);">' + ic('trophy', 14) + '</span>' : ''}<br><span style="color:#5b4a2b;font-size:12px;">${l.city || ''}</span></td>
+          <td><div>${l.phone || ''}</div><div style="color:#5b4a2b;font-size:12px;">${l.email || ''}</div></td>
+          <td><div style="font-size:13px;display:flex;align-items:center;gap:6px;color:var(--terra);"><span style="color:var(--terra);">${seg.icon ? ic(seg.icon, 14) : ''}</span><span style="color:#1a1208;">${seg.label || l.segment}</span></div><div style="color:var(--terra);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;">${g.short || '—'}</div></td>
+          <td><span class="badge ${stateBadge[l.status]||''}">${l.status}</span></td>
+          <td><span class="score ${scoreClass(l.score)}">${l.score}</span></td>
+          <td>${notifBadge}</td>
+          <td><span style="font-size:12px;color:#5b4a2b;">${fmtDate(l.createdAt)}</span></td>
+          <td><button class="ev-btn ev-btn-outline" style="padding:6px 10px;font-size:12px;" data-open="${l.id}">Ouvrir</button></td>
+        </tr>`;
+      }).join('');
+
+      rows.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openLead(b.dataset.open)));
+    }
+
+    function openLead(id) {
+      const l = MLP_EVENT.getLeads().find(x => x.id === id);
+      if (!l) return;
+      const seg = MLP_EVENT.SEGMENTS[l.segment] || {};
+      const g = MLP_EVENT.GIVEAWAYS[l.giveawayKey] || {};
+      document.getElementById('modal').innerHTML = `
+        <div class="ev-eyebrow" style="color:var(--terra);">${l.id}</div>
+        <h2 class="ev-h2">${l.name || '—'} ${l.winner ? '<span style="color:var(--terra);">' + ic('trophy', 22) + '</span>' : ''}</h2>
+        <div style="color:#5b4a2b;font-size:14px;">${l.city || ''} · ${l.phone || ''} · ${l.email || ''}</div>
+        <div class="pill-row mt-4">
+          <span class="badge ${stateBadge[l.status]||''}">${l.status}</span>
+          <span class="badge" style="background:#f0ead9;color:#5b4a2b;display:inline-flex;align-items:center;gap:6px;">${seg.icon ? ic(seg.icon, 12) : ''} ${seg.label || l.segment}</span>
+          <span class="badge" style="background:rgba(200,167,102,.2);color:#7a5a1c;">${g.short || '—'} · ${g.value || 0}$</span>
+          <span class="badge" style="background:#f0ead9;color:#5b4a2b;">Score ${l.score}</span>
+          ${l.notified ? `<span class="badge" style="background:${l.notified.ok ? '#d4f0d8' : '#f3d3d3'};color:${l.notified.ok ? '#1c5a2a' : '#7a1c1c'};">Notif ${l.notified.ok ? 'OK' : 'erreur'}</span>` : ''}
+        </div>
+        <div class="ev-field mt-4">
+          <label class="ev-label">Statut</label>
+          <select class="ev-select" id="m-status">
+            ${['nouveau','à-rappeler','contacté','converti','perdu'].map(s => `<option value="${s}" ${s===l.status?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ev-field mt-4">
+          <label class="ev-label">Notes</label>
+          <textarea class="ev-textarea" id="m-notes" rows="5">${l.notes || ''}</textarea>
+        </div>
+        <div class="row mt-4">
+          <button class="ev-btn ev-btn-primary" id="m-save">Sauvegarder</button>
+          <button class="ev-btn ev-btn-outline" id="m-close">Fermer</button>
+          <button class="ev-btn ev-btn-ghost"   id="m-resend">Renvoyer notification</button>
+          <span style="flex:1"></span>
+          <button class="ev-btn ev-btn-ghost"   id="m-del" style="color:#7a1c1c;">Supprimer</button>
+        </div>
+      `;
+      document.getElementById('modal-bg').classList.add('is-open');
+      document.getElementById('m-save').onclick = () => {
+        MLP_EVENT.updateLead(l.id, {
+          status: document.getElementById('m-status').value,
+          notes:  document.getElementById('m-notes').value,
+        });
+        closeModal(); render();
+      };
+      document.getElementById('m-close').onclick = closeModal;
+      document.getElementById('m-del').onclick = () => {
+        if (!confirm('Supprimer ce lead?')) return;
+        MLP_EVENT.deleteLead(l.id); closeModal(); render();
+      };
+      document.getElementById('m-resend').onclick = async () => {
+        const btn = document.getElementById('m-resend');
+        btn.textContent = 'Envoi…'; btn.disabled = true;
+        try { await MLP_EVENT.notifyLead(MLP_EVENT.getLeads().find(x => x.id === l.id)); }
+        catch {} render(); openLead(l.id);
+      };
+    }
+    function closeModal(){ document.getElementById('modal-bg').classList.remove('is-open'); }
+    document.getElementById('modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') closeModal(); });
+
+    ['search','filter-segment','filter-status','filter-winner'].forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+      document.getElementById(id).addEventListener('change', render);
+    });
+    document.getElementById('btn-export').onclick = MLP_EVENT.exportCSV;
+    document.getElementById('btn-wipe').onclick = () => {
+      if (!confirm('Effacer TOUS les leads, gagnants et statistiques?')) return;
+      if (!confirm('Vraiment? Cette action est irréversible.')) return;
+      MLP_EVENT.wipeAll(); render();
+    };
+
+    /* Follow-up templates */
+    document.getElementById('t-day1').textContent = `Objet : Merci pour votre passage à la soirée 🎉
+
+Bonjour [Prénom],
+
+Quel plaisir d'avoir échangé avec vous hier au kiosque MLP.
+Vous nous avez parlé de [résumer ce qu'il a dit].
+
+À très bientôt,
+— L'équipe MLP
+(450) 500-8936`;
+
+    document.getElementById('t-day2').textContent = `Objet : Quelques projets qui pourraient vous inspirer
+
+Bonjour [Prénom],
+
+Voici quelques exemples concrets de ce que nous avons livré récemment :
+→ https://mlprenodesign.ca/projets
+
+— L'équipe MLP`;
+
+    document.getElementById('t-day4').textContent = `Objet : 45 minutes pour parler de votre projet?
+
+Bonjour [Prénom],
+
+Je vous propose une rencontre stratégique de 45 minutes
+(téléphone ou en personne) pour regarder :
+• La valeur réelle de votre propriété
+• Les opportunités cachées
+• Les prochaines étapes concrètes
+
+Réservez ici : https://mlprenodesign.ca/consultation
+
+— L'équipe MLP`;
+
+    document.getElementById('t-day7').textContent = `Objet : Dernier suivi — toujours intéressé(e)?
+
+Bonjour [Prénom],
+
+Si le projet n'est pas pour maintenant, aucun souci.
+Quand vous serez prêt(e), nous serons là.
+
+Mon numéro direct : (450) 500-8936
+
+— [Votre nom], MLP`;
+
+    render();
+  </script>
+</body>
+</html>

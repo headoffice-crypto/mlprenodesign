@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mode guidé — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    html, body { height: 100%; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, #1a1208 0%, #0b0f17 70%);
+      display: flex; flex-direction: column;
+    }
+
+    .top {
+      padding: 22px 32px; display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .top .brand { display: flex; gap: 12px; align-items: center; }
+    .top .brand .logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--gold), var(--terra)); display: grid; place-items: center; font-weight: 800; color: #1a1208; }
+    .top .brand .name { font-weight: 700; font-size: 14px; letter-spacing: .06em; }
+    .top .brand .sub  { color: var(--ink-soft); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+    .clock { font-family: var(--serif); font-size: 1.6rem; color: var(--gold); }
+
+    /* Progress dots */
+    .progress {
+      display: flex; gap: 8px; justify-content: center;
+      padding: 24px 0 8px;
+    }
+    .dot {
+      display: flex; gap: 8px; align-items: center;
+      padding: 8px 14px; border-radius: 999px;
+      background: rgba(255,255,255,.03); border: 1px solid var(--line);
+      font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    .dot .n { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.08); display: grid; place-items: center; font-family: var(--serif); font-size: 13px; }
+    .dot.is-done   { background: rgba(91,138,107,.15); border-color: rgba(91,138,107,.5); color: var(--green); }
+    .dot.is-done .n { background: var(--green); color: #fff; }
+    .dot.is-active { background: rgba(200,167,102,.12); border-color: var(--gold); color: var(--gold); }
+    .dot.is-active .n { background: var(--gold); color: #1a1208; }
+    @media (max-width: 800px) { .dot span:not(.n) { display: none; } .dot { padding: 8px; } }
+
+    .stage-wrap { flex: 1; display: grid; place-items: center; padding: 32px 24px; }
+    .step {
+      max-width: 760px; width: 100%;
+      background: linear-gradient(135deg, rgba(26,18,8,0.7), rgba(11,15,23,0.7));
+      border: 1px solid rgba(200,167,102,0.25);
+      border-radius: 28px;
+      padding: 48px 48px 40px;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6);
+    }
+    .step .badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 6px 14px; border-radius: 999px;
+      background: rgba(200,167,102,0.12);
+      color: var(--gold); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; font-weight: 700;
+    }
+    .step h1 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(1.9rem, 3.4vw, 2.8rem); line-height: 1.12;
+      margin: 18px 0 12px;
+    }
+    .step p.lead {
+      color: var(--ink-soft); font-size: 1.05rem; line-height: 1.6; margin: 0 0 28px;
+      max-width: 60ch;
+    }
+
+    .action-block {
+      background: rgba(200,167,102,0.05); border: 1px dashed rgba(200,167,102,0.3);
+      border-radius: 16px; padding: 22px;
+      display: flex; flex-direction: column; gap: 14px;
+      margin: 0 0 24px;
+    }
+    .action-block .what {
+      font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-soft);
+    }
+    .action-block .ev-btn-xl { padding: 22px 28px; font-size: 17px; }
+    .action-block .extras { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .checklist { margin: 0 0 28px; padding: 0; list-style: none; }
+    .checklist li { display: flex; gap: 12px; padding: 8px 0; color: var(--ink-soft); font-size: 14px; align-items: flex-start; }
+    .checklist li .icon { color: var(--gold); margin-top: 2px; }
+
+    .nav-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 14px;
+      padding-top: 24px; border-top: 1px solid var(--line);
+      margin-top: 8px;
+    }
+    .nav-row .ev-btn { padding: 14px 22px; }
+    .nav-row .ev-btn-lg { padding: 16px 26px; font-size: 15px; }
+    .live-counter {
+      color: var(--ink-soft); font-size: 13px;
+    }
+    .live-counter strong { color: var(--gold); font-family: var(--serif); font-size: 1.4rem; }
+
+    .help {
+      text-align: center; color: var(--ink-soft); font-size: 12px; padding: 16px;
+    }
+    .help a { color: var(--gold-soft); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <div class="name">MLP · Mode guidé</div>
+        <div class="sub">Soirée Bamiléké</div>
+      </div>
+    </div>
+    <div class="clock" id="clock">--:--</div>
+  </header>
+
+  <div class="progress" id="progress"></div>
+
+  <main class="stage-wrap">
+    <section class="step" id="step"></section>
+  </main>
+
+  <p class="help">Vous pouvez fermer cet onglet à tout moment et y revenir : <a href="/event-wizard">/event-wizard</a> reprend où vous étiez. Pour passer en mode libre, ouvrez <a href="/event-dashboard">/event-dashboard</a>.</p>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    /* ----- The night, step by step ----- */
+
+    const STEPS = [
+      {
+        id: 'setup',
+        badge: 'Étape 1 sur 5 · 18 h 45',
+        title: 'Branchez l\'écran et lancez le kiosque.',
+        lead:  'L\'écran du booth doit être prêt avant l\'arrivée des premiers invités à 19 h. Le diaporama tourne tout seul pendant 2 heures.',
+        primary: { href: '/kiosque',  label: 'Ouvrir le kiosque (plein écran)', icon: 'monitor', blank: true },
+        extras: [
+          { href: '/qr-codes', label: 'Codes QR à imprimer', icon: 'qr', blank: true },
+        ],
+        checklist: [
+          'TV ou tablette branchée et orientée vers les invités',
+          'Plein écran activé (touche F dans le kiosque)',
+          'QR du diagnostic affiché clairement (papier ou écran)',
+          'Téléphone à portée — vous recevrez chaque lead par SMS',
+        ],
+        doneLabel: 'Kiosque lancé — passer au booth',
+      },
+      {
+        id: 'booth',
+        badge: 'Étape 2 sur 5 · 19 h — 21 h',
+        title: 'Booth en service. Pour chaque invité — 3 boutons, 30 secondes.',
+        lead:  'Tournez l\'écran vers l\'invité et lancez le diagnostic. Il choisit Propriétaire, Acheteur ou Investisseur — la bonne présentation s\'ouvre, le bon tirage s\'enregistre. Vous n\'avez rien à mémoriser.',
+        primary: { href: '/diagnostic', label: 'Lancer le diagnostic', icon: 'compass', blank: true },
+        extras: [
+          { href: '/formulaire-manuel', label: 'Saisie manuelle', icon: 'edit', blank: true },
+          { href: '/event', label: 'Vue formulaire QR', icon: 'qr', blank: true },
+        ],
+        checklist: [
+          'Diagnostic ouvert sur l\'écran tactile',
+          'Formulaire manuel prêt sur votre téléphone pour les invités qui préfèrent vous parler',
+          'Vous recevez chaque inscription par SMS en temps réel',
+        ],
+        doneLabel: 'Booth terminé — préparer la scène',
+        live: 'leads',
+      },
+      {
+        id: 'stage',
+        badge: 'Étape 3 sur 5 · ≈ 21 h',
+        title: 'Sur scène. Six diapos. Deux minutes.',
+        lead:  'Branchez le portable au projecteur, appuyez sur F pour le plein écran, puis utilisez les flèches pour avancer. Sur la diapo des gagnants, le bouton « Tirer les gagnants » fait le tirage en direct.',
+        primary: { href: '/presentation-live', label: 'Démarrer la présentation', icon: 'mic', blank: true },
+        extras: [
+          { href: '/contest-winners', label: 'Écran dédié pour le tirage', icon: 'trophy', blank: true },
+        ],
+        checklist: [
+          'Portable branché au projecteur',
+          'Plein écran activé (touche F)',
+          'Volume des haut-parleurs vérifié si vidéo',
+          'Pour le tirage : touche D ou bouton "Tirer les gagnants"',
+        ],
+        doneLabel: 'Présentation faite — gérer les retours',
+        live: 'leads',
+      },
+      {
+        id: 'after',
+        badge: 'Étape 4 sur 5 · Après la scène',
+        title: 'Les curieux s\'approchent. Montrez ou réservez.',
+        lead:  '« Montrez-moi vos projets » → portfolio. « Je veux en savoir plus » → consultation. Quelqu\'un veut s\'inscrire à la dernière minute → saisie manuelle.',
+        primary: { href: '/projets', label: 'Ouvrir le portfolio', icon: 'image', blank: true },
+        extras: [
+          { href: '/consultation', label: 'Réserver une consultation', icon: 'calendar', blank: true },
+          { href: '/formulaire-manuel', label: 'Saisie de dernière minute', icon: 'edit', blank: true },
+        ],
+        checklist: [
+          'Tablette ou portable à portée pour montrer les projets',
+          'Cartes de visite ou QR /consultation visibles',
+          'Continuer à inscrire les retardataires dans le manuel',
+        ],
+        doneLabel: 'Soirée terminée — passer au CRM',
+        live: 'leads',
+      },
+      {
+        id: 'wrap',
+        badge: 'Étape 5 sur 5 · Lendemain',
+        title: 'Tout est dans le CRM. Commencez par les leads chauds.',
+        lead:  'Filtrez « Score ≥ 70 ». Vérifiez que les notifications SMS/courriel sont bien parties. Les quatre modèles de relance (J+1, J+2, J+4, J+7) sont prêts à copier-coller.',
+        primary: { href: '/admin', label: 'Ouvrir le CRM', icon: 'chart' },
+        extras: [
+          { href: '/event-cheat-sheet', label: 'Imprimer l\'aide-mémoire', icon: 'printer', blank: true },
+        ],
+        checklist: [
+          'Vérifier les notifications de chaque lead (la colonne "Notif" indique succès ou erreur)',
+          'Triez par score, traiter les ≥ 70 en premier',
+          'Lancer la relance Jour 1 (modèle déjà prêt)',
+          'Exporter CSV pour vos archives',
+        ],
+        doneLabel: 'Suivi lancé — terminé',
+        live: 'wrap',
+      },
+    ];
+
+    const STORAGE_STEP = 'mlp_wizard_step_v1';
+    let current = parseInt(localStorage.getItem(STORAGE_STEP) || '0', 10) || 0;
+    if (current >= STEPS.length) current = STEPS.length - 1;
+
+    /* ----- Render progress + step ----- */
+
+    function renderProgress() {
+      const p = document.getElementById('progress');
+      p.innerHTML = STEPS.map((s, i) => `
+        <button class="dot ${i < current ? 'is-done' : i === current ? 'is-active' : ''}" data-i="${i}">
+          <span class="n">${i + 1}</span><span>${s.id === 'setup' ? 'Installation' : s.id === 'booth' ? 'Booth' : s.id === 'stage' ? 'Scène' : s.id === 'after' ? 'Après' : 'CRM'}</span>
+        </button>
+      `).join('');
+      p.querySelectorAll('.dot').forEach(b => b.addEventListener('click', () => goTo(parseInt(b.dataset.i, 10))));
+    }
+
+    function renderStep() {
+      const s = STEPS[current];
+      const liveCount = () => {
+        const leads = MLP_EVENT.getLeads();
+        if (s.live === 'leads') return `<div class="live-counter"><strong>${leads.length}</strong> leads collectés jusqu'à maintenant</div>`;
+        if (s.live === 'wrap')  return `<div class="live-counter"><strong>${leads.length}</strong> leads · <strong>${leads.filter(l => l.score >= 70).length}</strong> chauds</div>`;
+        return '<div></div>';
+      };
+
+      const ic = (name, size) => MLP_ICONS.svg(name, { size: size || 18 });
+      const btn = (e, primary) => `<a class="ev-btn ${primary ? 'ev-btn-primary ev-btn-xl ev-btn-block' : 'ev-btn-outline'}" href="${e.href}" ${e.blank ? 'target="_blank" rel="noopener"' : ''}>${e.icon ? ic(e.icon, primary ? 22 : 18) : ''}${e.label}</a>`;
+
+      document.getElementById('step').innerHTML = `
+        <div class="badge">${s.badge}</div>
+        <h1>${s.title}</h1>
+        <p class="lead">${s.lead}</p>
+
+        <div class="action-block">
+          <div class="what">À faire maintenant</div>
+          ${btn(s.primary, true)}
+          ${s.extras && s.extras.length ? `<div class="extras">${s.extras.map(e => btn(e, false)).join('')}</div>` : ''}
+        </div>
+
+        ${s.checklist && s.checklist.length ? `
+          <ul class="checklist">
+            ${s.checklist.map(c => `<li>${ic('check', 16)}<span>${c}</span></li>`).join('')}
+          </ul>` : ''}
+
+        <div class="nav-row">
+          ${current > 0 ? `<button class="ev-btn ev-btn-ghost" id="prev">${ic('arrowLeft', 16)}Précédent</button>` : '<span></span>'}
+          ${liveCount()}
+          ${current < STEPS.length - 1
+            ? `<button class="ev-btn ev-btn-primary ev-btn-lg" id="next">${s.doneLabel}${ic('arrowRight', 18)}</button>`
+            : `<button class="ev-btn ev-btn-primary ev-btn-lg" id="restart">${ic('refresh', 18)}Recommencer le mode guidé</button>`}
+        </div>
+      `;
+      document.getElementById('prev')?.addEventListener('click', () => goTo(current - 1));
+      document.getElementById('next')?.addEventListener('click', () => goTo(current + 1));
+      document.getElementById('restart')?.addEventListener('click', () => goTo(0));
+    }
+
+    function goTo(n) {
+      current = Math.max(0, Math.min(STEPS.length - 1, n));
+      localStorage.setItem(STORAGE_STEP, String(current));
+      renderProgress();
+      renderStep();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ----- Clock ----- */
+    function tick() {
+      const d = new Date();
+      document.getElementById('clock').textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+    }
+    tick(); setInterval(tick, 15000);
+
+    renderProgress();
+    renderStep();
+
+    // Re-render the live counter periodically so the operator sees lead count tick up
+    setInterval(() => { if (STEPS[current].live) renderStep(); }, 5000);
+
+    MLP_EVENT.trackStep('wizard-view');
+  </script>
+</body>
+</html>

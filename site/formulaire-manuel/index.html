@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saisie manuelle — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .seg-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 600px) { .seg-picker { grid-template-columns: 1fr; } }
+    .seg-picker label { cursor: pointer; }
+    .seg-picker input { position: absolute; opacity: 0; pointer-events: none; }
+    .seg-picker .pad {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      background: #fff; border: 1.5px solid rgba(26,18,8,0.12);
+      border-radius: 12px; transition: border-color .15s ease, background .15s ease;
+    }
+    .seg-picker .pad .ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(168,90,59,0.10); color: var(--terra); flex-shrink: 0; }
+    .seg-picker .pad .ic .icon { width: 20px; height: 20px; }
+    .seg-picker input:checked + .pad .ic { background: var(--terra); color: #fff; }
+    .seg-picker .pad .lbl { font-weight: 700; }
+    .seg-picker input:checked + .pad { border-color: var(--terra); background: #fffaf0; }
+  </style>
+</head>
+<body class="theme-light">
+  <div id="header"></div>
+
+  <main class="ev-wrap ev-section">
+    <div class="ev-eyebrow" style="color:var(--terra);">Phase 2 · Saisie au booth</div>
+    <h1 class="ev-h1">Formulaire manuel</h1>
+    <p class="ev-lead">Quand l'invité préfère vous parler que scanner le QR. Trois segments, cinq champs. Il est inscrit au bon tirage automatiquement.</p>
+
+    <form class="ev-card ev-form mt-8" id="lead-form" autocomplete="on" style="max-width:680px;">
+      <div class="ev-eyebrow" style="color:var(--terra);">Segment</div>
+      <div class="seg-picker" id="seg-picker"></div>
+
+      <div class="ev-grid ev-grid-2">
+        <div class="ev-field"><label class="ev-label" for="name">Nom *</label><input class="ev-input" id="name" required></div>
+        <div class="ev-field"><label class="ev-label" for="phone">Téléphone *</label><input class="ev-input" id="phone" type="tel" required></div>
+      </div>
+      <div class="ev-grid ev-grid-2">
+        <div class="ev-field"><label class="ev-label" for="email">Courriel</label><input class="ev-input" id="email" type="email"></div>
+        <div class="ev-field"><label class="ev-label" for="city">Ville</label><input class="ev-input" id="city"></div>
+      </div>
+      <div class="ev-field">
+        <label class="ev-label" for="notes">Notes verbales</label>
+        <textarea class="ev-textarea" id="notes" placeholder="Ce qu'il vous a dit — à rappeler dans le suivi."></textarea>
+      </div>
+      <button class="ev-btn ev-btn-primary ev-btn-lg" type="submit">Enregistrer + inscrire au tirage</button>
+    </form>
+
+    <div id="recent" class="mt-8">
+      <h2 class="ev-h2">Dernières saisies</h2>
+      <div id="recent-list" class="ev-grid" style="gap:8px;"></div>
+    </div>
+
+    <div class="ev-divider"></div>
+    <div class="row">
+      <a href="/event-dashboard" class="ev-btn ev-btn-outline">← Tableau de bord</a>
+      <a href="/admin" class="ev-btn ev-btn-ghost">Voir CRM →</a>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 2 · Saisie manuelle' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    const picker = document.getElementById('seg-picker');
+    let segment = 'proprietaire';
+    Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s], i) => {
+      const l = document.createElement('label');
+      l.innerHTML = `<input type="radio" name="seg" value="${k}" ${i === 0 ? 'checked' : ''}><span class="pad"><span class="ic">${MLP_ICONS.svg(s.icon, { size: 20 })}</span><span class="lbl">${s.label}</span></span>`;
+      l.querySelector('input').addEventListener('change', e => { segment = e.target.value; });
+      picker.appendChild(l);
+    });
+
+    function renderRecent() {
+      const list = MLP_EVENT.getLeads().filter(l => l.source === 'manual').slice(-6).reverse();
+      const c = document.getElementById('recent-list');
+      if (list.length === 0) { c.innerHTML = '<div style="color:#5b4a2b;">Aucune saisie pour le moment.</div>'; return; }
+      c.innerHTML = list.map(l => {
+        const g = MLP_EVENT.GIVEAWAYS[l.giveawayKey] || {};
+        const seg = MLP_EVENT.SEGMENTS[l.segment] || {};
+        return `<div class="ev-card" style="padding:14px 18px;display:flex;justify-content:space-between;gap:16px;align-items:center;">
+          <div><strong>${l.name}</strong> · ${l.phone || '—'}</div>
+          <div style="font-size:12px;color:var(--terra);letter-spacing:.14em;text-transform:uppercase;">${seg.label || '—'} · ${g.short || ''}</div>
+        </div>`;
+      }).join('');
+    }
+
+    document.getElementById('lead-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      MLP_EVENT.addLead({
+        name:    document.getElementById('name').value,
+        phone:   document.getElementById('phone').value,
+        email:   document.getElementById('email').value,
+        city:    document.getElementById('city').value,
+        notes:   document.getElementById('notes').value,
+        segment,
+        source:  'manual',
+      });
+      e.target.reset();
+      picker.querySelector('input').checked = true;
+      segment = 'proprietaire';
+      MLP_EVENT.trackStep('lead-manual');
+      renderRecent();
+      document.getElementById('name').focus();
+    });
+
+    renderRecent();
+  </script>
+</body>
+</html>

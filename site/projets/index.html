@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nos projets — MLP Reno & Design</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .feat-video { width: 100%; max-height: 70vh; border-radius: 18px; background: #000; }
+    .gallery-card { position: relative; overflow: hidden; border-radius: 14px; aspect-ratio: 4/3; cursor: zoom-in; }
+    .gallery-card img { width:100%;height:100%;object-fit:cover;transition: transform .4s ease; }
+    .gallery-card:hover img { transform: scale(1.05); }
+    .gallery-caption { position:absolute;left:14px;bottom:14px;background:rgba(0,0,0,.65);color:#fff;padding:6px 12px;border-radius:999px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;}
+    /* Lightbox */
+    .lb { position: fixed; inset: 0; background: rgba(0,0,0,.92); display: none; place-items: center; z-index: 100; cursor: zoom-out; padding: 5vh 5vw; }
+    .lb.is-open { display: grid; }
+    .lb img, .lb video { max-width: 100%; max-height: 90vh; border-radius: 12px; }
+    /* Filter pills */
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0 32px; }
+    .filter { padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+    .filter.is-active { background: var(--gold); color: #1a1208; border-color: var(--gold); }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="ev-wrap ev-section">
+    <div class="ev-eyebrow">Phase 4 · Montrez-moi vos projets</div>
+    <h1 class="ev-h1">Une fraction de ce que nous avons livré.</h1>
+    <p class="ev-lead">Avant — après, intérieurs, façades, sous-sols transformés en unités locatives. Chaque image est un projet réel signé MLP.</p>
+
+    <h2 class="ev-h2 mt-8 mb-4">Transformation complète — Thomas-Dubuc</h2>
+    <video class="feat-video" controls poster="/event-media/thomas-dubuc/after/Frontage-1.jpeg">
+      <source src="/event-media/thomas-dubuc/video/Thomas-Dubuc-BeforeAfter.mp4" type="video/mp4">
+      Votre navigateur ne supporte pas la vidéo.
+    </video>
+
+    <h2 class="ev-h2 mt-8 mb-4">Salles de bain — avant / après</h2>
+    <div class="ev-grid ev-grid-2" id="bathroom-pairs"></div>
+
+    <h2 class="ev-h2 mt-8 mb-4">Galerie complète</h2>
+    <div class="filters" id="filters"></div>
+    <div class="ev-grid ev-grid-3" id="gallery"></div>
+
+    <div class="ev-divider"></div>
+    <div class="ev-card center" style="background:linear-gradient(135deg,var(--gold),var(--terra));color:#1a1208;border:0;">
+      <h2 class="ev-h2" style="color:#1a1208;">Votre projet, c’est le prochain.</h2>
+      <p style="color:#1a1208;opacity:.85;margin:0 0 20px;">Parlons-en. Consultation offerte, sans engagement.</p>
+      <a href="/consultation" class="ev-btn ev-btn-ghost ev-btn-lg" style="background:#1a1208;color:var(--gold);border:0;">Réserver une consultation →</a>
+    </div>
+  </main>
+
+  <div class="lb" id="lb"><div id="lb-content"></div></div>
+  <div id="footer"></div>
+
+  <script src="/lib/mediaAssets.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 4 · Portfolio' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    // Bathroom before/after — one image at a time, toggle to compare
+    const baC = document.getElementById('bathroom-pairs');
+    MLP_MEDIA.BATHROOM_PAIRS.slice(0,4).forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'ba-toggle';
+      el.innerHTML = `
+        <div class="ba-tabs">
+          <button class="ba-tab is-active" data-state="before" type="button">Avant</button>
+          <button class="ba-tab"            data-state="after"  type="button">Après</button>
+        </div>
+        <div class="ba-stage">
+          <img class="is-active" data-state="before" src="${p.before}" loading="lazy" alt="${p.room} — avant">
+          <img                   data-state="after"  src="${p.after}"  loading="lazy" alt="${p.room} — après">
+        </div>`;
+      baC.appendChild(el);
+    });
+    // Activate auto-flip on the dynamically inserted toggles
+    MLP_EVENT.initBaToggles(baC);
+
+    // Gallery + filters
+    const all = MLP_MEDIA.THOMAS_DUBUC_AFTER.slice();
+    const filters = [
+      { id: 'all', label: 'Tous' },
+      { id: 'cuisine', label: 'Cuisine' },
+      { id: 'salle-de-bain', label: 'Salle de bain' },
+      { id: 'salon', label: 'Salon' },
+      { id: 'chambre', label: 'Chambre' },
+      { id: 'exterieur', label: 'Extérieur' },
+      { id: 'revenus', label: 'Revenus locatifs' },
+    ];
+    const fC = document.getElementById('filters');
+    filters.forEach((f, i) => {
+      const b = document.createElement('button');
+      b.className = 'filter' + (i===0 ? ' is-active' : '');
+      b.textContent = f.label; b.dataset.tag = f.id;
+      b.onclick = () => {
+        fC.querySelectorAll('.filter').forEach(x => x.classList.remove('is-active'));
+        b.classList.add('is-active');
+        renderGallery(f.id);
+      };
+      fC.appendChild(b);
+    });
+
+    const gC = document.getElementById('gallery');
+    function renderGallery(tag) {
+      const list = tag === 'all' ? all : all.filter(a => a.tags.indexOf(tag) !== -1);
+      gC.innerHTML = list.map(a => `
+        <div class="gallery-card" data-src="${a.src}">
+          <img src="${a.src}" loading="lazy" alt="${a.caption}">
+          <div class="gallery-caption">${a.caption}</div>
+        </div>`).join('');
+      gC.querySelectorAll('.gallery-card').forEach(c => c.addEventListener('click', () => openLB(c.dataset.src)));
+    }
+    renderGallery('all');
+
+    // Lightbox
+    const lb = document.getElementById('lb');
+    function openLB(src) {
+      document.getElementById('lb-content').innerHTML = `<img src="${src}" alt="">`;
+      lb.classList.add('is-open');
+    }
+    lb.addEventListener('click', () => lb.classList.remove('is-open'));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('is-open'); });
+
+    MLP_EVENT.trackStep('projets-view');
+  </script>
+</body>
+</html>

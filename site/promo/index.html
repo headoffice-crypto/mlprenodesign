@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MLP — Vidéo marketing 60s</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    .stage { position: fixed; inset: 0; display: grid; place-items: center; background: #000; }
+    .frame {
+      position: relative;
+      width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh;
+      overflow: hidden; background: #0b0f17;
+      box-shadow: 0 0 80px rgba(0,0,0,.5);
+    }
+
+    /* Scene transitions — Apple-style: opacity + light blur, long cubic ease */
+    .scene {
+      position: absolute; inset: 0;
+      opacity: 0;
+      filter: blur(6px);
+      transition:
+        opacity 1.2s cubic-bezier(0.5, 0, 0.2, 1),
+        filter  1.2s cubic-bezier(0.5, 0, 0.2, 1);
+      pointer-events: none;
+      will-change: opacity, filter;
+    }
+    .scene.is-active {
+      opacity: 1;
+      filter: blur(0);
+      pointer-events: auto;
+    }
+
+    /* Backgrounds */
+    .bg-img, .bg-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .bg-img.dim::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(11,15,23,0.05) 0%, rgba(11,15,23,0.55) 75%, rgba(11,15,23,0.82) 100%);
+    }
+    .bg-solid { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 30%, #1a1208 0%, #0b0f17 75%); }
+
+    /* Ken Burns */
+    .scene.is-active .ken { animation: ken var(--dur, 3s) ease-out forwards; }
+    @keyframes ken { from { transform: scale(1.0); } to { transform: scale(1.08); } }
+
+    /* Corner tag (AVANT / APRÈS) */
+    .tag {
+      position: absolute; top: 6%; left: 5%;
+      padding: 12px 26px; border-radius: 999px;
+      background: rgba(0,0,0,.7); color: #fff;
+      font-size: clamp(14px, 1.3vw, 18px);
+      letter-spacing: .32em; text-transform: uppercase; font-weight: 700;
+      opacity: 0; transform: scale(.92);
+    }
+    .scene.is-active .tag { animation: tagIn .35s ease-out forwards; }
+    @keyframes tagIn { to { opacity: 1; transform: scale(1); } }
+    .tag.after { background: #c8a766; color: #1a1208; }
+
+    /* HOOK scene */
+    .hook-overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 8% 6%;
+    }
+    .hook-overlay .h {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 600; color: #fff;
+      font-size: clamp(2.4rem, 5.6vw, 5.6rem);
+      line-height: 1.04; margin: 0; max-width: 18ch;
+      opacity: 0; transform: translateY(20px);
+    }
+    .scene.is-active .hook-overlay .h { animation: rise .55s ease-out forwards; animation-delay: .25s; }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+    /* "WHAT WE DO" scene */
+    .services {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 22px; padding: 0 6%; text-align: center;
+    }
+    .services .eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .42em; text-transform: uppercase;
+      font-size: clamp(11px, 1.1vw, 16px);
+      opacity: 0; transform: translateY(10px);
+    }
+    .scene.is-active .services .eyebrow { animation: rise .45s ease-out forwards; animation-delay: .1s; }
+    .services .h {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 600; color: #fff;
+      font-size: clamp(3rem, 7vw, 7rem);
+      line-height: 1.02; margin: 0; letter-spacing: -0.01em;
+    }
+    .services .h .word {
+      display: inline-block; opacity: 0; transform: translateY(20px);
+    }
+    .scene.is-active .services .h .word { animation: rise .5s ease-out forwards; }
+    .scene.is-active .services .h .word:nth-child(1) { animation-delay: .35s; }
+    .scene.is-active .services .h .word:nth-child(2) { animation-delay: .85s; }
+    .scene.is-active .services .h .word:nth-child(3) { animation-delay: 1.35s; }
+    .services .sub {
+      color: rgba(255,255,255,.75);
+      font-size: clamp(1rem, 1.5vw, 1.5rem);
+      max-width: 50ch; line-height: 1.45; margin: 8px 0 0;
+      opacity: 0; transform: translateY(16px);
+    }
+    .scene.is-active .services .sub { animation: rise .55s ease-out forwards; animation-delay: 1.95s; }
+
+    /* WHO WE ARE — brand intro scene */
+    .brand-intro { display: flex; align-items: center; justify-content: center; }
+    .intro-card {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      opacity: 0; transform: scale(.94);
+    }
+    .scene.is-active .intro-card { animation: pop .7s ease-out forwards; }
+    .intro-logo {
+      width: clamp(110px, 11vw, 150px); height: clamp(110px, 11vw, 150px); border-radius: 28px;
+      background: linear-gradient(135deg, #c8a766, #a85a3b);
+      display: grid; place-items: center;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700; color: #1a1208;
+      font-size: clamp(54px, 6vw, 72px); letter-spacing: -.04em;
+    }
+    .intro-name {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #fff; font-weight: 600;
+      font-size: clamp(2.6rem, 5.4vw, 5.4rem);
+      margin: 8px 0 0; line-height: 1;
+    }
+    .intro-eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .42em; text-transform: uppercase;
+      font-size: clamp(11px, 1.05vw, 15px);
+    }
+    .intro-tag {
+      color: rgba(255,255,255,.6);
+      font-size: clamp(13px, 1.15vw, 17px);
+      letter-spacing: .26em; text-transform: uppercase; font-weight: 600;
+    }
+
+    /* WHO WE SERVE — target audience scene */
+    .audience {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: clamp(20px, 2.4vw, 32px); padding: 0 6%; text-align: center;
+    }
+    .audience .eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .42em; text-transform: uppercase;
+      font-size: clamp(11px, 1.1vw, 16px);
+      opacity: 0; transform: translateY(10px);
+    }
+    .scene.is-active .audience .eyebrow { animation: rise .45s ease-out forwards; animation-delay: .1s; }
+    .audience .ah {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #fff; font-weight: 600;
+      font-size: clamp(2rem, 4vw, 4rem); line-height: 1.05; margin: 0;
+      opacity: 0; transform: translateY(16px);
+    }
+    .scene.is-active .audience .ah { animation: rise .5s ease-out forwards; animation-delay: .25s; }
+    .aud-row {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: clamp(16px, 2vw, 32px);
+      width: 100%; max-width: 1100px;
+    }
+    .aud-card {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: clamp(18px, 2vw, 28px) clamp(14px, 1.6vw, 22px);
+      background: rgba(200,167,102,0.06);
+      border: 1px solid rgba(200,167,102,0.28);
+      border-radius: 18px;
+      opacity: 0; transform: translateY(20px);
+    }
+    .scene.is-active .aud-card { animation: rise .55s ease-out forwards; }
+    .aud-ic {
+      width: clamp(54px, 5vw, 70px); height: clamp(54px, 5vw, 70px); border-radius: 14px;
+      background: linear-gradient(135deg, #c8a766, #a85a3b);
+      color: #1a1208;
+      display: grid; place-items: center;
+    }
+    .aud-ic svg { width: 60%; height: 60%; }
+    .aud-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #fff; font-weight: 600;
+      font-size: clamp(1.3rem, 2vw, 2rem);
+      line-height: 1; margin: 4px 0 0;
+    }
+    .aud-desc {
+      color: rgba(255,255,255,.68);
+      font-size: clamp(.82rem, 1vw, 1rem);
+      line-height: 1.4; max-width: 20ch;
+    }
+
+    /* Section title cards — used between major sections of the video */
+    .section-card {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 0 8%; gap: 18px;
+    }
+    .section-card .sc-eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .42em; text-transform: uppercase;
+      font-size: clamp(11px, 1.1vw, 16px);
+      opacity: 0; transform: translateY(10px);
+    }
+    .scene.is-active .section-card .sc-eyebrow { animation: rise .55s ease-out forwards; animation-delay: .2s; }
+    .section-card .sc-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #fff; font-weight: 600;
+      font-size: clamp(2.6rem, 5.2vw, 5.2rem); line-height: 1.04;
+      margin: 0; max-width: 24ch;
+      opacity: 0; transform: translateY(20px);
+    }
+    .scene.is-active .section-card .sc-title { animation: rise .65s ease-out forwards; animation-delay: .5s; }
+    .section-card .sc-sub {
+      color: rgba(255,255,255,.62);
+      font-size: clamp(1rem, 1.4vw, 1.4rem);
+      margin: 0; max-width: 50ch; line-height: 1.4;
+      opacity: 0; transform: translateY(16px);
+    }
+    .scene.is-active .section-card .sc-sub { animation: rise .55s ease-out forwards; animation-delay: .85s; }
+    .section-card .sc-line {
+      width: clamp(60px, 6vw, 90px); height: 2px; background: #c8a766;
+      transform: scaleX(0); transform-origin: center;
+      margin: 8px auto;
+    }
+    .scene.is-active .section-card .sc-line { animation: line-grow .9s cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-delay: 1.2s; }
+    @keyframes line-grow { to { transform: scaleX(1); } }
+
+    /* Gallery caption — subtle overlay so viewers know these are OTHER projects */
+    .gallery-caption {
+      position: absolute; bottom: 9%; left: 6%;
+      padding: 14px 22px; border-radius: 14px;
+      background: rgba(11, 15, 23, .72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(200, 167, 102, .22);
+      opacity: 0; transform: translateY(10px);
+    }
+    .scene.is-active .gallery-caption { animation: rise .6s ease-out forwards; animation-delay: 1.4s; }
+    .gallery-caption .gc-eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .32em; text-transform: uppercase;
+      font-size: clamp(10px, .95vw, 13px); margin-bottom: 4px;
+    }
+    .gallery-caption .gc-h {
+      color: #fff; font-family: 'Inter', sans-serif; font-weight: 500;
+      font-size: clamp(14px, 1.25vw, 18px); margin: 0; letter-spacing: .01em;
+    }
+
+    /* Gallery (rapid cuts) */
+    .gallery { position: absolute; inset: 0; }
+    .gallery img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+    .scene.is-active .gallery img { animation: flash 1.3s ease-out forwards; }
+    .scene.is-active .gallery img:nth-child(1) { animation-delay: 0.0s; }
+    .scene.is-active .gallery img:nth-child(2) { animation-delay: 1.2s; }
+    .scene.is-active .gallery img:nth-child(3) { animation-delay: 2.4s; }
+    .scene.is-active .gallery img:nth-child(4) { animation-delay: 3.6s; }
+    .scene.is-active .gallery img:nth-child(5) { animation-delay: 4.8s; }
+    @keyframes flash {
+      0%   { opacity: 0; transform: scale(1.05); }
+      12%  { opacity: 1; transform: scale(1.0); }
+      88%  { opacity: 1; transform: scale(1.03); }
+      100% { opacity: 0; transform: scale(1.04); }
+    }
+
+    /* Credibility / stat scene */
+    .stat {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; text-align: center; padding: 0 6%;
+    }
+    .stat .nums {
+      display: flex; gap: clamp(80px, 10vw, 180px); align-items: baseline;
+    }
+    .stat .num {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #c8a766; font-weight: 700;
+      font-size: clamp(5rem, 11vw, 11rem); line-height: 1;
+      opacity: 0; transform: translateY(20px);
+      text-align: center;
+      min-width: 5ch;
+    }
+    .scene.is-active .stat .num { animation: rise .6s ease-out forwards; }
+    .scene.is-active .stat .num:nth-child(1) { animation-delay: .15s; }
+    .scene.is-active .stat .num:nth-child(2) { animation-delay: .45s; }
+    .stat .num .l {
+      display: block; font-family: 'Inter', sans-serif;
+      color: rgba(255,255,255,.7); font-size: clamp(12px, 1vw, 15px);
+      letter-spacing: .28em; text-transform: uppercase; font-weight: 600;
+      margin-top: 26px;
+    }
+    .stat .line {
+      color: #fff; font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(1.4rem, 2.4vw, 2.4rem); margin: 12px 0 0;
+      opacity: 0; transform: translateY(16px);
+    }
+    .scene.is-active .stat .line { animation: rise .55s ease-out forwards; animation-delay: .9s; }
+
+    /* Prize hook */
+    .prize-hook {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; text-align: center;
+    }
+    .prize-hook .small {
+      font-size: clamp(13px, 1.3vw, 18px); letter-spacing: .42em; text-transform: uppercase; font-weight: 700;
+      color: #c8a766;
+      opacity: 0; transform: translateY(10px);
+    }
+    .scene.is-active .prize-hook .small { animation: rise .5s ease-out forwards; }
+    .scene.is-active .prize-hook .small.tail { animation-delay: 1.6s; }
+    .prize-hook .amount {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700; font-size: clamp(6rem, 15vw, 15rem);
+      line-height: 1; margin: 0;
+      opacity: 0; transform: scale(.88);
+      background: linear-gradient(135deg, #f5e1a3, #c8a766 55%, #a85a3b);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .scene.is-active .prize-hook .amount { animation: pop .85s cubic-bezier(.2,.9,.2,1) forwards; animation-delay: .55s; }
+    @keyframes pop {
+      0%   { opacity: 0; transform: scale(.86); }
+      60%  { opacity: 1; transform: scale(1.04); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Apple-style prize list — full-width rows, generous breathing room */
+    .prize-list {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 0 clamp(60px, 8vw, 140px); gap: clamp(18px, 2vw, 28px);
+    }
+    .pl-eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .38em; text-transform: uppercase;
+      font-size: clamp(11px, 1.05vw, 15px);
+      opacity: 0; transform: translateY(8px);
+    }
+    .scene.is-active .pl-eyebrow { animation: rise .5s ease-out forwards; animation-delay: .15s; }
+    .pl-h {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #fff; font-weight: 600; font-size: clamp(2rem, 4vw, 4rem);
+      line-height: 1.05; margin: 0 0 12px;
+      opacity: 0; transform: translateY(16px);
+    }
+    .scene.is-active .pl-h { animation: rise .6s ease-out forwards; animation-delay: .35s; }
+    .pl-rows { display: flex; flex-direction: column; gap: 0; }
+    .pl-row {
+      display: grid; grid-template-columns: 1fr auto;
+      gap: clamp(24px, 3vw, 56px); align-items: baseline;
+      padding: clamp(14px, 1.6vw, 22px) 0;
+      border-top: 1px solid rgba(200,167,102,.22);
+      opacity: 0; transform: translateY(14px);
+    }
+    .pl-row:last-child { border-bottom: 1px solid rgba(200,167,102,.22); }
+    .scene.is-active .pl-row { animation: pl-slide .55s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    @keyframes pl-slide { to { opacity: 1; transform: translateY(0); } }
+    .pl-lbl {
+      color: #fff; font-size: clamp(1rem, 1.3vw, 1.35rem);
+      line-height: 1.35; font-weight: 500;
+    }
+    .pl-val {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700; font-size: clamp(1.6rem, 2.6vw, 2.8rem);
+      color: #c8a766; white-space: nowrap; line-height: 1;
+    }
+
+    /* Prize grid (legacy — unused now but kept for compat) */
+    .prize-grid-wrap {
+      position: absolute; inset: 0;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: clamp(24px, 3vw, 56px); padding: clamp(28px, 4vw, 64px) clamp(40px, 5vw, 90px);
+      align-items: center;
+    }
+    .pg-col { display: flex; flex-direction: column; gap: clamp(8px, 1vw, 14px); min-width: 0; }
+    .pg-col-h {
+      font-size: clamp(10px, 1vw, 13px); letter-spacing: .32em; text-transform: uppercase; font-weight: 700;
+      color: #c8a766; margin: 0 0 8px;
+      opacity: 0; transform: translateY(8px);
+    }
+    .scene.is-active .pg-col-h { animation: rise .35s ease-out forwards; }
+    .scene.is-active .pg-col:nth-child(2) .pg-col-h { animation-delay: .15s; }
+
+    .pg-row {
+      display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: baseline;
+      padding: clamp(10px, 1.2vw, 14px) 0;
+      border-top: 1px solid rgba(200,167,102,.18);
+      opacity: 0; transform: translateX(-16px);
+    }
+    .scene.is-active .pg-row { animation: slide .35s ease-out forwards; }
+    @keyframes slide { to { opacity: 1; transform: translateX(0); } }
+    .pg-row .lbl { color: #fff; font-size: clamp(.85rem, 1.05vw, 1.05rem); line-height: 1.3; font-weight: 500; }
+    .pg-row .val {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700; font-size: clamp(1.1rem, 1.7vw, 1.7rem);
+      color: #c8a766; white-space: nowrap;
+    }
+
+    /* CTA scene */
+    .cta-wrap {
+      position: absolute; inset: 0;
+      display: grid; grid-template-columns: 1.1fr auto; align-items: center;
+      padding: 0 7%; gap: clamp(32px, 5vw, 80px);
+    }
+    .cta-left { display: flex; flex-direction: column; gap: 16px; }
+    .cta-left .eyebrow {
+      color: #c8a766; font-weight: 700; letter-spacing: .32em; text-transform: uppercase;
+      font-size: clamp(11px, 1vw, 16px);
+      opacity: 0; transform: translateY(12px);
+    }
+    .scene.is-active .cta-left .eyebrow { animation: rise .5s ease-out forwards; animation-delay: .15s; }
+    .cta-left .h {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 600; color: #fff;
+      font-size: clamp(2.2rem, 4.6vw, 4.6rem);
+      line-height: 1.05; margin: 0; max-width: 16ch;
+      opacity: 0; transform: translateY(20px);
+    }
+    .scene.is-active .cta-left .h { animation: rise .55s ease-out forwards; animation-delay: .35s; }
+    .cta-left .sub {
+      color: rgba(255,255,255,.78);
+      font-size: clamp(.95rem, 1.3vw, 1.3rem);
+      max-width: 38ch; margin: 0;
+      opacity: 0; transform: translateY(16px);
+    }
+    .scene.is-active .cta-left .sub { animation: rise .55s ease-out forwards; animation-delay: .55s; }
+    .qrbox {
+      background: #fff; padding: clamp(20px, 2.2vw, 32px); border-radius: 22px;
+      display: grid; gap: 14px; justify-items: center;
+      opacity: 0; transform: scale(.95);
+    }
+    .scene.is-active .qrbox { animation: pop .5s ease-out forwards; animation-delay: .6s; }
+    .qrbox img { width: clamp(220px, 26vw, 340px); height: auto; aspect-ratio: 1/1; }
+    .qrbox .url { font-family: 'JetBrains Mono', monospace; color: #1a1208; font-size: clamp(12px, 1vw, 16px); font-weight: 700; }
+    .qrbox .cta { color: #a85a3b; font-size: clamp(10px, .9vw, 12px); letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
+
+    /* Closeout */
+    .close { display: flex; align-items: center; justify-content: center; }
+    .close-card {
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+      opacity: 0; transform: scale(.94);
+    }
+    .scene.is-active .close-card { animation: pop .6s ease-out forwards; }
+    .close-card .logo {
+      width: 110px; height: 110px; border-radius: 26px;
+      background: linear-gradient(135deg, #c8a766, #a85a3b);
+      display: grid; place-items: center;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 700; color: #1a1208; font-size: 56px; letter-spacing: -.04em;
+    }
+    .close-card .brand {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: #fff; font-size: clamp(2rem, 3.4vw, 3.4rem); margin: 0; font-weight: 600;
+    }
+    .close-card .contact {
+      color: rgba(255,255,255,.7); font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(12px, 1.1vw, 16px); letter-spacing: .18em;
+    }
+
+    /* Start gate */
+    .gate { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center;
+      background: radial-gradient(ellipse at center, #1a1208 0%, #000 75%);
+      transition: opacity .4s ease; }
+    .gate.is-hidden { opacity: 0; pointer-events: none; }
+    .gate-card { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 0 24px; text-align: center; }
+    .gate-card .gate-logo {
+      width: 100px; height: 100px; border-radius: 22px;
+      background: linear-gradient(135deg, #c8a766, #a85a3b);
+      display: grid; place-items: center; color: #1a1208; font-weight: 800; font-size: 50px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    .gate-card h1 { font-family: 'Cormorant Garamond', Georgia, serif; color: #fff; font-size: clamp(2rem, 4vw, 3.4rem); margin: 0; }
+    .gate-card p { color: rgba(255,255,255,.65); max-width: 50ch; font-size: 15px; line-height: 1.55; margin: 0; }
+    .gate-card .play-btn {
+      margin-top: 8px;
+      padding: 20px 44px; border-radius: 999px; border: 0;
+      background: linear-gradient(135deg, #c8a766, #a85a3b);
+      color: #1a1208; font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      cursor: pointer; font-family: inherit;
+      box-shadow: 0 12px 40px -10px rgba(200,167,102,.4);
+    }
+    .gate-card .play-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 50px -10px rgba(200,167,102,.55); }
+    .gate-card .music-status {
+      margin-top: 14px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+    }
+    .gate-card .music-status.has-music { color: #c8a766; }
+
+    /* Chrome */
+    .progress { position: fixed; top: 0; left: 0; height: 3px; background: #c8a766; width: 0%; transition: width .12s linear; z-index: 100; }
+    .controls {
+      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; z-index: 100;
+      opacity: .55; transition: opacity .2s ease;
+    }
+    .controls:hover { opacity: 1; }
+    .controls button, .controls a {
+      background: rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,.18);
+      color: #fff; padding: 9px 14px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+      cursor: pointer; text-decoration: none; font-family: inherit;
+    }
+    .controls button:hover, .controls a:hover { background: rgba(0,0,0,.9); border-color: #c8a766; color: #c8a766; }
+    .idx { position: fixed; top: 12px; right: 16px; font-family: 'Cormorant Garamond', Georgia, serif; color: #c8a766; font-size: 18px; z-index: 100; opacity: .7; }
+
+    body.recording .progress, body.recording .controls, body.recording .idx { display: none !important; }
+    body.recording { cursor: none; }
+  </style>
+</head>
+<body>
+
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="gate-logo">M</div>
+      <h1>Vidéo marketing — 60 secondes</h1>
+      <p>Cliquez pour démarrer. Pour enregistrer, passez en plein écran (<strong>F</strong>) puis activez le mode enregistrement (<strong>R</strong>).</p>
+      <button class="play-btn" id="play-btn">Démarrer la vidéo →</button>
+      <div class="music-status" id="music-status">Vérification de la musique…</div>
+    </div>
+  </div>
+
+  <audio id="music" preload="auto" src="/promo/music.mp3"></audio>
+
+  <div class="progress" id="progress"></div>
+  <div class="idx"><span id="cur">1</span> · <span id="tot">14</span></div>
+
+  <div class="stage">
+    <div class="frame" id="frame">
+
+      <!-- 1 — WHO WE ARE · Brand intro (4s) -->
+      <section class="scene is-active brand-intro" data-dur="4000">
+        <div class="bg-solid"></div>
+        <div class="intro-card">
+          <div class="intro-logo">M</div>
+          <h1 class="intro-name">MLP Reno &amp; Design</h1>
+          <div class="intro-tag">Concevoir · Construire · Optimiser</div>
+        </div>
+      </section>
+
+      <!-- 2 — WHAT WE DO · Services (5s) -->
+      <section class="scene" data-dur="5000">
+        <div class="bg-solid"></div>
+        <div class="services">
+          <div class="eyebrow">Ce qu'on fait</div>
+          <h2 class="h">
+            <span class="word">Acheter.</span>
+            <span class="word" style="color:#c8a766;"> Rénover.</span>
+            <span class="word"> Optimiser.</span>
+          </h2>
+        </div>
+      </section>
+
+      <!-- 3 — WHO WE SERVE · Target audience (6.5s, slower stagger) -->
+      <section class="scene" data-dur="6500">
+        <div class="bg-solid"></div>
+        <div class="audience">
+          <div class="eyebrow">À qui on s'adresse</div>
+          <h2 class="ah">Trois profils. Une seule équipe.</h2>
+          <div class="aud-row">
+            <div class="aud-card" style="animation-delay:.6s;">
+              <div class="aud-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></div>
+              <div class="aud-title">Propriétaires</div>
+              <div class="aud-desc">Maison, condo ou plex à optimiser</div>
+            </div>
+            <div class="aud-card" style="animation-delay:1.6s;">
+              <div class="aud-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="13" r="4"/><path d="M13 13h8"/><path d="M19 13v3"/><path d="M16 13v2"/></svg></div>
+              <div class="aud-title">Acheteurs</div>
+              <div class="aud-desc">Première propriété ou suivante</div>
+            </div>
+            <div class="aud-card" style="animation-delay:2.6s;">
+              <div class="aud-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 9 11l4 4 8-8"/><path d="M14 4h7v7"/></svg></div>
+              <div class="aud-title">Investisseurs</div>
+              <div class="aud-desc">Portefeuille immobilier à faire grandir</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 — SECTION TRANSITION · "Voici nos réalisations" (3s) -->
+      <section class="scene" data-dur="3000">
+        <div class="bg-solid"></div>
+        <div class="section-card">
+          <div class="sc-eyebrow">Nos réalisations</div>
+          <h2 class="sc-title">Voici ce qu'on fait.</h2>
+          <div class="sc-line"></div>
+        </div>
+      </section>
+
+      <!-- 5 — PROJECT 1 TITLE · Maison Thomas-Dubuc (4.5s) -->
+      <section class="scene" data-dur="4500">
+        <div class="bg-solid"></div>
+        <div class="section-card">
+          <div class="sc-eyebrow">Projet · Montréal</div>
+          <h2 class="sc-title">Maison Thomas-Dubuc</h2>
+          <div class="sc-line"></div>
+          <p class="sc-sub">Conversion d'une maison unifamiliale en duplex avec studio.<br>Faisabilité avec la Ville · Permis · Rénovation complète des 3 unités.</p>
+        </div>
+      </section>
+
+      <!-- 6 — AVANT Façade (3.5s) -->
+      <section class="scene" data-dur="3500" style="--dur:3.5s;">
+        <div class="bg-img ken"><img src="/event-media/thomas-dubuc/before/Before-frontage.jpeg" alt=""></div>
+        <div class="tag">Avant</div>
+      </section>
+
+      <!-- 7 — APRÈS Façade (4.5s) -->
+      <section class="scene" data-dur="4500" style="--dur:4.5s;">
+        <div class="bg-img ken"><img src="/event-media/thomas-dubuc/after/Frontage-1.jpeg" alt=""></div>
+        <div class="tag after">Après</div>
+      </section>
+
+      <!-- 8 — AVANT Salon (3.5s) -->
+      <section class="scene" data-dur="3500" style="--dur:3.5s;">
+        <div class="bg-img ken"><img src="/event-media/thomas-dubuc/before/Before-Living-room.jpeg" alt=""></div>
+        <div class="tag">Avant</div>
+      </section>
+
+      <!-- 9 — APRÈS Salon (4.5s) -->
+      <section class="scene" data-dur="4500" style="--dur:4.5s;">
+        <div class="bg-img ken"><img src="/event-media/thomas-dubuc/after/Living-room-1.jpeg" alt=""></div>
+        <div class="tag after">Après</div>
+      </section>
+
+      <!-- 10 — GALLERY TRANSITION TITLE · Thomas-Dubuc reste (2.5s) -->
+      <section class="scene" data-dur="2500">
+        <div class="bg-solid"></div>
+        <div class="section-card">
+          <div class="sc-eyebrow">Maison Thomas-Dubuc</div>
+          <h2 class="sc-title">Et toute la maison.</h2>
+          <div class="sc-line"></div>
+        </div>
+      </section>
+
+      <!-- 11 — GALLERY (6s) — 5 rooms of Thomas-Dubuc, ~1.2s each -->
+      <section class="scene gallery-slow" data-dur="6000">
+        <div class="gallery">
+          <img src="/event-media/thomas-dubuc/after/Kitchen-2.jpeg" alt="">
+          <img src="/event-media/thomas-dubuc/after/Bathroom-2.jpeg" alt="">
+          <img src="/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg" alt="">
+          <img src="/event-media/thomas-dubuc/after/Backyard.jpeg" alt="">
+          <img src="/event-media/thomas-dubuc/after/Basement-living-room.jpeg" alt="">
+        </div>
+        <div class="gallery-caption">
+          <div class="gc-eyebrow">Cuisine · chambre · sous-sol · extérieur</div>
+        </div>
+      </section>
+
+      <!-- 12 — PROJECT 2 TITLE · Salles de bain (2.5s) -->
+      <section class="scene" data-dur="2500">
+        <div class="bg-solid"></div>
+        <div class="section-card">
+          <div class="sc-eyebrow">Projets · Redesign complet</div>
+          <h2 class="sc-title">Salles de bain.</h2>
+        </div>
+      </section>
+
+      <!-- 13 — AVANT Salle de bain 1 (3.5s) -->
+      <section class="scene" data-dur="3500" style="--dur:3.5s;">
+        <div class="bg-img ken"><img src="/css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg" alt=""></div>
+        <div class="tag">Avant</div>
+      </section>
+
+      <!-- 14 — APRÈS Salle de bain 1 (4.5s) -->
+      <section class="scene" data-dur="4500" style="--dur:4.5s;">
+        <div class="bg-img ken"><img src="/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg" alt=""></div>
+        <div class="tag after">Après</div>
+      </section>
+
+      <!-- 15 — AVANT Salle de bain 2 (3.5s) NEW -->
+      <section class="scene" data-dur="3500" style="--dur:3.5s;">
+        <div class="bg-img ken"><img src="/css/js/assets/images/portfolio/bathrooms/bathroom-2-before.jpg" alt=""></div>
+        <div class="tag">Avant</div>
+      </section>
+
+      <!-- 16 — APRÈS Salle de bain 2 (4.5s) NEW -->
+      <section class="scene" data-dur="4500" style="--dur:4.5s;">
+        <div class="bg-img ken"><img src="/css/js/assets/images/portfolio/bathrooms/bathroom-2-after.jpg" alt=""></div>
+        <div class="tag after">Après</div>
+      </section>
+
+      <!-- 17 — STAT / CREDIBILITY (4s) -->
+      <section class="scene" data-dur="4000">
+        <div class="bg-solid"></div>
+        <div class="stat">
+          <div class="nums">
+            <div class="num">10<span class="l">Ans d'expérience</span></div>
+            <div class="num">150+<span class="l">Projets livrés</span></div>
+          </div>
+          <p class="line">Grand Montréal.</p>
+        </div>
+      </section>
+
+      <!-- 18 — PRIZE HOOK (4s) -->
+      <section class="scene" data-dur="4000">
+        <div class="bg-solid"></div>
+        <div class="prize-hook">
+          <div class="small">Tirage au sort · 8 cadeaux</div>
+          <div class="amount">14 000 $</div>
+          <div class="small tail">selon votre profil</div>
+        </div>
+      </section>
+
+      <!-- 19 — PRIZES A · Acheteurs & investisseurs (12s, 2.5s between rows) -->
+      <section class="scene" data-dur="12000">
+        <div class="bg-solid"></div>
+        <div class="prize-list">
+          <div class="pl-eyebrow">Tirage 1 · Acheteur ou investisseur</div>
+          <h2 class="pl-h">Vos cadeaux. <span style="color:#c8a766;">6 000 $.</span></h2>
+          <div class="pl-rows">
+            <div class="pl-row" style="animation-delay:2.0s;">
+              <div class="pl-lbl">Plan d'optimisation</div>
+              <div class="pl-val">1 500 $</div>
+            </div>
+            <div class="pl-row" style="animation-delay:4.5s;">
+              <div class="pl-lbl">Étude de faisabilité</div>
+              <div class="pl-val">2 000 $</div>
+            </div>
+            <div class="pl-row" style="animation-delay:7.0s;">
+              <div class="pl-lbl">Évaluation ROI · 3 propriétés</div>
+              <div class="pl-val">2 500 $</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 20 — PRIZES B · Rénovation & maison de rêve (14s, 2s between rows) -->
+      <section class="scene" data-dur="14000">
+        <div class="bg-solid"></div>
+        <div class="prize-list">
+          <div class="pl-eyebrow">Tirage 2 · Rénovation ou projet design</div>
+          <h2 class="pl-h">Vos cadeaux. <span style="color:#c8a766;">8 000 $.</span></h2>
+          <div class="pl-rows">
+            <div class="pl-row" style="animation-delay:2.0s;">
+              <div class="pl-lbl">Îlot de cuisine</div>
+              <div class="pl-val">2 000 $</div>
+            </div>
+            <div class="pl-row" style="animation-delay:4.0s;">
+              <div class="pl-lbl">Bain ou douche installé</div>
+              <div class="pl-val">1 500 $</div>
+            </div>
+            <div class="pl-row" style="animation-delay:6.0s;">
+              <div class="pl-lbl">Redesign cuisine, salle de bain ou sous-sol</div>
+              <div class="pl-val">1 500 $</div>
+            </div>
+            <div class="pl-row" style="animation-delay:8.0s;">
+              <div class="pl-lbl">Carte-cadeau MLP</div>
+              <div class="pl-val">1 000 $</div>
+            </div>
+            <div class="pl-row" style="animation-delay:10.0s;">
+              <div class="pl-lbl">Carte-cadeau MLP</div>
+              <div class="pl-val">2 000 $</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 18 — CTA + QR · Register to win (6s) -->
+      <section class="scene" data-dur="6000">
+        <div class="bg-solid"></div>
+        <div class="cta-wrap">
+          <div class="cta-left">
+            <div class="eyebrow">Inscrivez-vous au tirage</div>
+            <h2 class="h">Scannez pour participer.</h2>
+            <p class="sub">30 secondes pour s'inscrire · Tirage au sort.</p>
+          </div>
+          <div class="qrbox">
+            <img id="qr-img" alt="QR — Inscription au tirage">
+            <div class="cta">Scannez pour participer</div>
+            <div class="url">mlprenodesign.ca/diagnostic</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 19 — CLOSEOUT (4s) -->
+      <section class="scene close" data-dur="4000">
+        <div class="bg-solid"></div>
+        <div class="close-card">
+          <div class="logo">M</div>
+          <h1 class="brand">MLP Reno &amp; Design</h1>
+          <div class="contact">(450) 500-8936  ·  mlprenodesign.ca</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="restart">↺</button>
+    <button id="pause">⏸</button>
+    <button id="prev">‹</button>
+    <button id="next">›</button>
+    <button id="fs">⛶ Plein écran</button>
+    <button id="rec">● Mode enregistrement</button>
+    <a href="/event-dashboard">Retour</a>
+  </div>
+
+  <script>
+    const scenes = document.querySelectorAll('.scene');
+    const music = document.getElementById('music');
+    document.getElementById('tot').textContent = scenes.length;
+
+    const QR_TARGET = 'https://mlprenodesign.ca/diagnostic';
+    document.getElementById('qr-img').src =
+      'https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=0&data=' + encodeURIComponent(QR_TARGET);
+
+    music.addEventListener('canplay', () => {
+      document.getElementById('music-status').textContent = '🎵 Musique chargée · ' + Math.round(music.duration) + 's';
+      document.getElementById('music-status').classList.add('has-music');
+    });
+    music.addEventListener('error', () => {
+      document.getElementById('music-status').textContent = 'Aucune musique — déposez music.mp3 dans /promo/';
+    });
+
+    let cur = 0, paused = false, sceneStart = 0, started = false;
+
+    function showScene(i) {
+      i = Math.max(0, Math.min(scenes.length - 1, i));
+      scenes[cur].classList.remove('is-active');
+      scenes[i].classList.remove('is-active');
+      void scenes[i].offsetWidth;
+      scenes[i].classList.add('is-active');
+      cur = i;
+      sceneStart = performance.now();
+      document.getElementById('cur').textContent = cur + 1;
+    }
+
+    function tick() {
+      if (!paused && started) {
+        const dur = parseInt(scenes[cur].dataset.dur, 10) || 5000;
+        const elapsed = performance.now() - sceneStart;
+        document.getElementById('progress').style.width = Math.min(100, (elapsed / dur) * 100) + '%';
+        if (elapsed >= dur) {
+          if (cur < scenes.length - 1) showScene(cur + 1);
+          else {
+            paused = true;
+            document.getElementById('pause').textContent = '↺';
+            if (music && !music.paused) {
+              const start = music.volume, fadeStart = performance.now(), fadeDur = 1500;
+              const f = () => {
+                const e = performance.now() - fadeStart;
+                music.volume = Math.max(0, start * (1 - e / fadeDur));
+                if (e < fadeDur) requestAnimationFrame(f); else music.pause();
+              };
+              f();
+            }
+          }
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function startVideo() {
+      started = true; paused = false;
+      document.getElementById('gate').classList.add('is-hidden');
+      if (music && !isNaN(music.duration)) {
+        music.currentTime = 0; music.volume = 0;
+        music.play().then(() => {
+          const fadeStart = performance.now(), fadeDur = 1500;
+          const f = () => {
+            const e = performance.now() - fadeStart;
+            music.volume = Math.min(0.7, (e / fadeDur) * 0.7);
+            if (e < fadeDur) requestAnimationFrame(f);
+          };
+          f();
+        }).catch(() => {});
+      }
+      showScene(0);
+      sceneStart = performance.now();
+    }
+
+    document.getElementById('play-btn').addEventListener('click', startVideo);
+    document.getElementById('restart').onclick = () => {
+      paused = false; document.getElementById('pause').textContent = '⏸';
+      if (music) { music.currentTime = 0; music.volume = 0.7; music.play().catch(() => {}); }
+      showScene(0); sceneStart = performance.now();
+    };
+    document.getElementById('pause').onclick = () => {
+      paused = !paused;
+      if (paused) { music && music.pause(); }
+      else { music && music.play().catch(() => {}); sceneStart = performance.now() - (parseInt(scenes[cur].dataset.dur, 10) * (parseFloat(document.getElementById('progress').style.width || 0) / 100)); }
+      document.getElementById('pause').textContent = paused ? '▶' : '⏸';
+    };
+    document.getElementById('prev').onclick = () => showScene(cur - 1);
+    document.getElementById('next').onclick = () => showScene(cur + 1);
+    document.getElementById('fs').onclick = () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    };
+    document.getElementById('rec').onclick = () => {
+      document.body.classList.toggle('recording');
+      document.getElementById('rec').textContent = document.body.classList.contains('recording') ? '● Sortir enreg.' : '● Mode enregistrement';
+    };
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') showScene(cur + 1);
+      if (e.key === 'ArrowLeft')  showScene(cur - 1);
+      if (e.key === ' ')          { e.preventDefault(); document.getElementById('pause').click(); }
+      if (e.key === 'f' || e.key === 'F') document.getElementById('fs').click();
+      if (e.key === 'r' || e.key === 'R') document.getElementById('rec').click();
+      if (e.key === 'Escape') document.body.classList.remove('recording');
+      if ((e.key === 's' || e.key === 'S') && !started) document.getElementById('play-btn').click();
+    });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

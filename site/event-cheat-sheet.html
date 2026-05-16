@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aide-mémoire de la soirée — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; color: #1a1208; }
+      .ev-card, .step { background: #fff !important; border-color: rgba(0,0,0,.15) !important; box-shadow: none !important; color: #1a1208 !important; }
+      .ev-h1, .ev-h2, .ev-h3, .step-title { color: #1a1208 !important; }
+      .step-num { background: #1a1208 !important; color: #fff !important; }
+      .step-url { color: #5b4a2b !important; }
+      .ev-eyebrow { color: #1a1208 !important; }
+      .ev-lead { color: #4b3a1f !important; }
+    }
+    .step { display: grid; grid-template-columns: 72px 1fr; gap: 18px; padding: 22px 24px; border-radius: 14px; background: var(--bg-soft); border: 1px solid var(--line); margin-bottom: 12px; }
+    .step-num { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg,var(--gold),var(--terra)); color:#1a1208; display:grid;place-items:center;font-family:var(--serif);font-size:1.8rem;font-weight:700; }
+    .step-time { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold); }
+    .step-title { font-family: var(--serif); font-size: 1.5rem; line-height: 1.2; margin: 4px 0 8px; color: #fff; }
+    .step-body { color: var(--ink-soft); line-height: 1.7; }
+    .step-url { display: inline-block; font-family: 'JetBrains Mono', monospace; background: rgba(200,167,102,.12); color: var(--gold); padding: 4px 10px; border-radius: 6px; margin-right: 6px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div id="header" class="no-print"></div>
+
+  <main class="ev-wrap ev-section">
+    <div class="ev-eyebrow">Soirée Bamiléké · MLP</div>
+    <h1 class="ev-h1">Aide-mémoire de la soirée</h1>
+    <p class="ev-lead">Une page. Cinq étapes. Trois segments. Six prix.</p>
+
+    <div class="row mt-4 no-print">
+      <button class="ev-btn ev-btn-primary" onclick="window.print()" id="btn-print"></button>
+      <a href="/event-dashboard" class="ev-btn ev-btn-outline">← Centre de commande</a>
+    </div>
+
+    <div class="ev-divider"></div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-time">18 h 45 — Installation</div>
+        <div class="step-title">Allumez le kiosque.</div>
+        <div class="step-body">
+          Ouvrez <a class="step-url" href="/kiosque">/kiosque</a> sur la TV ou la tablette du booth. Appuyez sur <strong>F</strong> pour plein écran. Le diaporama tourne tout seul jusqu'à 21 h.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-time">19 h — 21 h · Booth en service</div>
+        <div class="step-title">3 segments. 3 boutons. 1 formulaire.</div>
+        <div class="step-body">
+          Tournez l'écran vers l'invité, ouvrez <a class="step-url" href="/diagnostic">/diagnostic</a>. Il choisit <strong>Propriétaire</strong>, <strong>Acheteur</strong> ou <strong>Investisseur</strong> → il voit la mini-présentation pertinente → il finit sur <a class="step-url" href="/event">/event</a>.<br><br>
+          Pour ceux qui scannent le QR : ils arrivent directement sur /event.<br>
+          Pour ceux qui préfèrent vous parler : ouvrez <a class="step-url" href="/formulaire-manuel">/formulaire-manuel</a> et saisissez pour eux.<br><br>
+          <strong>À chaque inscription, vous recevez immédiatement un SMS + un courriel</strong> grâce à Twilio + Resend.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-time">≈ 21 h — Appel sur scène</div>
+        <div class="step-title">Présentation 2 minutes.</div>
+        <div class="step-body">
+          Branchez au projecteur, ouvrez <a class="step-url" href="/presentation-live">/presentation-live</a>, appuyez sur <strong>F</strong>. Six diapos, avancez avec → ou la barre d'espace.<br><br>
+          1. Qui nous sommes · 2. Opportunités cachées · 3. Avant/après · 4. Qui nous aidons · 5. <strong>Tirage des gagnants</strong> (bouton "Tirer les gagnants" ou touche <strong>D</strong>) · 6. QR final.<br><br>
+          Pour un écran dédié plus dramatique : ouvrez <a class="step-url" href="/contest-winners">/contest-winners</a> et appuyez sur <strong>Espace</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-time">Après la présentation</div>
+        <div class="step-title">Pour les curieux qui s'approchent.</div>
+        <div class="step-body">
+          « Montrez-moi vos projets » → <a class="step-url" href="/projets">/projets</a>.<br>
+          « Je veux en savoir plus » → <a class="step-url" href="/consultation">/consultation</a>.<br>
+          Quelqu'un veut s'inscrire à la dernière minute → <a class="step-url" href="/formulaire-manuel">/formulaire-manuel</a>.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-time">Lendemain — CRM</div>
+        <div class="step-title">Relances et conversion.</div>
+        <div class="step-body">
+          Ouvrez <a class="step-url" href="/admin">/admin</a>. Triez par score, filtrez « ≥ 70 ».<br><br>
+          Calendrier : <strong>J+1</strong> merci · <strong>J+2</strong> portfolio · <strong>J+4</strong> invitation consultation · <strong>J+7</strong> dernière relance.<br><br>
+          Les quatre modèles sont dans /admin, prêts à copier-coller. Exportez le CSV avant et après chaque vague.
+        </div>
+      </div>
+    </div>
+
+    <div class="ev-divider"></div>
+
+    <h2 class="ev-h2">Les 6 tirages</h2>
+    <div class="ev-grid ev-grid-2">
+      <div class="ev-card">
+        <h3 class="ev-h3">Tirages primaires (par segment)</h3>
+        <ul style="color:var(--ink-soft);line-height:1.9;list-style:none;padding:0;" id="primary-prizes"></ul>
+      </div>
+      <div class="ev-card">
+        <h3 class="ev-h3">Tirages bonus (communs à tous)</h3>
+        <ul style="color:var(--ink-soft);line-height:1.9;list-style:none;padding:0;" id="bonus-prizes"></ul>
+      </div>
+    </div>
+
+    <div class="ev-divider"></div>
+
+    <h2 class="ev-h2">Raccourcis clavier</h2>
+    <div class="ev-card">
+      <ul style="color:var(--ink-soft);line-height:1.9;list-style:none;padding:0;">
+        <li><strong style="color:var(--gold);">F</strong> — Plein écran (kiosque, présentation, gagnants)</li>
+        <li><strong style="color:var(--gold);">→ / Espace</strong> — Diapositive suivante</li>
+        <li><strong style="color:var(--gold);">D</strong> (sur présentation, diapo 5) — Tirer les gagnants</li>
+        <li><strong style="color:var(--gold);">Espace</strong> (sur /contest-winners) — Tirer les gagnants</li>
+        <li><strong style="color:var(--gold);">Esc</strong> — Sortir du plein écran</li>
+      </ul>
+    </div>
+
+    <div class="ev-divider"></div>
+
+    <h2 class="ev-h2">Notifications en direct</h2>
+    <div class="ev-card">
+      <p style="color:var(--ink-soft);line-height:1.7;margin:0;">
+        Twilio + Resend sont déjà branchés. Pour activer / désactiver les notifications, ou changer le numéro qui reçoit les SMS, ouvrez <a class="step-url" href="/admin">/admin</a> et utilisez le panneau « Réglages opérateur ». Le bouton « Envoyer un test » envoie un faux lead à votre numéro pour vérifier que tout fonctionne avant l'événement.
+      </p>
+    </div>
+
+  </main>
+
+  <div id="footer" class="no-print"></div>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Aide-mémoire' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 16 });
+    document.getElementById('btn-print').innerHTML = ic('printer', 16) + 'Imprimer';
+
+    const liStyle = 'display:flex;align-items:center;gap:10px;color:var(--gold);';
+    const wrap   = '<span style="color:var(--ink-soft);">';
+    document.getElementById('primary-prizes').innerHTML = `
+      <li style="${liStyle}">${ic('home',       16)}${wrap}<strong style="color:#fff;">Propriétaires</strong> · Consultation design — 1 000 $</span></li>
+      <li style="${liStyle}">${ic('key',        16)}${wrap}<strong style="color:#fff;">Acheteurs</strong> · Évaluation de propriété — 500 $</span></li>
+      <li style="${liStyle}">${ic('trendingUp', 16)}${wrap}<strong style="color:#fff;">Investisseurs</strong> · Consultation invest. — 1 500 $</span></li>`;
+
+    document.getElementById('bonus-prizes').innerHTML = `
+      <li style="${liStyle}">${ic('shieldCheck', 16)}${wrap}Étude de faisabilité municipale — 750 $</span></li>
+      <li style="${liStyle}">${ic('bath',        16)}${wrap}Vanité de salle de bain — 1 000 $</span></li>
+      <li style="${liStyle}">${ic('chefHat',     16)}${wrap}Îlot de cuisine — 2 000 $</span></li>`;
+  </script>
+</body>
+</html>

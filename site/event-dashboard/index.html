@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    body { min-height: 100vh; }
+    main.dash { max-width: 920px; margin: 0 auto; padding: 56px 24px; }
+    .hero {
+      text-align: center;
+      padding: 48px 32px;
+      background: radial-gradient(ellipse at top, rgba(200,167,102,0.12) 0%, transparent 70%);
+      border-radius: 28px;
+      margin-bottom: 36px;
+    }
+    .hero .clock { font-family: var(--serif); color: var(--gold); font-size: 4.5rem; line-height: 1; }
+    .hero .date  { color: var(--ink-soft); font-size: 13px; letter-spacing: .2em; text-transform: uppercase; margin-top: 10px; }
+    .hero h1 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(2.2rem, 4vw, 3.4rem);
+      margin: 28px 0 14px; line-height: 1.1;
+    }
+    .hero p { color: var(--ink-soft); max-width: 56ch; margin: 0 auto 28px; font-size: 1.05rem; line-height: 1.55; }
+    .hero .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero .ev-btn-xl { padding: 22px 36px; font-size: 17px; }
+
+    .strip {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin-bottom: 36px;
+    }
+    @media (max-width: 800px) { .strip { grid-template-columns: repeat(2, 1fr); } }
+    .strip .s { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; text-align: center; }
+    .strip .n { font-family: var(--serif); font-size: 2.6rem; color: var(--gold); line-height: 1; }
+    .strip .l { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); margin-top: 8px; }
+
+    .section-h {
+      font-size: 11px; letter-spacing: .26em; text-transform: uppercase;
+      color: var(--ink-soft); margin: 0 0 16px;
+    }
+
+    .tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 800px) { .tile-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .tile-grid { grid-template-columns: 1fr; } }
+    .tile {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 18px 20px; border-radius: 12px;
+      background: rgba(255,255,255,.03); border: 1px solid var(--line);
+      color: var(--ink); text-decoration: none;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .tile:hover { border-color: var(--gold); background: rgba(200,167,102,.05); }
+    .tile-t { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; color: var(--gold); }
+    .tile-t span { color: var(--ink); }
+    .tile-s { color: var(--ink-soft); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="dash">
+
+    <!-- HERO — clock + the ONE button -->
+    <section class="hero">
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="date"></div>
+
+      <h1>Soirée Bamiléké · MLP</h1>
+      <p>Cinq étapes, un bouton à la fois. Le mode guidé vous indique exactement quoi faire et quand — sans rien à mémoriser.</p>
+
+      <div class="cta-row">
+        <a class="ev-btn ev-btn-primary ev-btn-xl" href="/event-wizard" id="cta-wizard"></a>
+        <a class="ev-btn ev-btn-outline" href="/event-cheat-sheet" target="_blank" rel="noopener" id="cta-cheat"></a>
+      </div>
+    </section>
+
+    <!-- LIVE STATS -->
+    <div class="strip" id="strip"></div>
+
+    <!-- All tools -->
+    <div class="section-h">Accès direct aux écrans</div>
+    <div class="tile-grid" id="tiles"></div>
+
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Centre de commande' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    function tick() {
+      const d = new Date();
+      document.getElementById('clock').textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('date').textContent  = d.toLocaleDateString('fr-CA', { weekday:'long', day:'numeric', month:'long' });
+    }
+    tick(); setInterval(tick, 30000);
+
+    function renderStrip() {
+      const leads = MLP_EVENT.getLeads();
+      document.getElementById('strip').innerHTML = `
+        <div class="s"><div class="n">${leads.length}</div><div class="l">Leads ce soir</div></div>
+        <div class="s"><div class="n">${leads.filter(l => l.score >= 70).length}</div><div class="l">Leads chauds</div></div>
+        <div class="s"><div class="n">${leads.filter(l => l.source === 'consultation').length}</div><div class="l">Consultations</div></div>
+        <div class="s"><div class="n">${leads.filter(l => l.winner).length}</div><div class="l">Gagnants</div></div>`;
+    }
+    renderStrip(); setInterval(renderStrip, 5000);
+
+    const TILES = [
+      { href:'/kiosque',           icon:'monitor',    t:'Kiosque',               s:'Diaporama auto' },
+      { href:'/diagnostic',        icon:'compass',    t:'Diagnostic',            s:'3 boutons · qualification' },
+      { href:'/event',             icon:'qr',         t:'Formulaire QR',         s:'Pour les invités qui scannent' },
+      { href:'/formulaire-manuel', icon:'edit',       t:'Saisie manuelle',       s:'Vous saisissez pour eux' },
+      { href:'/presentation-live', icon:'mic',        t:'Présentation 2 min',    s:'Scène · 6 diapos' },
+      { href:'/contest-winners',   icon:'trophy',     t:'Écran des gagnants',    s:'Tirage live' },
+      { href:'/projets',           icon:'image',      t:'Nos projets',           s:'Portfolio + galerie' },
+      { href:'/consultation',      icon:'calendar',   t:'Consultation',          s:'Réservation' },
+      { href:'/admin',             icon:'chart',      t:'CRM',                   s:'Suivis · Twilio · Resend' },
+    ];
+    document.getElementById('tiles').innerHTML = TILES.map(x => `
+      <a class="tile" href="${x.href}" target="_blank" rel="noopener">
+        <div class="tile-t">${MLP_ICONS.svg(x.icon, { size: 18 })} <span>${x.t}</span></div>
+        <div class="tile-s">${x.s}</div>
+      </a>`).join('');
+
+    // CTAs
+    document.getElementById('cta-wizard').innerHTML = MLP_ICONS.svg('target', { size: 22 }) + 'Lancer le mode guidé' + MLP_ICONS.svg('arrowRight', { size: 18 });
+    document.getElementById('cta-cheat').innerHTML  = MLP_ICONS.svg('printer', { size: 18 }) + 'Aide-mémoire';
+  </script>
+</body>
+</html>

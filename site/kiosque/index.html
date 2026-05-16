@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Kiosque — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    /* ----- Kiosk display — predictable, no overlap, broadcast-grade ----- */
+    html, body { height: 100%; overflow: hidden; background: #0b0f17; }
+
+    .stage { position: fixed; inset: 0; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: grid; grid-template-rows: 1fr auto;   /* media top, text panel bottom */
+      opacity: 0; transition: opacity .9s ease;
+      pointer-events: none;
+    }
+    .slide.is-active { opacity: 1; pointer-events: auto; }
+
+    /* MEDIA — top 75% of the screen */
+    .media {
+      position: relative; background: #000; overflow: hidden;
+    }
+    .media > img,
+    .media > video {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    /* Avant/Après tag — single image per slide */
+    .media .tag {
+      position: absolute; top: 22px; left: 22px;
+      padding: 9px 18px; border-radius: 999px;
+      background: rgba(0,0,0,.72); color: #fff;
+      font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700;
+      z-index: 2;
+    }
+    .media .tag.after { background: var(--gold); color: #1a1208; }
+
+    /* TEXT PANEL — bottom strip, fixed-ish height */
+    .panel {
+      background: linear-gradient(135deg, #0b0f17 0%, #1a1208 100%);
+      padding: clamp(28px, 3.2vw, 48px) clamp(36px, 5vw, 80px);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: clamp(24px, 4vw, 56px);
+      align-items: center;
+      border-top: 2px solid var(--gold);
+    }
+
+    .panel .text {
+      display: flex; flex-direction: column; gap: 8px;
+      min-width: 0;
+    }
+    .panel .brand {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--ink-soft); font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+    }
+    .panel .brand .logo {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center; font-weight: 800; color: #1a1208; font-size: 13px;
+    }
+    .panel .eyebrow {
+      color: var(--gold);
+      font-size: clamp(11px, 1vw, 13px);
+      letter-spacing: .32em; text-transform: uppercase; font-weight: 700;
+    }
+    .panel h1 {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(1.8rem, 3.4vw, 3.4rem);
+      line-height: 1.1;
+      margin: 4px 0 0;
+      color: #fff;
+      max-width: 28ch;
+    }
+    .panel .sub {
+      font-size: clamp(.95rem, 1.15vw, 1.15rem);
+      color: rgba(255,255,255,.7);
+      max-width: 60ch;
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .panel .qr {
+      display: flex; align-items: center; gap: 18px;
+      padding: 14px 18px;
+      background: rgba(200,167,102,.08);
+      border: 1px solid rgba(200,167,102,.32);
+      border-radius: 14px;
+      flex-shrink: 0;
+    }
+    .panel .qr img {
+      width: clamp(96px, 9vw, 130px);
+      height: clamp(96px, 9vw, 130px);
+      background: #fff; padding: 6px; border-radius: 10px;
+    }
+    .panel .qr-text { display: flex; flex-direction: column; gap: 4px; }
+    .panel .qr-cta {
+      color: var(--gold); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
+    }
+    .panel .qr-url {
+      font-family: 'JetBrains Mono', monospace; font-size: clamp(13px, 1vw, 15px); color: #fff;
+    }
+    .panel .qr-tip {
+      font-size: 11px; color: var(--ink-soft); letter-spacing: .08em;
+    }
+
+    /* Stack on portrait / narrow */
+    @media (max-width: 900px) {
+      .slide { grid-template-rows: 60vh auto; }
+      .panel { grid-template-columns: 1fr; gap: 18px; }
+      .panel .qr { align-self: flex-start; }
+    }
+
+    /* Progress bar — top edge */
+    .progress {
+      position: fixed; top: 0; left: 0; height: 4px; background: var(--gold);
+      width: 0%; transition: width .2s linear; z-index: 50;
+    }
+
+    /* Operator controls — always visible, top-right */
+    .ops {
+      position: fixed; top: 16px; right: 16px;
+      display: flex; gap: 6px; z-index: 100;
+      opacity: .55; transition: opacity .2s ease;
+    }
+    .ops:hover { opacity: 1; }
+    .ops button, .ops a {
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.18);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      letter-spacing: .14em; text-transform: uppercase;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+    }
+    .ops button:hover, .ops a:hover { background: rgba(0,0,0,.8); border-color: var(--gold); color: var(--gold); }
+
+    /* Slide index — bottom-right, subtle */
+    .index {
+      position: fixed; bottom: 14px; right: 18px;
+      font-family: var(--serif); color: var(--gold); font-size: 14px;
+      z-index: 40; opacity: .7;
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <nav class="ops">
+    <button id="pause" type="button"></button>
+    <button id="prev"  type="button"></button>
+    <button id="next"  type="button"></button>
+    <button id="fs"    type="button"></button>
+    <a href="/event-dashboard" id="back"></a>
+  </nav>
+
+  <main class="stage" id="stage"></main>
+
+  <div class="index"><span id="cur">1</span> / <span id="tot">1</span></div>
+
+  <script src="/lib/mediaAssets.js"></script>
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 14 });
+    document.getElementById('pause').innerHTML = ic('pause', 14) + 'Pause';
+    document.getElementById('prev').innerHTML  = ic('chevronLeft',  14);
+    document.getElementById('next').innerHTML  = ic('chevronRight', 14);
+    document.getElementById('fs').innerHTML    = ic('fullscreen', 14) + 'Plein écran';
+    document.getElementById('back').innerHTML  = ic('arrowLeft', 14) + 'Tableau de bord';
+
+    const M = window.MLP_MEDIA;
+    const SLIDE_MS = 7000;
+    const qrUrl = location.origin + '/diagnostic';
+    const qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=0&data=' + encodeURIComponent(qrUrl);
+
+    // Source pairs — each "ba" entry expands into two sequential slides
+    // (Avant alone, then Après alone). Never both at once.
+    const source = [
+      { type: 'single', media: '/event-media/thomas-dubuc/after/Living-room-1.jpeg',
+        eyebrow: 'Pour les propriétaires',
+        title:   'Votre maison vaut plus que vous pensez.',
+        sub:     'Et son sous-sol cache probablement un revenu mensuel.' },
+
+      { type: 'ba',
+        room: 'Salon principal',
+        before: '/event-media/thomas-dubuc/before/Before-Living-room.jpeg',
+        after:  '/event-media/thomas-dubuc/after/Living-room-1.jpeg',
+        beforeTitle: 'Voici comment il était.',
+        beforeSub:   'Salon principal, état d\'origine. Avant qu\'on s\'en occupe.',
+        afterTitle:  'Voici ce qu\'il est devenu.',
+        afterSub:    'Mêmes murs. Autre maison.' },
+
+      { type: 'single', media: '/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg',
+        eyebrow: 'Pour les investisseurs',
+        title:   'Vos murs cachent des revenus.',
+        sub:     'Conversion légale, agrandissement, optimisation. Nous trouvons les revenus que personne n\'a vus.' },
+
+      { type: 'ba',
+        room: 'Façade — Thomas-Dubuc',
+        before: '/event-media/thomas-dubuc/before/Before-frontage.jpeg',
+        after:  '/event-media/thomas-dubuc/after/Frontage-1.jpeg',
+        beforeTitle: 'La façade, au moment de l\'achat.',
+        beforeSub:   'Sous-évaluée. Sous-utilisée. Sans permis pour l\'unité du bas.',
+        afterTitle:  'La même façade, aujourd\'hui.',
+        afterSub:    '+ valeur de revente. + revenus locatifs. + qualité de vie.' },
+
+      { type: 'single', media: '/event-media/thomas-dubuc/after/Kitchen-2.jpeg',
+        eyebrow: 'Pour les acheteurs',
+        title:   'Avant de signer, on regarde avec vous.',
+        sub:     'Vous évitez les pièges. Vous payez le bon prix. Vous arrivez à la négociation en position de force.' },
+
+      { type: 'video', media: M.pickFeaturedVideo().src,
+        eyebrow: 'Maison Thomas-Dubuc',
+        title:   'Une transformation complète.',
+        sub:     'Étage par étage — Montréal.' },
+
+      { type: 'single', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg',
+        eyebrow: 'Tirages du soir · Jusqu\'à 2 000 $',
+        title:   'Six prix. Annoncés en direct à 21 h.',
+        sub:     'Évaluation · Faisabilité · Design · Vanité · Îlot de cuisine · Consultation investissement.' },
+
+      { type: 'single', media: '/event-media/thomas-dubuc/after/Backyard.jpeg',
+        eyebrow: 'Diagnostic + tirage · 30 secondes',
+        title:   'Scannez. Choisissez votre situation. Participez.',
+        sub:     'Trois questions, trois boutons. Vous voyez ce qu\'on peut faire pour vous, et vous êtes inscrit au tirage.' },
+    ];
+
+    // Expand each "ba" entry into two single-image slides (Avant, then Après)
+    const slides = [];
+    source.forEach(s => {
+      if (s.type === 'ba') {
+        slides.push({ type: 'single', media: s.before, tag: 'avant',
+          eyebrow: s.room + ' — Avant',
+          title:   s.beforeTitle, sub: s.beforeSub });
+        slides.push({ type: 'single', media: s.after,  tag: 'apres',
+          eyebrow: s.room + ' — Après',
+          title:   s.afterTitle,  sub: s.afterSub });
+      } else {
+        slides.push(s);
+      }
+    });
+
+    const stage = document.getElementById('stage');
+    document.getElementById('tot').textContent = slides.length;
+    slides.forEach((s, i) => stage.appendChild(buildSlide(s, i)));
+
+    function buildSlide(s, i) {
+      const el = document.createElement('section');
+      el.className = 'slide' + (i === 0 ? ' is-active' : '');
+
+      const tagHtml = s.tag === 'avant' ? `<div class="tag">Avant</div>`
+                    : s.tag === 'apres' ? `<div class="tag after">Après</div>`
+                    : '';
+
+      const mediaInner = (s.type === 'video')
+        ? `<video src="${s.media}" autoplay muted loop playsinline></video>`
+        : `<img src="${s.media}" alt="">`;
+      const mediaHtml = `<div class="media">${mediaInner}${tagHtml}</div>`;
+
+      el.innerHTML = mediaHtml + `
+        <div class="panel">
+          <div class="text">
+            <div class="brand">
+              <div class="logo">M</div>
+              <span>MLP · Gestion · Accompagnement · Rénovation</span>
+            </div>
+            <div class="eyebrow">${s.eyebrow}</div>
+            <h1>${s.title}</h1>
+            ${s.sub ? `<p class="sub">${s.sub}</p>` : ''}
+          </div>
+          <div class="qr">
+            <img src="${qrImg}" alt="QR — Diagnostic">
+            <div class="qr-text">
+              <div class="qr-cta">Scannez pour participer</div>
+              <div class="qr-url">${qrUrl.replace(/^https?:\/\//, '')}</div>
+              <div class="qr-tip">Diagnostic + tirage · 30 s</div>
+            </div>
+          </div>
+        </div>`;
+      return el;
+    }
+
+    let idx = 0, paused = false, t0 = performance.now();
+
+    function go(n) {
+      stage.children[idx].classList.remove('is-active');
+      idx = (n + slides.length) % slides.length;
+      stage.children[idx].classList.add('is-active');
+      document.getElementById('cur').textContent = idx + 1;
+      const v = stage.children[idx].querySelector('video');
+      if (v) { v.currentTime = 0; v.play().catch(() => {}); }
+      t0 = performance.now();
+    }
+    function loop() {
+      if (!paused) {
+        const e = performance.now() - t0;
+        document.getElementById('progress').style.width = Math.min(100, (e / SLIDE_MS) * 100) + '%';
+        if (e >= SLIDE_MS) go(idx + 1);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    const pauseBtn = document.getElementById('pause');
+    pauseBtn.addEventListener('click', () => {
+      paused = !paused;
+      pauseBtn.innerHTML = paused ? ic('play', 14) + 'Reprendre' : ic('pause', 14) + 'Pause';
+    });
+    document.getElementById('next').addEventListener('click', () => go(idx + 1));
+    document.getElementById('prev').addEventListener('click', () => go(idx - 1));
+    document.getElementById('fs').addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') go(idx + 1);
+      if (e.key === 'ArrowLeft')  go(idx - 1);
+      if (e.key === ' ') { e.preventDefault(); pauseBtn.click(); }
+      if (e.key === 'f' || e.key === 'F') document.getElementById('fs').click();
+    });
+
+    requestAnimationFrame(loop);
+    MLP_EVENT.trackStep('kiosk-view');
+  </script>
+</body>
+</html>

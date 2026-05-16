@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Participez au tirage — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .ev-layout { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: start; }
+    @media (max-width: 1000px) { .ev-layout { grid-template-columns: 1fr; gap: 32px; } }
+
+    .seg-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 600px) { .seg-picker { grid-template-columns: 1fr; } }
+    .seg-picker label {
+      cursor: pointer;
+      padding: 14px 12px;
+      border-radius: 12px;
+      border: 1.5px solid var(--line);
+      background: rgba(255,255,255,.02);
+      text-align: center;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .seg-picker label:hover { border-color: rgba(200,167,102,.4); }
+    .seg-picker input { position: absolute; opacity: 0; pointer-events: none; }
+    .seg-picker .ic   { display: grid; place-items: center; width: 36px; height: 36px; margin: 0 auto 6px; border-radius: 10px; background: rgba(200,167,102,0.10); color: var(--gold); }
+    .seg-picker input:checked + .pad .ic { background: var(--gold); color: #1a1208; }
+    .seg-picker .ic .icon { width: 22px; height: 22px; }
+    .seg-picker .lbl  { font-weight: 700; font-size: 14px; }
+    .seg-picker input:checked + .pad { border-color: var(--gold); background: rgba(200,167,102,.1); }
+    .seg-picker .pad { display: block; padding: 10px; border-radius: 10px; border: 1.5px solid transparent; transition: all .15s ease; }
+
+    .prize-box {
+      padding: 22px 24px; border-radius: 14px;
+      background: linear-gradient(135deg, #1a1208, #2a1d10);
+      border: 1px solid rgba(200,167,102,.3);
+    }
+    .prize-box .ev-eyebrow { margin-bottom: 6px; }
+    .prize-box .title { font-family: var(--serif); font-size: 1.6rem; color: var(--gold); margin: 2px 0; }
+    .prize-box .sub   { color: var(--ink-soft); font-size: .95rem; margin: 6px 0 0; }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="ev-wrap ev-section">
+
+    <div id="form-view" class="ev-layout">
+      <!-- LEFT — pitch + dynamic prize -->
+      <div>
+        <div class="ev-eyebrow">Soirée Bamiléké · Tirages live à 21 h</div>
+        <h1 class="ev-h1">Participez en 30 secondes.</h1>
+        <p class="ev-lead">Remplissez le formulaire. Vous êtes automatiquement inscrit au tirage qui correspond à votre situation, plus aux 3 tirages bonus communs à tous.</p>
+
+        <div class="prize-box mt-8">
+          <div class="ev-eyebrow">Votre tirage principal</div>
+          <div class="title"  id="prize-title">…</div>
+          <div class="sub"    id="prize-sub">Plus 3 tirages bonus communs (faisabilité, vanité, îlot de cuisine).</div>
+        </div>
+
+        <div class="ev-card mt-4" style="background:transparent;border-style:dashed;">
+          <div class="ev-eyebrow">Tirages bonus — communs à tous</div>
+          <ul style="margin:14px 0 0;padding-left:18px;color:var(--ink-soft);line-height:1.9;">
+            <li><strong>Étude de faisabilité</strong> — 750 $</li>
+            <li><strong>Vanité de salle de bain</strong> — 1 000 $</li>
+            <li><strong>Îlot de cuisine</strong> — 2 000 $</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT — the form -->
+      <form class="ev-card ev-form" id="lead-form" autocomplete="on">
+        <div class="ev-eyebrow">Votre situation</div>
+        <div class="seg-picker" id="seg-picker"></div>
+
+        <div class="ev-field">
+          <label class="ev-label" for="name">Nom complet *</label>
+          <input class="ev-input" id="name" name="name" required>
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="phone">Téléphone *</label>
+          <input class="ev-input" id="phone" name="phone" type="tel" inputmode="tel" required placeholder="(514) 555-0000">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="email">Courriel</label>
+          <input class="ev-input" id="email" name="email" type="email">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="city">Ville</label>
+          <input class="ev-input" id="city" name="city" placeholder="Montréal, Laval, Longueuil…">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="notes">Un mot sur votre projet (optionnel)</label>
+          <textarea class="ev-textarea" id="notes" name="notes" placeholder="Ex: je veux convertir mon sous-sol en bachelor."></textarea>
+        </div>
+        <label style="display:flex;gap:10px;font-size:13px;color:var(--ink-soft);align-items:flex-start;">
+          <input type="checkbox" id="consent" checked>
+          <span>J'accepte que MLP me recontacte par téléphone, SMS ou courriel au sujet de mon projet.</span>
+        </label>
+        <button class="ev-btn ev-btn-primary ev-btn-lg ev-btn-block" type="submit">Participer au tirage →</button>
+      </form>
+    </div>
+
+    <!-- THANK YOU -->
+    <div id="thanks-view" class="hidden center" style="padding:80px 20px;">
+      <div class="ev-pill">Confirmé</div>
+      <h1 class="ev-h1 mt-4">Merci, <span id="thanks-name">vous</span>.</h1>
+      <p class="ev-lead" style="margin:0 auto;">Vous êtes inscrit au tirage&nbsp;:</p>
+      <div class="ev-h2 mt-2" style="color:var(--gold);" id="thanks-prize"></div>
+      <p class="ev-lead mt-4" style="margin:0 auto;">Plus aux 3 tirages bonus communs à tous. <strong>Les gagnants sont annoncés en direct vers 21 h</strong> — restez près de la scène.</p>
+      <div class="row mt-8" style="justify-content:center;">
+        <a href="/diagnostic" class="ev-btn ev-btn-outline">Refaire le diagnostic</a>
+        <a href="/projets" class="ev-btn ev-btn-ghost">Voir des projets</a>
+        <a href="/consultation" class="ev-btn ev-btn-primary">Réserver une consultation</a>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Inscription au tirage' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+
+    // Pre-fill segment from query string OR from saved diagnostic answer
+    const urlSeg = new URLSearchParams(location.search).get('seg');
+    if (urlSeg && MLP_EVENT.SEGMENTS[urlSeg]) MLP_EVENT.setSegment(urlSeg);
+    let segment = MLP_EVENT.getSegment() || 'proprietaire';
+
+    // Build segment picker
+    const picker = document.getElementById('seg-picker');
+    Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s]) => {
+      const l = document.createElement('label');
+      l.innerHTML = `
+        <input type="radio" name="segment" value="${k}" ${k === segment ? 'checked' : ''}>
+        <span class="pad">
+          <span class="ic">${MLP_ICONS.svg(s.icon, { size: 22 })}</span>
+          <span class="lbl">${s.label}</span>
+        </span>`;
+      l.querySelector('input').addEventListener('change', (e) => {
+        segment = e.target.value;
+        MLP_EVENT.setSegment(segment);
+        updatePrize();
+      });
+      picker.appendChild(l);
+    });
+
+    function updatePrize() {
+      const seg = MLP_EVENT.SEGMENTS[segment];
+      const g = MLP_EVENT.GIVEAWAYS[seg.primaryPrize];
+      document.getElementById('prize-title').textContent = `${g.title} — ${g.value} $`;
+    }
+    updatePrize();
+
+    document.getElementById('lead-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const lead = MLP_EVENT.addLead({
+        name:    document.getElementById('name').value,
+        phone:   document.getElementById('phone').value,
+        email:   document.getElementById('email').value,
+        city:    document.getElementById('city').value,
+        notes:   document.getElementById('notes').value,
+        segment,
+        consent: document.getElementById('consent').checked,
+        source:  'qr',
+      });
+      const g = MLP_EVENT.GIVEAWAYS[lead.giveawayKey];
+      document.getElementById('thanks-name').textContent = (lead.name || '').split(' ')[0] || 'vous';
+      document.getElementById('thanks-prize').textContent = g.title + ' — ' + g.value + ' $';
+      document.getElementById('form-view').classList.add('hidden');
+      document.getElementById('thanks-view').classList.remove('hidden');
+      MLP_EVENT.trackStep('lead-qr');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    MLP_EVENT.trackStep('event-form-view');
+  </script>
+</body>
+</html>

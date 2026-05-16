@@ -7,6 +7,26 @@ staging/tools/js/config.js
 # Supabase CLI scratch
 staging/tools/supabase/.temp/
 staging/tools/supabase/supabase/
+supabase/.temp/
+
+# Renovation portfolio assets (large media, kept local)
+Renovation Portfolio/
+
+# Promo video build artifacts + licensed music
+promo/tmp/
+promo/promo-*.mp4
+promo/music.mp3
+site/promo/promo-*.mp4
+site/promo/music.mp3
+
+# Microsoft Windows fonts (can't be redistributed — local copy only)
+promo/fonts/georgiab.ttf
+promo/fonts/segoeuib.ttf
+promo/fonts/consola.ttf
+
+# Heavy raw videos used only by /kiosque and /projets — keep local
+site/event-media/thomas-dubuc/video/
+site/event-media/rue-du-havre/
 
 # Claude Code local settings
 .claude/

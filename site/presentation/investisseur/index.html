@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pour les investisseurs — MLP</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: stretch; margin: 32px 0 56px; }
+    @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+    .hero-text { display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+    .hero-media { border-radius: 18px; overflow: hidden; aspect-ratio: 4/3; background: #000; }
+    .hero-media img { width: 100%; height: 100%; object-fit: cover; }
+    .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 56px; }
+    @media (max-width: 900px) { .three { grid-template-columns: 1fr; } }
+    .three .ev-card h3 { color: var(--gold); font-family: var(--serif); font-size: 1.6rem; margin: 0 0 10px; }
+    .three .ev-card p  { color: var(--ink-soft); margin: 0; line-height: 1.6; }
+    .case { display: grid; grid-template-columns: 1.05fr .95fr; gap: 24px; margin-bottom: 56px; }
+    @media (max-width: 900px) { .case { grid-template-columns: 1fr; } }
+    .case .ev-card ul { color: var(--ink-soft); line-height: 1.8; margin: 14px 0 0; padding-left: 22px; }
+    .case .nums { background: linear-gradient(135deg, #1a1208, #2a1d10); border-color: rgba(200,167,102,.3); }
+    .case .nums .stat { display: grid; gap: 4px; }
+    .case .nums .stat .n { font-family: var(--serif); font-size: 2.8rem; color: var(--gold); line-height: 1; }
+    .case .nums .stat .l { color: var(--ink-soft); font-size: .9rem; line-height: 1.4; }
+    .case .nums .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
+
+    .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 56px; }
+    @media (max-width: 700px) { .gallery { grid-template-columns: 1fr; } }
+    .gallery img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 14px; }
+
+    .prize {
+      padding: 36px; border-radius: 22px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      color: #1a1208;
+      display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;
+    }
+    @media (max-width: 700px) { .prize { grid-template-columns: 1fr; } }
+    .prize h2 { font-family: var(--serif); margin: 0 0 6px; color: #1a1208; }
+    .prize .label { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; opacity: .8; }
+    .prize .desc { opacity: .85; max-width: 50ch; }
+    .prize .ev-btn { background: #1a1208; color: var(--gold); border: 0; }
+    .prize .ev-btn:hover { background: #000; }
+    .footer-nav { display: flex; justify-content: space-between; gap: 16px; margin-top: 56px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="ev-wrap ev-section">
+
+    <div class="ev-eyebrow">Pour les investisseurs</div>
+    <div class="hero">
+      <div class="hero-text">
+        <h1 class="ev-h1">Acheter intelligemment. Rénover stratégiquement. Multiplier les revenus.</h1>
+        <p class="ev-lead">On évalue avant l'achat, on optimise après. Nous trouvons les revenus que personne n'a vus — et nous validons toujours avec la ville.</p>
+      </div>
+      <div class="hero-media"><img src="/event-media/thomas-dubuc/after/Basement-Kitchen.jpeg" alt=""></div>
+    </div>
+
+    <div class="three">
+      <div class="ev-card"><h3>Achat</h3><p>Évaluation avant signature : coûts cachés, zonage, potentiel locatif réel.</p></div>
+      <div class="ev-card"><h3>Optimisation</h3><p>Conversion sous-sol, ajout d'unités, bachelor, garderie : les revenus que personne n'a vus.</p></div>
+      <div class="ev-card"><h3>Portefeuille</h3><p>Plusieurs propriétés? On optimise chacune et on oriente votre prochaine acquisition.</p></div>
+    </div>
+
+    <h2 class="ev-h2 mb-4">Étude de cas — Maison Thomas-Dubuc</h2>
+    <div class="case">
+      <div class="ev-card">
+        <div class="ev-eyebrow">Avant intervention</div>
+        <p class="ev-lead" style="font-size:1rem;">Un duplex sous-évalué, sous-utilisé, sans permis pour l'unité du bas.</p>
+        <ul>
+          <li>Validation municipale</li>
+          <li>Conversion légale en triplex</li>
+          <li>Rénovation complète des 3 unités</li>
+        </ul>
+      </div>
+      <div class="ev-card nums">
+        <div class="ev-eyebrow">Résultat</div>
+        <div class="grid">
+          <div class="stat"><div class="n">+ 38 %</div><div class="l">Valeur de revente estimée</div></div>
+          <div class="stat"><div class="n">3 200 $</div><div class="l">Revenu mensuel net</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gallery">
+      <img src="/event-media/thomas-dubuc/after/Kitchen-appartment-1.jpeg" alt="">
+      <img src="/event-media/thomas-dubuc/after/Basement-living-room.jpeg" alt="">
+      <img src="/event-media/thomas-dubuc/after/Basement-entrance.jpeg" alt="">
+    </div>
+
+    <div class="prize">
+      <div>
+        <div class="label">Tirage du soir · Pour les investisseurs</div>
+        <h2 class="ev-h2">Consultation investissement — 1 500 $</h2>
+        <p class="desc">Analyse complète de votre projet ou portefeuille avec recommandations chiffrées.</p>
+      </div>
+      <a href="/event?seg=investisseur" class="ev-btn ev-btn-lg">Je m'inscris →</a>
+    </div>
+
+    <div class="footer-nav">
+      <a href="/diagnostic" class="ev-btn ev-btn-outline">← Diagnostic</a>
+      <a href="/event?seg=investisseur" class="ev-btn ev-btn-primary">Continuer vers le formulaire →</a>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Présentation · Investisseurs' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+    const seg = new URLSearchParams(location.search).get('seg'); if (seg) MLP_EVENT.setSegment(seg);
+    MLP_EVENT.trackStep('pres-investisseur');
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gagnants des tirages — MLP Reno & Design</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    body { min-height: 100vh; background: radial-gradient(ellipse at top, #2a1d10 0%, #0b0f17 60%); }
+    .roulette { font-family: var(--serif); font-size: clamp(3rem, 8vw, 7rem); color: var(--gold); transition: opacity .2s; min-height: 1.2em; }
+    .roulette.rolling { animation: shake .1s infinite; }
+    @keyframes shake { 0%,100%{transform:translateX(0);} 50%{transform:translateX(2px);} }
+    .prize-card { padding: 28px 32px; background: rgba(255,255,255,.04); border: 1.5px solid rgba(200,167,102,.35); border-radius: 22px; display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+    .prize-card.drawing { border-color: var(--gold); box-shadow: 0 0 60px rgba(200,167,102,.4); }
+    .prize-label { color: var(--gold); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; }
+    .prize-value { font-family: var(--serif); font-size: 2.2rem; color: #fff; }
+    .winner-line { font-family: var(--serif); font-size: clamp(1.8rem, 3vw, 2.4rem); color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+  <main class="ev-wrap ev-section">
+    <div class="center">
+      <div class="ev-eyebrow">Soirée Bamiléké · Tirages MLP</div>
+      <h1 class="ev-h1">Les gagnants du soir.</h1>
+      <p class="ev-lead" style="margin:0 auto;">Annoncés en direct depuis la scène.</p>
+    </div>
+
+    <div class="ev-grid mt-8" id="prizes" style="gap:16px;"></div>
+
+    <div class="row center mt-8" style="justify-content:center;">
+      <button class="ev-btn ev-btn-primary ev-btn-xl" id="btn-draw"></button>
+      <button class="ev-btn ev-btn-outline" id="btn-reset" style="color:#fff;border-color:rgba(255,255,255,.25);">Effacer les tirages</button>
+      <a class="ev-btn ev-btn-ghost" href="/admin">Voir CRM</a>
+    </div>
+    <p class="center mt-4" style="color:var(--ink-soft);font-size:13px;">Astuce: appuyez sur <strong style="color:var(--gold);">F</strong> pour le plein écran, <strong style="color:var(--gold);">Espace</strong> pour tirer.</p>
+  </main>
+  <div id="footer"></div>
+
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
+  <script>
+    document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Phase 3 · Tirages live' });
+    document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
+    document.getElementById('btn-draw').innerHTML = MLP_ICONS.svg('trophy', { size: 22 }) + 'Tirer les gagnants';
+
+    const prizesC = document.getElementById('prizes');
+    const KEYS = Object.keys(MLP_EVENT.GIVEAWAYS);
+
+    function render(winners) {
+      prizesC.innerHTML = KEYS.map(k => {
+        const g = MLP_EVENT.GIVEAWAYS[k];
+        const w = winners && winners[k];
+        return `<div class="prize-card" data-key="${k}">
+          <div>
+            <div class="prize-label">${g.short}</div>
+            <div class="prize-value">${g.title}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="winner-line" data-name>${w ? w.name : '—'}</div>
+            <div style="color:var(--ink-soft);font-size:14px;">${w ? (w.city || '') : 'En attente du tirage'}</div>
+          </div>
+          <div style="font-family:var(--serif);font-size:2rem;color:var(--gold);">${g.value} $</div>
+        </div>`;
+      }).join('');
+    }
+
+    function dramaticDraw() {
+      const finals = MLP_EVENT.drawWinners();
+      // Animate each prize card with a brief roulette of names
+      const cards = prizesC.querySelectorAll('.prize-card');
+      const allLeads = MLP_EVENT.getLeads();
+      const names = allLeads.map(l => l.name).filter(Boolean);
+      const fallback = ['…','…','…'];
+      const pool = names.length ? names : fallback;
+      let step = 0;
+      const STEPS = 18;
+      const interval = setInterval(() => {
+        cards.forEach((card, i) => {
+          const k = card.dataset.key;
+          const nameEl = card.querySelector('[data-name]');
+          if (step < STEPS) {
+            card.classList.add('drawing');
+            nameEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+          } else {
+            card.classList.remove('drawing');
+            const w = finals[k];
+            nameEl.textContent = w ? w.name : 'Aucun inscrit';
+          }
+        });
+        step++;
+        if (step > STEPS) clearInterval(interval);
+      }, 80);
+    }
+
+    document.getElementById('btn-draw').onclick = dramaticDraw;
+    document.getElementById('btn-reset').onclick = () => {
+      if (!confirm('Effacer tous les gagnants et retirer le drapeau "winner" des leads?')) return;
+      MLP_EVENT.clearWinners(); render({});
+    };
+    document.addEventListener('keydown', e => {
+      if (e.key === 'f' || e.key === 'F') document.documentElement.requestFullscreen?.();
+      if (e.key === ' ') { e.preventDefault(); dramaticDraw(); }
+    });
+    render(MLP_EVENT.getWinners());
+  </script>
+</body>
+</html>
