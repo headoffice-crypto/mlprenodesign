@@ -7,155 +7,173 @@
   <title>Vitrine MLP — Diaporama</title>
   <link rel="stylesheet" href="/event/event.css">
   <style>
-    html, body { height: 100%; overflow: hidden; background: #000; color: #fff; }
+    html, body { height: 100%; overflow: hidden; background: #0b0f17; color: #fff; }
     body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
-    /* Stage holds every slide stacked; only one is .is-active at a time. */
-    .stage { position: fixed; inset: 0; }
+    /* Two-column layout — content left, sidebar right.
+       Nothing overlaps the photo: the chrome lives in its own column. */
+    .frame {
+      position: fixed; inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+    }
+    @media (max-width: 1100px) { .frame { grid-template-columns: 1fr 340px; } }
+    @media (max-width: 800px)  { .frame { grid-template-columns: 1fr; grid-template-rows: 1fr auto; } }
 
+    /* Content area (left) — full-bleed photo or prize stage */
+    .content {
+      position: relative; overflow: hidden;
+      background: #0b0f17;
+    }
     .slide {
       position: absolute; inset: 0;
       opacity: 0;
-      transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
       pointer-events: none;
-      will-change: opacity;
     }
     .slide.is-active { opacity: 1; }
 
-    /* Photo — slow Ken Burns when active */
-    .photo {
+    /* Photo — contain so the whole image is visible, no awkward crop */
+    .slide.photo .img-wrap {
       position: absolute; inset: 0;
-      overflow: hidden;
-      background: #000;
+      display: grid; place-items: center;
+      background: #0b0f17;
     }
-    .photo img {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
+    .slide.photo img {
+      max-width: 100%; max-height: 100%;
+      object-fit: contain;
       display: block;
-      transform: scale(1.04);
     }
-    .slide.is-active .photo img {
-      animation: kenburns var(--dur, 7s) ease-out forwards;
-    }
+    .slide.is-active.photo img { animation: kenburns 9s ease-out forwards; }
     @keyframes kenburns {
-      from { transform: scale(1.03) translate(0, 0); }
-      to   { transform: scale(1.12) translate(-2%, -1%); }
+      from { transform: scale(1.0); }
+      to   { transform: scale(1.06); }
     }
 
-    /* Bottom-up gradient for caption legibility */
-    .photo::after {
-      content: ""; position: absolute; inset: 0;
-      background: linear-gradient(180deg,
-        rgba(0,0,0,0.25) 0%,
-        rgba(0,0,0,0)    35%,
-        rgba(0,0,0,0)    55%,
-        rgba(0,0,0,0.75) 100%);
-      pointer-events: none;
-    }
-
-    /* AVANT / APRÈS chip — top-left */
-    .tag {
-      position: absolute; top: 32px; left: 32px; z-index: 3;
-      padding: 12px 22px; border-radius: 999px;
+    /* AVANT / APRÈS chip — scoped to the slide so it doesn't collide
+       with the unrelated .tag on the brand mark */
+    .slide .tag {
+      position: absolute; top: 28px; left: 28px; z-index: 3;
+      padding: 11px 22px; border-radius: 999px;
       background: rgba(0,0,0,.72); color: #fff;
-      font-size: 14px; letter-spacing: .28em; text-transform: uppercase; font-weight: 700;
+      font-size: 13px; letter-spacing: .28em; text-transform: uppercase; font-weight: 700;
       backdrop-filter: blur(8px);
     }
-    .tag.after { background: var(--gold); color: #1a1208; }
+    .slide .tag.after { background: var(--gold); color: #1a1208; }
 
-    /* Caption — bottom-left, large + elegant */
-    .caption {
-      position: absolute; left: 56px; right: 380px; bottom: 56px; z-index: 3;
-      display: flex; flex-direction: column; gap: 8px;
-      transform: translateY(12px); opacity: 0;
-      transition: opacity .8s ease, transform .8s ease;
-      transition-delay: .25s;
+    /* Prize stage — large icon + value + title, centered */
+    .slide.prize .pz {
+      position: absolute; inset: 0;
+      display: grid; align-content: center; justify-items: center;
+      gap: 28px; padding: 6vh 6vw; text-align: center;
+      background:
+        radial-gradient(ellipse at 50% 30%, rgba(200,167,102,.10) 0%, transparent 70%),
+        linear-gradient(180deg, #0b0f17 0%, #1a1208 100%);
     }
-    .slide.is-active .caption { opacity: 1; transform: none; }
-    .caption .eyebrow {
+    .slide.prize .pz-eyebrow {
       color: var(--gold);
-      font-size: 12px; letter-spacing: .32em; text-transform: uppercase; font-weight: 700;
+      font-size: 13px; letter-spacing: .3em; text-transform: uppercase; font-weight: 700;
     }
-    .caption .title {
+    .slide.prize .pz-badge {
+      font-size: 12px; letter-spacing: .26em; text-transform: uppercase;
+      color: rgba(255,255,255,.7);
+      padding: 8px 18px; border: 1px solid rgba(200,167,102,.35); border-radius: 999px;
+    }
+    .slide.prize .pz-icon {
+      width: clamp(120px, 13vw, 200px); height: clamp(120px, 13vw, 200px);
+      border-radius: 36px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center; color: #1a1208;
+      box-shadow: 0 40px 100px -20px rgba(200,167,102,.45);
+    }
+    .slide.prize .pz-icon .icon { width: 56%; height: 56%; }
+    .slide.prize .pz-title {
       font-family: var(--serif); font-weight: 600;
-      font-size: clamp(2rem, 3.4vw, 3.4rem);
-      line-height: 1.05; margin: 0;
-      max-width: 22ch;
-      color: #fff;
+      font-size: clamp(2rem, 3.8vw, 3.6rem); line-height: 1.06; margin: 0;
+      max-width: 22ch; color: #fff;
     }
-    .caption .sub {
-      font-size: clamp(.95rem, 1.1vw, 1.15rem);
-      color: rgba(255,255,255,.78);
-      max-width: 48ch; margin: 0; line-height: 1.4;
+    .slide.prize .pz-value {
+      font-family: var(--serif); font-weight: 700;
+      font-size: clamp(3rem, 6.5vw, 5.6rem); line-height: 1;
+      color: var(--gold);
     }
-    @media (max-width: 900px) {
-      .caption { left: 28px; right: 28px; bottom: 220px; }
-    }
+    .slide.is-active.prize .pz-eyebrow { animation: rise .55s ease-out .1s both; }
+    .slide.is-active.prize .pz-badge   { animation: rise .55s ease-out .25s both; }
+    .slide.is-active.prize .pz-icon    { animation: pop  .65s cubic-bezier(.4,1.6,.6,1) .35s both; }
+    .slide.is-active.prize .pz-title   { animation: rise .55s ease-out .7s both; }
+    .slide.is-active.prize .pz-value   { animation: rise .55s ease-out 1.0s both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes pop  { 0% { opacity: 0; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
 
-    /* Persistent overlay — brand top-left, QR bottom-right.
-       These live OUTSIDE the slides so they don't fade with content. */
-    .brand-mark {
-      position: fixed; top: 30px; left: 32px; z-index: 50;
-      display: flex; align-items: center; gap: 12px;
-      pointer-events: none;
+    /* SIDEBAR — brand on top, caption middle, QR bottom */
+    .sidebar {
+      background: linear-gradient(180deg, #1a1208 0%, #0b0f17 100%);
+      border-left: 1px solid rgba(200,167,102,.18);
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 24px;
+      padding: 28px 28px 32px;
     }
+    .brand-mark { display: flex; align-items: center; gap: 12px; }
     .brand-mark .logo {
       width: 44px; height: 44px; border-radius: 11px;
       background: linear-gradient(135deg, var(--gold), var(--terra));
       display: grid; place-items: center;
       color: #1a1208; font-family: var(--serif); font-weight: 700; font-size: 22px;
     }
-    .brand-mark .txt { display: flex; flex-direction: column; line-height: 1.15; }
-    .brand-mark .name { font-family: var(--serif); color: #fff; font-size: 18px; font-weight: 600; }
-    .brand-mark .tag  { color: rgba(255,255,255,.7); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; }
+    .brand-mark .name { font-family: var(--serif); color: #fff; font-size: 18px; font-weight: 600; line-height: 1.1; }
+    .brand-mark .tag  { color: rgba(255,255,255,.65); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; margin-top: 3px; }
 
-    /* Right-side QR card — always visible, large enough to scan across a booth */
+    /* Caption block — updates with each slide */
+    .caption {
+      display: flex; flex-direction: column; gap: 10px;
+      min-height: 0;
+      align-self: start;
+    }
+    .caption .cap-eyebrow {
+      color: var(--gold);
+      font-size: 11px; letter-spacing: .3em; text-transform: uppercase; font-weight: 700;
+    }
+    .caption .cap-title {
+      font-family: var(--serif); font-weight: 600;
+      font-size: clamp(1.45rem, 1.9vw, 1.85rem);
+      line-height: 1.12; margin: 0; color: #fff;
+    }
+    .caption .cap-sub {
+      color: rgba(255,255,255,.72);
+      font-size: 14px; line-height: 1.5; margin: 0;
+    }
+    .caption.is-out { opacity: 0; transform: translateY(8px); }
+    .caption { transition: opacity .35s ease, transform .35s ease; }
+
+    /* Stake panel */
+    .stakes {
+      padding: 18px 20px;
+      border: 1px solid rgba(200,167,102,.3);
+      border-radius: 14px;
+      background: rgba(200,167,102,.06);
+      display: grid; gap: 4px;
+    }
+    .stakes .s-l { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+    .stakes .s-v { font-family: var(--serif); color: #fff; font-size: 30px; line-height: 1; }
+    .stakes .s-w { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.55); margin-top: 4px; }
+
+    /* QR card */
     .qr-card {
-      position: fixed; right: 36px; bottom: 36px; z-index: 50;
       background: #fff; color: #1a1208;
-      border-radius: 22px; padding: 18px;
-      display: grid; gap: 10px; justify-items: center; text-align: center;
-      box-shadow: 0 30px 80px -20px rgba(0,0,0,.7);
-      min-width: 240px;
+      border-radius: 18px; padding: 16px;
+      display: grid; gap: 8px; justify-items: center; text-align: center;
+      box-shadow: 0 24px 50px -18px rgba(0,0,0,.5);
     }
-    .qr-card img { width: 220px; height: 220px; display: block; }
-    .qr-card .qr-cta {
-      font-size: 11px; letter-spacing: .26em; text-transform: uppercase;
-      color: var(--terra); font-weight: 700;
-    }
-    .qr-card .qr-url {
-      font-family: 'JetBrains Mono', monospace; font-size: 13px;
-      color: #5b4a2b;
-    }
-    .qr-card .qr-prize {
-      font-family: var(--serif); color: #1a1208; font-size: 1.4rem; line-height: 1;
-      padding-top: 4px;
-    }
-    .qr-card .qr-prize-l {
-      font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #7a5a1c; font-weight: 700;
-    }
-    @media (max-width: 900px) {
-      .qr-card { right: 16px; bottom: 16px; padding: 12px; min-width: 0; }
-      .qr-card img { width: 140px; height: 140px; }
-    }
+    .qr-card img { width: 100%; max-width: 260px; height: auto; aspect-ratio: 1/1; display: block; }
+    .qr-card .qr-l { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--terra); font-weight: 700; margin-top: 2px; }
+    .qr-card .qr-cta { font-family: var(--serif); color: #1a1208; font-size: 1.3rem; line-height: 1; }
+    .qr-card .qr-url { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5b4a2b; }
 
-    /* Top-right tagline — reminds people what's at stake */
-    .stake {
-      position: fixed; top: 38px; right: 36px; z-index: 50;
-      text-align: right;
-      pointer-events: none;
-    }
-    .stake .stake-l { font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
-    .stake .stake-v { font-family: var(--serif); color: #fff; font-size: 24px; margin-top: 2px; line-height: 1; }
-    .stake .stake-w { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-top: 6px; }
-
-    /* Subtle slide-counter so the operator can verify it's playing */
+    /* Tiny ping dot so the operator sees the loop is alive */
     .ping {
-      position: fixed; bottom: 16px; left: 22px; z-index: 50;
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--gold);
-      box-shadow: 0 0 0 0 rgba(200,167,102,.5);
+      position: fixed; bottom: 14px; left: 18px; z-index: 50;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--gold);
       animation: ping 2.4s ease-out infinite;
     }
     @keyframes ping {
@@ -166,53 +184,69 @@
   </style>
 </head>
 <body>
-  <!-- Persistent chrome -->
-  <div class="brand-mark">
-    <div class="logo">M</div>
-    <div class="txt">
-      <div class="name">MLP Reno &amp; Design</div>
-      <div class="tag">Gestion · Accompagnement · Rénovation</div>
-    </div>
+  <div class="frame">
+    <!-- LEFT: rotating content (photos + prizes) -->
+    <main class="content" id="stage"></main>
+
+    <!-- RIGHT: fixed sidebar -->
+    <aside class="sidebar">
+      <div class="brand-mark">
+        <div class="logo">M</div>
+        <div>
+          <div class="name">MLP Reno &amp; Design</div>
+          <div class="tag">Gestion · Accompagnement · Rénovation</div>
+        </div>
+      </div>
+
+      <div class="caption" id="caption">
+        <div class="cap-eyebrow" id="cap-eyebrow"></div>
+        <h1 class="cap-title" id="cap-title"></h1>
+        <p class="cap-sub" id="cap-sub"></p>
+      </div>
+
+      <div class="stakes">
+        <div class="s-l">À gagner ce soir</div>
+        <div class="s-v">14 000 $</div>
+        <div class="s-w">Tirage à la fin du mois de mai</div>
+      </div>
+
+      <div class="qr-card">
+        <img id="qr-img" alt="QR — participez au tirage">
+        <div class="qr-l">Participez au tirage</div>
+        <div class="qr-cta">Scannez ici</div>
+        <div class="qr-url" id="qr-url"></div>
+      </div>
+    </aside>
   </div>
 
-  <div class="stake">
-    <div class="stake-l">À gagner ce soir</div>
-    <div class="stake-v">14 000 $</div>
-    <div class="stake-w">Tirage fin mai</div>
-  </div>
-
-  <div class="qr-card">
-    <img id="qr-img" alt="QR — Participez au tirage">
-    <div class="qr-prize-l">Participez au tirage</div>
-    <div class="qr-prize">Scannez</div>
-    <div class="qr-url" id="qr-url"></div>
-    <div class="qr-cta">30 secondes</div>
-  </div>
-
-  <main class="stage" id="stage"></main>
   <div class="ping" title="Vitrine en lecture"></div>
 
+  <script src="/event/icons.js"></script>
+  <script src="/event/event.js"></script>
   <script>
-    /* Pair = a before/after sequence shown back to back.
-       Solo = a single finished-work hero shot (no before image).        */
-    const PROJECTS = [
-      // Thomas-Dubuc — Façade
-      { kind: 'pair',
-        eyebrow: 'Maison Thomas-Dubuc · Façade',
-        title:   "Sous-évaluée. Maintenant, un actif.",
-        sub:     "+ valeur de revente · + revenus locatifs · permis pour la conversion.",
-        before:  '/event-media/thomas-dubuc/before/Before-frontage.jpeg',
-        after:   '/event-media/thomas-dubuc/after/Frontage-1.jpeg' },
+    const ic = (n, s) => MLP_ICONS.svg(n, { size: s || 100 });
 
-      // Thomas-Dubuc — Salon
+    const PRIZE_ICON = {
+      'plan-optimisation':  'layers',
+      'feasibility-coord':  'shieldCheck',
+      'roi-evaluation':     'trendingUp',
+      'kitchen-island':     'chefHat',
+      'bath-shower':        'bath',
+      'redesign':           'sparkle',
+      'gift-1000':          'gift',
+      'gift-2000':          'gift',
+    };
+
+    /* Project pairs / solos — only crisp, high-resolution photos.
+       The low-quality Google Street View "before" frontage is dropped.   */
+    const PROJECTS = [
       { kind: 'pair',
-        eyebrow: 'Maison Thomas-Dubuc · Salon principal',
+        eyebrow: 'Maison Thomas-Dubuc · Salon',
         title:   "Mêmes murs. Autre maison.",
         sub:     "Plancher d'ingénierie, mur d'accent, ouverture sur la cuisine.",
         before:  '/event-media/thomas-dubuc/before/Before-Living-room.jpeg',
         after:   '/event-media/thomas-dubuc/after/Living-room-1.jpeg' },
 
-      // Salle de bain · Projet 1
       { kind: 'pair',
         eyebrow: 'Salle de bain · Projet 1',
         title:   "D'un cube vieillot à un spa lumineux.",
@@ -220,7 +254,6 @@
         before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg',
         after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg' },
 
-      // Salle de bain · Projet 2
       { kind: 'pair',
         eyebrow: 'Salle de bain · Projet 2',
         title:   "Spa à la maison.",
@@ -228,15 +261,6 @@
         before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-2-before.jpg',
         after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-2-after.jpg' },
 
-      // Salle de bain · Projet 3
-      { kind: 'pair',
-        eyebrow: 'Salle de bain · Projet 3',
-        title:   "Remise à neuf complète.",
-        sub:     "Plomberie refaite. Finis modernes. Espace optimisé.",
-        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-3-before.jpg',
-        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-3-after.jpg' },
-
-      // Salle de bain · Projet 4
       { kind: 'pair',
         eyebrow: 'Salle de bain · Projet 4',
         title:   "Du fonctionnel à l'élégant.",
@@ -244,15 +268,13 @@
         before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-4-before.jpg',
         after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-4-after.jpg' },
 
-      // Salle de bain · Projet 5
-      { kind: 'pair',
-        eyebrow: 'Salle de bain · Projet 5',
-        title:   "Chaque centimètre carré, repensé.",
-        sub:     "Optimisation maximale d'un petit volume.",
-        before:  '/css/js/assets/images/portfolio/bathrooms/bathroom-5-before.jpg',
-        after:   '/css/js/assets/images/portfolio/bathrooms/bathroom-5-after.jpg' },
+      // Finished-only hero shots (high-quality, no before)
+      { kind: 'solo',
+        eyebrow: 'Maison Thomas-Dubuc · Façade',
+        title:   "Façade entièrement repensée.",
+        sub:     "Revêtement, escaliers, garde-corps — tout est neuf.",
+        src:     '/event-media/thomas-dubuc/after/Frontage-1.jpeg' },
 
-      // Bonus finished-only hero shots
       { kind: 'solo',
         eyebrow: 'Maison Thomas-Dubuc · Cuisine',
         title:   "La cuisine, refaite à neuf.",
@@ -268,54 +290,104 @@
       { kind: 'solo',
         eyebrow: 'Maison Thomas-Dubuc · Cour arrière',
         title:   "L'extérieur, prolongement du salon.",
-        sub:     "Aménagement complet de la cour — gazon, terrasse, intimité.",
+        sub:     "Aménagement complet — gazon, terrasse, intimité.",
         src:     '/event-media/thomas-dubuc/after/Backyard.jpeg' },
     ];
 
-    /* Build the slide queue: each pair → 2 slides (avant 5s, après 7s).
-       Solos → 1 slide (6s). */
-    const QUEUE = [];
+    /* Build the photo queue: pairs → 2 slides (avant 5 s, après 7 s).
+       Solos → 1 slide (6.5 s).                                        */
+    const PHOTOS = [];
     PROJECTS.forEach(p => {
       if (p.kind === 'pair') {
-        QUEUE.push({
-          src: p.before, tag: 'Avant', tagClass: '',
-          eyebrow: p.eyebrow, title: "Avant qu'on s'en occupe.", sub: '',
+        PHOTOS.push({
+          kind: 'photo',
+          src:  p.before, tag: 'Avant', tagClass: '',
+          eyebrow: p.eyebrow,
+          title:   "Avant qu'on s'en occupe.",
+          sub:     '',
           dur: 5000,
         });
-        QUEUE.push({
-          src: p.after, tag: 'Après', tagClass: 'after',
-          eyebrow: p.eyebrow, title: p.title, sub: p.sub,
+        PHOTOS.push({
+          kind: 'photo',
+          src:  p.after, tag: 'Après', tagClass: 'after',
+          eyebrow: p.eyebrow,
+          title:   p.title,
+          sub:     p.sub,
           dur: 7000,
         });
       } else {
-        QUEUE.push({
-          src: p.src, tag: '', tagClass: '',
-          eyebrow: p.eyebrow, title: p.title, sub: p.sub,
+        PHOTOS.push({
+          kind: 'photo',
+          src:  p.src, tag: '', tagClass: '',
+          eyebrow: p.eyebrow,
+          title:   p.title,
+          sub:     p.sub,
           dur: 6500,
         });
       }
     });
 
+    /* Build prize slides — one per cadeau */
+    const PRIZE_ORDER = [
+      'plan-optimisation','feasibility-coord','roi-evaluation',
+      'kitchen-island','bath-shower','redesign','gift-1000','gift-2000',
+    ];
+    const PRIZES = PRIZE_ORDER.map(k => {
+      const g  = MLP_EVENT.GIVEAWAYS[k]; if (!g) return null;
+      const gr = MLP_EVENT.GROUPS[g.group] || {};
+      return {
+        kind: 'prize',
+        prizeKey: k,
+        eyebrow: gr.short + ' · Cadeau à gagner',
+        title:   g.title,
+        sub:     gr.audience + ' · Tirage à la fin du mois de mai.',
+        value:   g.value,
+        badge:   gr.audience,
+        dur: 7000,
+      };
+    }).filter(Boolean);
+
+    /* Interleave: every 2 project-slides, insert one prize. Wraps around. */
+    const QUEUE = [];
+    let p = 0;
+    PHOTOS.forEach((ph, i) => {
+      QUEUE.push(ph);
+      if (i % 2 === 1) QUEUE.push(PRIZES[(p++) % PRIZES.length]);
+    });
+    // Top up with any remaining prizes so all 8 appear at least once
+    while (p < PRIZES.length) QUEUE.push(PRIZES[p++]);
+
     const STAGE = document.getElementById('stage');
 
     function buildSlide(s) {
       const el = document.createElement('section');
-      el.className = 'slide';
-      el.style.setProperty('--dur', (s.dur + 2000) + 'ms'); // ken burns a bit longer than the slide so it doesn't snap
-      el.innerHTML = `
-        <div class="photo"><img src="${s.src}" alt="" loading="lazy"></div>
-        ${s.tag ? `<div class="tag ${s.tagClass}">${s.tag}</div>` : ''}
-        <div class="caption">
-          ${s.eyebrow ? `<div class="eyebrow">${s.eyebrow}</div>` : ''}
-          <h1 class="title">${s.title}</h1>
-          ${s.sub ? `<p class="sub">${s.sub}</p>` : ''}
-        </div>`;
+      if (s.kind === 'photo') {
+        el.className = 'slide photo';
+        el.innerHTML = `
+          <div class="img-wrap"><img src="${s.src}" alt="" loading="lazy"></div>
+          ${s.tag ? `<div class="tag ${s.tagClass}">${s.tag}</div>` : ''}`;
+      } else {
+        el.className = 'slide prize';
+        el.innerHTML = `
+          <div class="pz">
+            <div class="pz-eyebrow">Cadeau à gagner · Tirage fin mai</div>
+            <div class="pz-badge">${s.badge}</div>
+            <div class="pz-icon">${ic(PRIZE_ICON[s.prizeKey] || 'gift', 110)}</div>
+            <div class="pz-title">${s.title}</div>
+            <div class="pz-value">${s.value.toLocaleString('fr-CA')}&nbsp;$</div>
+          </div>`;
+      }
       return el;
     }
 
     QUEUE.forEach(s => STAGE.appendChild(buildSlide(s)));
 
     const slides = STAGE.querySelectorAll('.slide');
+    const cap    = document.getElementById('caption');
+    const capE   = document.getElementById('cap-eyebrow');
+    const capT   = document.getElementById('cap-title');
+    const capS   = document.getElementById('cap-sub');
+
     let cur = 0;
     let timer = null;
 
@@ -323,18 +395,27 @@
       slides[cur].classList.remove('is-active');
       cur = ((i % slides.length) + slides.length) % slides.length;
       slides[cur].classList.add('is-active');
+      const s = QUEUE[cur];
+      // Crossfade the caption
+      cap.classList.add('is-out');
+      setTimeout(() => {
+        capE.textContent = s.eyebrow || '';
+        capT.textContent = s.title || '';
+        capS.textContent = s.sub || '';
+        cap.classList.remove('is-out');
+      }, 300);
       clearTimeout(timer);
-      timer = setTimeout(() => show(cur + 1), QUEUE[cur].dur);
+      timer = setTimeout(() => show(cur + 1), s.dur);
     }
     show(0);
 
-    // QR target — pre-fill the tirage form
+    // QR target
     const url = location.origin + '/event';
     document.getElementById('qr-url').textContent = url.replace(/^https?:\/\//, '');
     document.getElementById('qr-img').src =
-      'https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&data=' + encodeURIComponent(url);
+      'https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=0&data=' + encodeURIComponent(url);
 
-    // Keyboard shortcuts — F for fullscreen, → / ← for manual step
+    // Operator shortcuts
     document.addEventListener('keydown', e => {
       if (e.key === 'f' || e.key === 'F') document.documentElement.requestFullscreen?.();
       if (e.key === 'Escape') document.exitFullscreen?.();
@@ -342,7 +423,7 @@
       if (e.key === 'ArrowLeft')  show(cur - 1);
     });
 
-    // If anything fails to load, advance past it after a short timeout instead of stalling
+    // If a photo fails to load, skip past it
     STAGE.querySelectorAll('img').forEach(img => {
       img.addEventListener('error', () => {
         const idx = Array.from(slides).findIndex(s => s.contains(img));
