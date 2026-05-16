@@ -36,9 +36,13 @@
       <h1 class="ev-h1 center">Participez au tirage.</h1>
 
       <form class="ev-card ev-form mt-8" id="lead-form" autocomplete="on">
+        <div class="ev-label" style="margin-bottom:8px;">Vous êtes</div>
         <div class="seg-picker" id="seg-picker"></div>
 
-        <div class="ev-field">
+        <div class="ev-label mt-4" style="margin-bottom:8px;">Où vivez-vous ou cherchez à acheter?</div>
+        <div class="seg-picker" id="region-picker"></div>
+
+        <div class="ev-field mt-4">
           <label class="ev-label" for="name">Nom *</label>
           <input class="ev-input" id="name" name="name" required>
         </div>
@@ -50,9 +54,6 @@
           <label class="ev-label" for="email">Courriel</label>
           <input class="ev-input" id="email" name="email" type="email">
         </div>
-        <input type="hidden" id="city" name="city">
-        <input type="hidden" id="notes" name="notes">
-        <input type="hidden" id="consent" checked>
 
         <button class="ev-btn ev-btn-primary ev-btn-lg ev-btn-block" type="submit">Participer</button>
       </form>
@@ -79,7 +80,7 @@
     let segment = MLP_EVENT.getSegment() || 'proprietaire';
 
     // Build segment picker
-    const picker = document.getElementById('seg-picker');
+    const segPicker = document.getElementById('seg-picker');
     Object.entries(MLP_EVENT.SEGMENTS).forEach(([k, s]) => {
       const l = document.createElement('label');
       l.innerHTML = `
@@ -92,7 +93,22 @@
         segment = e.target.value;
         MLP_EVENT.setSegment(segment);
       });
-      picker.appendChild(l);
+      segPicker.appendChild(l);
+    });
+
+    // Build region picker
+    let region = 'montreal';
+    const regPicker = document.getElementById('region-picker');
+    Object.entries(MLP_EVENT.REGIONS).forEach(([k, r], i) => {
+      const l = document.createElement('label');
+      l.innerHTML = `
+        <input type="radio" name="region" value="${k}" ${i === 0 ? 'checked' : ''}>
+        <span class="pad">
+          <span class="ic">${MLP_ICONS.svg('mapPin', { size: 22 })}</span>
+          <span class="lbl">${r.label}</span>
+        </span>`;
+      l.querySelector('input').addEventListener('change', (e) => { region = e.target.value; });
+      regPicker.appendChild(l);
     });
 
     document.getElementById('lead-form').addEventListener('submit', (e) => {
@@ -102,6 +118,7 @@
         phone:   document.getElementById('phone').value,
         email:   document.getElementById('email').value,
         segment,
+        region,
         consent: true,
         source:  'qr',
       });

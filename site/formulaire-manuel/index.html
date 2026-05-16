@@ -33,22 +33,21 @@
     <p class="ev-lead">Quand l'invité préfère vous parler que scanner le QR. Trois segments, cinq champs. Il est inscrit au bon tirage automatiquement.</p>
 
     <form class="ev-card ev-form mt-8" id="lead-form" autocomplete="on" style="max-width:680px;">
-      <div class="ev-eyebrow" style="color:var(--terra);">Segment</div>
+      <div class="ev-eyebrow" style="color:var(--terra);">Profil</div>
       <div class="seg-picker" id="seg-picker"></div>
 
-      <div class="ev-grid ev-grid-2">
+      <div class="ev-eyebrow mt-4" style="color:var(--terra);">Région</div>
+      <div class="seg-picker" id="region-picker"></div>
+
+      <div class="ev-grid ev-grid-2 mt-4">
         <div class="ev-field"><label class="ev-label" for="name">Nom *</label><input class="ev-input" id="name" required></div>
         <div class="ev-field"><label class="ev-label" for="phone">Téléphone *</label><input class="ev-input" id="phone" type="tel" required></div>
       </div>
-      <div class="ev-grid ev-grid-2">
-        <div class="ev-field"><label class="ev-label" for="email">Courriel</label><input class="ev-input" id="email" type="email"></div>
-        <div class="ev-field"><label class="ev-label" for="city">Ville</label><input class="ev-input" id="city"></div>
-      </div>
       <div class="ev-field">
-        <label class="ev-label" for="notes">Notes verbales</label>
-        <textarea class="ev-textarea" id="notes" placeholder="Ce qu'il vous a dit — à rappeler dans le suivi."></textarea>
+        <label class="ev-label" for="email">Courriel</label>
+        <input class="ev-input" id="email" type="email">
       </div>
-      <button class="ev-btn ev-btn-primary ev-btn-lg" type="submit">Enregistrer + inscrire au tirage</button>
+      <button class="ev-btn ev-btn-primary ev-btn-lg" type="submit">Enregistrer</button>
     </form>
 
     <div id="recent" class="mt-8">
@@ -80,6 +79,15 @@
       picker.appendChild(l);
     });
 
+    const regPicker = document.getElementById('region-picker');
+    let region = 'montreal';
+    Object.entries(MLP_EVENT.REGIONS).forEach(([k, r], i) => {
+      const l = document.createElement('label');
+      l.innerHTML = `<input type="radio" name="reg" value="${k}" ${i === 0 ? 'checked' : ''}><span class="pad"><span class="ic">${MLP_ICONS.svg('mapPin', { size: 20 })}</span><span class="lbl">${r.label}</span></span>`;
+      l.querySelector('input').addEventListener('change', e => { region = e.target.value; });
+      regPicker.appendChild(l);
+    });
+
     function renderRecent() {
       const list = MLP_EVENT.getLeads().filter(l => l.source === 'manual').slice(-6).reverse();
       const c = document.getElementById('recent-list');
@@ -100,14 +108,15 @@
         name:    document.getElementById('name').value,
         phone:   document.getElementById('phone').value,
         email:   document.getElementById('email').value,
-        city:    document.getElementById('city').value,
-        notes:   document.getElementById('notes').value,
         segment,
+        region,
         source:  'manual',
       });
       e.target.reset();
       picker.querySelector('input').checked = true;
+      regPicker.querySelector('input').checked = true;
       segment = 'proprietaire';
+      region  = 'montreal';
       MLP_EVENT.trackStep('lead-manual');
       renderRecent();
       document.getElementById('name').focus();

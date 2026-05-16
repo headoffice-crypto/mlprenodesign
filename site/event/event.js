@@ -59,6 +59,14 @@
     cuisine:        { title: "Îlot de cuisine offert",              value: 2000, short: 'Îlot de cuisine',       tier: 'bonus' },
   };
 
+  /* ---------- Regions (Greater Montréal) ---------- */
+  const REGIONS = {
+    montreal:  { label: 'Montréal' },
+    rivesud:   { label: 'Rive-Sud' },
+    rivenord:  { label: 'Rive-Nord' },
+  };
+  const LEAD_GOAL = 100;
+
   /* ---------- Lead CRUD ---------- */
 
   function uid()    { return 'L' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,6).toUpperCase(); }
@@ -84,6 +92,7 @@
   function addLead(input) {
     const segment = input.segment || readJSON(STORAGE_SEGMENT, null) || 'proprietaire';
     const seg = SEGMENTS[segment] || SEGMENTS.proprietaire;
+    const region = REGIONS[input.region] ? input.region : '';
 
     const lead = {
       id:          uid(),
@@ -94,6 +103,7 @@
       city:        (input.city  || '').trim(),
       notes:       (input.notes || '').trim(),
       segment,
+      region,
       giveawayKey: seg.primaryPrize,
       source:      input.source || 'event-booth',
       consent:     input.consent !== false,
@@ -243,7 +253,7 @@
 
   function exportCSV() {
     const leads = getLeads();
-    const head = ['id','createdAt','name','email','phone','city','segment','giveaway','source','score','status','winner','notes'];
+    const head = ['id','createdAt','name','email','phone','city','region','segment','giveaway','source','score','status','winner','notes'];
     const rows = leads.map(l => head.map(h => {
       let v = h === 'giveaway' ? (l.giveawayKey || '') : l[h];
       if (v === undefined || v === null) v = '';
@@ -348,7 +358,7 @@
 
   global.MLP_EVENT = {
     SUPABASE_URL, SUPABASE_ANON_KEY,
-    SEGMENTS, GIVEAWAYS,
+    SEGMENTS, GIVEAWAYS, REGIONS, LEAD_GOAL,
     addLead, updateLead, deleteLead, getLeads, computeScore,
     setSegment, getSegment, clearSegment,
     drawWinners, getWinners, clearWinners,

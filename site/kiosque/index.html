@@ -222,10 +222,13 @@
         title:   'Une transformation complète.',
         sub:     'Étage par étage — Montréal.' },
 
-      { type: 'single', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg',
-        eyebrow: 'Cadeaux à gagner · Jusqu\'à 2 000 $',
-        title:   'Six prix. Tirage à la fin du mois de mai.',
-        sub:     'Évaluation · Faisabilité · Design · Vanité · Îlot de cuisine · Consultation investissement.' },
+      { type: 'prize-intro', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'design' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'evaluation' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'investissement' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'faisabilite' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'vanite' },
+      { type: 'prize', media: '/event-media/thomas-dubuc/after/Frontage-3.jpeg', prizeKey: 'cuisine' },
 
       { type: 'single', media: '/event-media/thomas-dubuc/after/Backyard.jpeg',
         eyebrow: 'Diagnostic + tirage · 30 secondes',
@@ -233,7 +236,9 @@
         sub:     'Trois questions, trois boutons. Vous voyez ce qu\'on peut faire pour vous, et vous êtes inscrit au tirage.' },
     ];
 
-    // Expand each "ba" entry into two single-image slides (Avant, then Après)
+    // Expand each "ba" entry into two single-image slides (Avant, then Après).
+    // Expand "prize-intro" and "prize" using MLP_EVENT.GIVEAWAYS so the kiosque
+    // shows one cadeau per slide, in sync with the rest of the ecosystem.
     const slides = [];
     source.forEach(s => {
       if (s.type === 'ba') {
@@ -243,6 +248,19 @@
         slides.push({ type: 'single', media: s.after,  tag: 'apres',
           eyebrow: s.room + ' — Après',
           title:   s.afterTitle,  sub: s.afterSub });
+      } else if (s.type === 'prize-intro') {
+        slides.push({ type: 'single', media: s.media,
+          eyebrow: 'Cadeaux à gagner · Tirage à la fin du mois de mai',
+          title:   'Six cadeaux. 6 750 $ au total.',
+          sub:     'Inscrivez-vous au tirage — chaque cadeau est tiré au sort à la fin du mois de mai.' });
+      } else if (s.type === 'prize') {
+        const g = MLP_EVENT.GIVEAWAYS[s.prizeKey] || {};
+        const seg = g.segment ? MLP_EVENT.SEGMENTS[g.segment] : null;
+        const eyebrow = g.tier === 'primary'
+          ? `Cadeau · ${seg ? seg.label + 's' : ''} · ${g.value} $`
+          : `Cadeau bonus · Pour tous · ${g.value} $`;
+        slides.push({ type: 'single', media: s.media,
+          eyebrow, title: g.title || '', sub: 'Tirage à la fin du mois de mai.' });
       } else {
         slides.push(s);
       }

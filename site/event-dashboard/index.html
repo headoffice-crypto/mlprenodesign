@@ -17,6 +17,7 @@
       margin-bottom: 36px;
     }
     .hero .clock { font-family: var(--serif); color: var(--gold); font-size: 4.5rem; line-height: 1; }
+    .hero .clock span { font-size: 2.4rem; }
     .hero .date  { color: var(--ink-soft); font-size: 13px; letter-spacing: .2em; text-transform: uppercase; margin-top: 10px; }
     .hero h1 {
       font-family: var(--serif); font-weight: 600;
@@ -62,21 +63,27 @@
 
   <main class="dash">
 
-    <!-- HERO — clock + the ONE button -->
+    <!-- HERO — 100-lead goal + the two operator CTAs -->
     <section class="hero">
-      <div class="clock" id="clock">--:--</div>
-      <div class="date" id="date"></div>
+      <div class="clock" id="goal-fraction">0 <span style="color:var(--ink-soft);">/ 100</span></div>
+      <div class="date">Objectif de leads</div>
+      <div class="goal-bar" style="height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin:24px auto 0;max-width:520px;">
+        <div id="goal-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--gold),var(--terra));transition:width .4s ease;"></div>
+      </div>
 
       <h1>Soirée MLP</h1>
-      <p>Cinq étapes, un bouton à la fois. Le mode guidé vous indique exactement quoi faire et quand — sans rien à mémoriser.</p>
 
       <div class="cta-row">
-        <a class="ev-btn ev-btn-primary ev-btn-xl" href="/event-wizard" id="cta-wizard"></a>
+        <a class="ev-btn ev-btn-primary ev-btn-xl" href="/presentation-live" target="_blank" rel="noopener" id="cta-stage"></a>
+        <a class="ev-btn ev-btn-primary ev-btn-xl" href="/admin" target="_blank" rel="noopener" id="cta-crm"></a>
+      </div>
+      <div class="cta-row mt-4">
+        <a class="ev-btn ev-btn-outline" href="/event-wizard" id="cta-wizard"></a>
         <a class="ev-btn ev-btn-outline" href="/event-cheat-sheet" target="_blank" rel="noopener" id="cta-cheat"></a>
       </div>
     </section>
 
-    <!-- LIVE STATS -->
+    <!-- LIVE STATS — segments + regions -->
     <div class="strip" id="strip"></div>
 
     <!-- All tools -->
@@ -93,33 +100,34 @@
     document.getElementById('header').innerHTML = MLP_EVENT.renderHeader({ tag: 'Centre de commande', operator: true });
     document.getElementById('footer').innerHTML = MLP_EVENT.renderFooter();
 
-    function tick() {
-      const d = new Date();
-      document.getElementById('clock').textContent = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('date').textContent  = d.toLocaleDateString('fr-CA', { weekday:'long', day:'numeric', month:'long' });
+    function renderGoal(leads) {
+      const goal = MLP_EVENT.LEAD_GOAL || 100;
+      const n = leads.length;
+      const pct = Math.min(100, Math.round((n / goal) * 100));
+      document.getElementById('goal-fraction').innerHTML = `${n} <span style="color:var(--ink-soft);">/ ${goal}</span>`;
+      document.getElementById('goal-fill').style.width = pct + '%';
     }
-    tick(); setInterval(tick, 30000);
 
     function renderStrip() {
       const leads = MLP_EVENT.getLeads();
+      renderGoal(leads);
+      const segCount = (k) => leads.filter(l => l.segment === k).length;
+      const regCount = (k) => leads.filter(l => l.region  === k).length;
       document.getElementById('strip').innerHTML = `
-        <div class="s"><div class="n">${leads.length}</div><div class="l">Leads ce soir</div></div>
-        <div class="s"><div class="n">${leads.filter(l => l.score >= 70).length}</div><div class="l">Leads chauds</div></div>
-        <div class="s"><div class="n">${leads.filter(l => l.source === 'consultation').length}</div><div class="l">Consultations</div></div>
-        <div class="s"><div class="n">${leads.filter(l => l.winner).length}</div><div class="l">Gagnants</div></div>`;
+        <div class="s"><div class="n">${segCount('proprietaire')}</div><div class="l">Propriétaires</div></div>
+        <div class="s"><div class="n">${segCount('acheteur')}</div><div class="l">Acheteurs</div></div>
+        <div class="s"><div class="n">${segCount('investisseur')}</div><div class="l">Investisseurs</div></div>
+        <div class="s"><div class="n">${regCount('montreal') + regCount('rivesud') + regCount('rivenord')}</div><div class="l">Avec région</div></div>`;
     }
     renderStrip(); setInterval(renderStrip, 5000);
 
     const TILES = [
       { href:'/kiosque',           icon:'monitor',    t:'Kiosque',               s:'Diaporama auto' },
-      { href:'/diagnostic',        icon:'compass',    t:'Diagnostic',            s:'3 boutons · qualification' },
+      { href:'/diagnostic',        icon:'compass',    t:'Diagnostic',            s:'3 boutons' },
       { href:'/event',             icon:'qr',         t:'Formulaire QR',         s:'Pour les invités qui scannent' },
       { href:'/formulaire-manuel', icon:'edit',       t:'Saisie manuelle',       s:'Vous saisissez pour eux' },
-      { href:'/presentation-live', icon:'mic',        t:'Présentation 2 min',    s:'Scène · 6 diapos' },
       { href:'/contest-winners',   icon:'trophy',     t:'Aperçu des cadeaux',    s:'Tirage à la fin du mois de mai' },
       { href:'/projets',           icon:'image',      t:'Nos projets',           s:'Portfolio + galerie' },
-      { href:'/consultation',      icon:'calendar',   t:'Consultation',          s:'Réservation' },
-      { href:'/admin',             icon:'chart',      t:'CRM',                   s:'Suivis · Twilio · Resend' },
     ];
     document.getElementById('tiles').innerHTML = TILES.map(x => `
       <a class="tile" href="${x.href}" target="_blank" rel="noopener">
@@ -128,8 +136,10 @@
       </a>`).join('');
 
     // CTAs
-    document.getElementById('cta-wizard').innerHTML = MLP_ICONS.svg('target', { size: 22 }) + 'Lancer le mode guidé' + MLP_ICONS.svg('arrowRight', { size: 18 });
-    document.getElementById('cta-cheat').innerHTML  = MLP_ICONS.svg('printer', { size: 18 }) + 'Aide-mémoire';
+    document.getElementById('cta-stage').innerHTML  = MLP_ICONS.svg('mic',   { size: 22 }) + 'Présentation principale';
+    document.getElementById('cta-crm').innerHTML    = MLP_ICONS.svg('chart', { size: 22 }) + 'Ouvrir le CRM';
+    document.getElementById('cta-wizard').innerHTML = MLP_ICONS.svg('target',{ size: 18 }) + 'Mode guidé';
+    document.getElementById('cta-cheat').innerHTML  = MLP_ICONS.svg('printer',{ size: 18 }) + 'Aide-mémoire';
   </script>
 </body>
 </html>
