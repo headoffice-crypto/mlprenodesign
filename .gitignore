@@ -24,8 +24,7 @@ promo/fonts/georgiab.ttf
 promo/fonts/segoeuib.ttf
 promo/fonts/consola.ttf
 
-# Heavy raw videos used only by /kiosque and /projets — keep local
-site/event-media/thomas-dubuc/video/
+# Rue-du-Havre raw footage — kept local until trimmed/encoded
 site/event-media/rue-du-havre/
 
 # Claude Code local settings
