@@ -175,12 +175,37 @@
       position: fixed; bottom: 14px; left: 18px; z-index: 50;
       width: 8px; height: 8px; border-radius: 50%; background: var(--gold);
       animation: ping 2.4s ease-out infinite;
+      pointer-events: none;
     }
     @keyframes ping {
       0%   { box-shadow: 0 0 0 0 rgba(200,167,102,.6); }
       80%  { box-shadow: 0 0 0 14px rgba(200,167,102,0); }
       100% { box-shadow: 0 0 0 0 rgba(200,167,102,0); }
     }
+
+    /* Fullscreen toggle — floats bottom-left, clickable for touch screens.
+       Stays visible in windowed mode; fades out once fullscreen is engaged
+       (autohide via :fullscreen) to keep the booth display perfectly clean. */
+    .fs-btn {
+      position: fixed; bottom: 18px; left: 38px; z-index: 60;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 20px;
+      background: rgba(0,0,0,.72);
+      border: 1px solid rgba(200,167,102,.4);
+      color: var(--gold);
+      border-radius: 999px;
+      font: 600 13px/1 'Inter', system-ui, sans-serif;
+      letter-spacing: .2em; text-transform: uppercase;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: opacity .2s ease, background .2s ease, border-color .2s ease;
+    }
+    .fs-btn:hover { background: rgba(0,0,0,.9); border-color: var(--gold); }
+    .fs-btn .ic   { width: 16px; height: 16px; }
+    /* When the document is in fullscreen, hide the button so it doesn't
+       clutter the booth display. Move the mouse to reveal it again. */
+    :fullscreen .fs-btn { opacity: 0; }
+    :fullscreen .fs-btn:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -220,6 +245,13 @@
   </div>
 
   <div class="ping" title="Vitrine en lecture"></div>
+
+  <button class="fs-btn" id="fs-btn" type="button">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>
+    </svg>
+    <span id="fs-label">Plein écran</span>
+  </button>
 
   <script src="/event/icons.js"></script>
   <script src="/event/event.js"></script>
@@ -415,9 +447,21 @@
     document.getElementById('qr-img').src =
       'https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=0&data=' + encodeURIComponent(url);
 
+    // Fullscreen toggle (click or F key)
+    const fsBtn   = document.getElementById('fs-btn');
+    const fsLabel = document.getElementById('fs-label');
+    function toggleFullscreen() {
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      else document.documentElement.requestFullscreen?.();
+    }
+    fsBtn.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', () => {
+      fsLabel.textContent = document.fullscreenElement ? 'Quitter' : 'Plein écran';
+    });
+
     // Operator shortcuts
     document.addEventListener('keydown', e => {
-      if (e.key === 'f' || e.key === 'F') document.documentElement.requestFullscreen?.();
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
       if (e.key === 'Escape') document.exitFullscreen?.();
       if (e.key === 'ArrowRight') show(cur + 1);
       if (e.key === 'ArrowLeft')  show(cur - 1);
