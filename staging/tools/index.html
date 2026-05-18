@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=36">
+  <link rel="stylesheet" href="css/tools.css?v=37">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v36</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v37</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -64,8 +64,14 @@
           </button>
           <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none;" onchange="onPdfPicked(event)">
         </div>
+        <div class="scope-toolbar" role="toolbar" aria-label="Mise en forme">
+          <button type="button" class="tb-btn" onclick="scopeFormat('bold')" data-i18n-title="scope_fmt_bold" title="Gras (sélection)"><b>B</b></button>
+          <button type="button" class="tb-btn" onclick="scopeFormat('subtitle')" data-i18n-title="scope_fmt_subtitle" title="Titre"><span class="material-icons-round">title</span><span data-i18n="scope_fmt_subtitle_label">Titre</span></button>
+          <button type="button" class="tb-btn" onclick="scopeFormat('bullet')" data-i18n-title="scope_fmt_bullet" title="Liste à puces"><span class="material-icons-round">format_list_bulleted</span><span data-i18n="scope_fmt_bullet_label">Liste</span></button>
+        </div>
         <textarea id="f-scope" class="form-textarea" rows="9" style="min-height:180px;" data-i18n-placeholder="scope_placeholder" placeholder="Collez ici le texte du scope, le courriel client, le contenu du PDF, etc."
           oninput="renderAnalyzeButton()"></textarea>
+        <div class="form-helper" data-i18n="scope_fmt_hint">Mise en forme : <b>**gras**</b> · <b>## Titre</b> · <b>- puce</b></div>
         <div id="pdf-status" class="form-helper" style="display:none;"></div>
       </div>
       <button id="btn-analyze" class="btn btn-primary btn-analyze" onclick="runAnalysis()" style="display:none;">
@@ -306,11 +312,11 @@
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
 </script>
-<script src="js/config.js?v=36"></script>
-<script src="js/supabase-client.js?v=36"></script>
-<script src="js/signature-pad.js?v=36"></script>
-<script src="js/openai.js?v=36"></script>
-<script src="js/app.js?v=36"></script>
-<script src="js/pwa.js?v=36"></script>
+<script src="js/config.js?v=37"></script>
+<script src="js/supabase-client.js?v=37"></script>
+<script src="js/signature-pad.js?v=37"></script>
+<script src="js/openai.js?v=37"></script>
+<script src="js/app.js?v=37"></script>
+<script src="js/pwa.js?v=37"></script>
 </body>
 </html>

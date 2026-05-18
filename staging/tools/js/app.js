@@ -38,6 +38,12 @@ const I18N = {
   src_sub:   { fr: 'Collez le scope ou téléversez un PDF. Le texte est utilisé tel quel dans la soumission.', en: 'Paste the scope or upload a PDF. The text is used verbatim in the quote.' },
   scope_label: { fr: 'Portée des travaux', en: 'Scope of work' },
   scope_placeholder: { fr: 'Collez ici le texte du scope, le courriel client, le contenu du PDF, etc. Tout le texte sera utilisé tel quel.', en: 'Paste the scope text, client email, PDF contents, etc. All text is used verbatim.' },
+  scope_fmt_bold:     { fr: 'Gras (sélection)',  en: 'Bold (selection)' },
+  scope_fmt_subtitle: { fr: 'Titre',             en: 'Heading' },
+  scope_fmt_bullet:   { fr: 'Liste à puces',     en: 'Bullet list' },
+  scope_fmt_subtitle_label: { fr: 'Titre',       en: 'Heading' },
+  scope_fmt_bullet_label:   { fr: 'Liste',       en: 'List' },
+  scope_fmt_hint:     { fr: 'Mise en forme : <b>**gras**</b> · <b>## Titre</b> · <b>- puce</b>', en: 'Formatting: <b>**bold**</b> · <b>## Heading</b> · <b>- bullet</b>' },
   upload_pdf: { fr: 'Téléverser un PDF', en: 'Upload a PDF' },
   pdf_extracting: { fr: 'Extraction du PDF…', en: 'Extracting PDF…' },
   pdf_extracted: { fr: 'PDF importé', en: 'PDF imported' },
@@ -287,11 +293,18 @@ function setLang(l) {
 function applyI18N() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (I18N[key] && I18N[key][lang]) el.textContent = I18N[key][lang];
+    const val = I18N[key] && I18N[key][lang];
+    if (!val) return;
+    if (val.indexOf('<') !== -1) el.innerHTML = val;
+    else el.textContent = val;
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     const key = el.getAttribute('data-i18n-placeholder');
     if (I18N[key] && I18N[key][lang]) el.setAttribute('placeholder', I18N[key][lang]);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    if (I18N[key] && I18N[key][lang]) el.setAttribute('title', I18N[key][lang]);
   });
 }
 
@@ -1137,7 +1150,7 @@ function renderFinalQuote() {
   h += `<div class="qp-option-total">$${money(total)}</div>`;
   h += '</div>';
   if (quoteState.scope_summary) {
-    h += `<div style="font-size:13px;color:#3c4043;white-space:pre-wrap;margin-bottom:10px;">${esc(quoteState.scope_summary)}</div>`;
+    h += `<div class="qp-scope">${renderScopeMarkdown(quoteState.scope_summary)}</div>`;
   }
   h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
   h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${esc(durationLabel(quoteState.duration_value, quoteState.duration_unit, fr))} · `;
@@ -1276,6 +1289,77 @@ async function sendDraftEmail() {
    ============================================ */
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* Tiny Markdown renderer for scope_summary.
+   Whitelist: headings (#, ##, ###), bullets (- / *), bold (**...**).
+   Escapes HTML first, then applies inline + block transforms.
+   Mirrored in sign.html (inline) and supabase/functions/send-quote/index.ts. */
+function renderScopeMarkdown(text) {
+  if (!text) return '';
+  const escaped = String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => s.replace(/\*\*([^\n*]+?)\*\*/g, '<strong>$1</strong>');
+  const lines = escaped.split('\n');
+  let out = '';
+  let inList = false;
+  const closeList = () => { if (inList) { out += '</ul>'; inList = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/,'');
+    if (!line.trim()) { closeList(); out += '<div class="scope-break"></div>'; continue; }
+    let m;
+    if ((m = line.match(/^(#{1,6})\s+(.+)$/))) {
+      closeList();
+      const lvl = m[1].length;
+      const tag = lvl === 1 ? 'h3' : (lvl === 2 ? 'h4' : 'h5');
+      out += `<${tag}>${inline(m[2])}</${tag}>`;
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*]\s+(.+)$/))) {
+      if (!inList) { out += '<ul>'; inList = true; }
+      out += `<li>${inline(m[1])}</li>`;
+      continue;
+    }
+    closeList();
+    out += `<div class="scope-line">${inline(line)}</div>`;
+  }
+  closeList();
+  return out;
+}
+
+/* Scope textarea formatting toolbar.
+   bold     → wraps the current selection in **...**
+   subtitle → adds "## " to the start of each selected line (or current line)
+   bullet   → adds "- " to the start of each selected line (or current line) */
+function scopeFormat(kind) {
+  const ta = document.getElementById('f-scope');
+  if (!ta) return;
+  ta.focus();
+  const value = ta.value;
+  const selStart = ta.selectionStart;
+  const selEnd   = ta.selectionEnd;
+
+  if (kind === 'bold') {
+    const sel = value.slice(selStart, selEnd) || (lang === 'fr' ? 'texte' : 'text');
+    const replacement = `**${sel}**`;
+    ta.value = value.slice(0, selStart) + replacement + value.slice(selEnd);
+    const caret = selStart + 2;
+    ta.setSelectionRange(caret, caret + sel.length);
+  } else {
+    const prefix = kind === 'subtitle' ? '## ' : '- ';
+    const lineStart = value.lastIndexOf('\n', selStart - 1) + 1;
+    const lineEnd = (() => { const n = value.indexOf('\n', selEnd); return n === -1 ? value.length : n; })();
+    const block = value.slice(lineStart, lineEnd);
+    const transformed = block.split('\n').map(l => {
+      if (!l.trim()) return l;
+      const stripped = l.replace(/^\s*(?:#{1,6}\s+|[-*]\s+)/, '');
+      return prefix + stripped;
+    }).join('\n');
+    ta.value = value.slice(0, lineStart) + transformed + value.slice(lineEnd);
+    const newEnd = lineStart + transformed.length;
+    ta.setSelectionRange(lineStart, newEnd);
+  }
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+  saveDraft();
+}
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function round2(n) { return Math.round(n * 100) / 100; }
 function formatDate(dateStr) {

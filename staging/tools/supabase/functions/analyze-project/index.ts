@@ -41,11 +41,22 @@ Schema:
 }
 
 ★★★ ABSOLUTE RULE — scope_summary IS VERBATIM ★★★
-"scope_summary" must contain the scope/work-description text from the document copied EXACTLY as written. Do NOT paraphrase, summarize, condense, restructure, re-bullet, translate, "clean up", or fix typos. Preserve paragraph breaks (use \\n), bullets, numbering, capitalization, punctuation, accents, spacing.
+"scope_summary" must contain the scope/work-description text from the document copied EXACTLY as written. Do NOT paraphrase, summarize, condense, shorten, abbreviate, restructure, translate, "clean up", or fix typos. Preserve paragraph breaks (use \\n), capitalization, punctuation, accents, spacing.
 
-When the document is a PDF rendered as images: read the layout. Tables become aligned columns in the text output. Bulleted lists keep their bullet markers. Headings stay on their own lines. The contractor must recognize their own words byte-for-byte. The ONLY thing you do with the scope text is copy it.
+EVERY WORD of every scope line must appear in the output. If a line lists "Démolition complète de la cuisine existante, incluant comptoirs, armoires et électroménagers", you write all of that — never just "Démolition cuisine". Length is not a problem; missing detail is. Long scopes are fine: include them all.
 
-Do NOT include header/footer boilerplate (company name, RBQ number, page numbers, "SOUMISSION" header) in scope_summary — that's quote chrome, not scope. Include only the actual description of the work the contractor will perform.
+When the document is a PDF rendered as images: read the layout. Tables become aligned columns in the text output. The contractor must recognize their own words byte-for-byte.
+
+Do NOT include header/footer boilerplate (company name, RBQ number, page numbers, "SOUMISSION" header, contractor address) in scope_summary — that's quote chrome, not scope. Include only the actual description of the work the contractor will perform.
+
+★★★ LIGHT MARKDOWN FORMATTING — STRUCTURE ONLY, NEVER REWRITE ★★★
+The renderer treats scope_summary as Markdown. Annotate the document's EXISTING structure — do not invent any:
+- A heading/section title in the source (e.g. "CUISINE", "Salle de bain principale", "Phase 1 — Démolition") → prefix that line with "## " (two hashes + space). Keep the heading text verbatim.
+- A sub-heading/sub-section under a heading → prefix with "### " (three hashes + space).
+- A line that is clearly a bulleted item in the source (•, –, -, *, "1.", "a)", "▪", etc.) → replace the source marker with "- " (dash + space). Keep the item text verbatim.
+- Normal sentences/paragraphs that are NOT headings or list items → leave them as plain lines, no prefix.
+
+Do NOT bold anything, do NOT add "- " in front of regular sentences, do NOT promote a paragraph to a heading. If the source has zero visible structure (just flowing paragraphs), output it as plain text — no markers added.
 
 OTHER FIELDS — EXTRACT EXPLICITLY OR LEAVE BLANK
 For client_name, client_email, client_phone, client_address, project_title, base_price, duration_weeks, materials_included:
@@ -155,7 +166,7 @@ Deno.serve(async (req) => {
         return jsonResp({ error: "Invalid image data URL." }, 400);
       }
     }
-    userParts.push({ type: "text", text: "\n\nReturn ONLY the JSON object now — start with `{` and end with `}`, no prose, no markdown fences. Remember: scope_summary is verbatim, other missing fields stay blank." });
+    userParts.push({ type: "text", text: "\n\nReturn ONLY the JSON object now — start with `{` and end with `}`, no prose, no markdown fences. Remember: scope_summary is verbatim (every word kept, nothing dropped or shortened) with `## heading` / `### sub-heading` / `- bullet` markers added only where the source already had that structure. Other missing fields stay blank." });
 
     const claudeBody = {
       model: CLAUDE_MODEL,
@@ -163,7 +174,7 @@ Deno.serve(async (req) => {
       messages: [
         { role: "user", content: userParts },
       ],
-      max_tokens: 4000,
+      max_tokens: 8000,
     };
 
     const controller = new AbortController();

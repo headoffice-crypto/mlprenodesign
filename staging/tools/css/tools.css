@@ -144,6 +144,35 @@ body {
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-helper { font-size: 12px; color: var(--text-hint); margin-top: 6px; line-height: 1.5; }
 
+/* Scope formatting toolbar (above #f-scope) */
+.scope-toolbar {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.scope-toolbar .tb-btn {
+  background: var(--surface-dim);
+  border: 1px solid var(--outline-light);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 6px 10px; border-radius: 6px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.scope-toolbar .tb-btn:hover { background: var(--accent-light); border-color: var(--accent); }
+.scope-toolbar .tb-btn .material-icons-round { font-size: 16px; }
+.scope-toolbar .tb-btn b { font-weight: 800; }
+
+/* Rendered scope (Markdown: ## / ### / **bold** / - bullet) */
+.qp-scope { font-size: 13px; color: #3c4043; line-height: 1.6; margin-bottom: 10px; }
+.qp-scope > :first-child { margin-top: 0; }
+.qp-scope h3 { font-size: 15px; font-weight: 700; color: #202124; margin: 12px 0 4px; }
+.qp-scope h4 { font-size: 13px; font-weight: 600; color: #202124; margin: 10px 0 4px; text-transform: none; letter-spacing: 0; border: none; padding: 0; }
+.qp-scope h5 { font-size: 13px; font-weight: 600; color: #5f6368; margin: 8px 0 2px; }
+.qp-scope ul { margin: 4px 0 8px; padding-left: 20px; }
+.qp-scope ul li { margin: 2px 0; }
+.qp-scope strong { font-weight: 700; color: #202124; }
+.qp-scope .scope-line { margin: 2px 0; }
+.qp-scope .scope-break { height: 6px; }
+
 .chip-group { display: flex; gap: 8px; }
 .chip {
   flex: 1; padding: 12px 14px;

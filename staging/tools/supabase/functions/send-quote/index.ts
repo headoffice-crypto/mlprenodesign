@@ -28,6 +28,41 @@ function money(n) {
   return Number(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/* Mirror of renderScopeMarkdown() in js/app.js and sign.html.
+   Email clients strip <style>, so styles are inlined per tag. */
+function renderScopeMarkdown(text) {
+  if (!text) return "";
+  const escaped = escHtml(text);
+  const inline = (s) => s.replace(/\*\*([^\n*]+?)\*\*/g, '<strong style="color:#202124;font-weight:700;">$1</strong>');
+  const lines = escaped.split("\n");
+  let out = "";
+  let inList = false;
+  const closeList = () => { if (inList) { out += "</ul>"; inList = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, "");
+    if (!line.trim()) { closeList(); out += '<div style="height:4px;"></div>'; continue; }
+    let m;
+    if ((m = line.match(/^(#{1,6})\s+(.+)$/))) {
+      closeList();
+      const lvl = m[1].length;
+      const style = lvl === 1
+        ? 'font-size:15px;font-weight:700;color:#202124;margin:10px 0 4px;'
+        : 'font-size:13px;font-weight:600;color:#202124;margin:8px 0 4px;';
+      out += `<div style="${style}">${inline(m[2])}</div>`;
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*]\s+(.+)$/))) {
+      if (!inList) { out += '<ul style="margin:4px 0 6px;padding-left:20px;">'; inList = true; }
+      out += `<li style="margin:2px 0;">${inline(m[1])}</li>`;
+      continue;
+    }
+    closeList();
+    out += `<div style="margin:2px 0;">${inline(line)}</div>`;
+  }
+  closeList();
+  return out;
+}
+
 async function sbGet(url, key) {
   const r = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
   if (!r.ok) throw new Error(`Supabase fetch ${r.status}`);
@@ -69,7 +104,7 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
             <strong style="color:#c8a45a;text-transform:uppercase;letter-spacing:0.4px;">${escHtml(o.title || o.key)}</strong>
             <strong style="color:#202124;font-size:16px;">$${money(o.total)}</strong>
           </div>
-          ${o.scope_summary ? `<div style="color:#5f6368;font-size:13px;margin-top:6px;line-height:1.5;">${escHtml(o.scope_summary)}</div>` : ""}
+          ${o.scope_summary ? `<div style="color:#5f6368;font-size:13px;margin-top:6px;line-height:1.5;">${renderScopeMarkdown(o.scope_summary)}</div>` : ""}
         </div>`;
     });
     optionsBlock += "</div>";

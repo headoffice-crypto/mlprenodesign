@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=27">
+  <link rel="stylesheet" href="css/tools.css?v=37">
   <style>
     body { padding-bottom: 40px; }
     .container { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
@@ -48,7 +48,13 @@
       text-transform: uppercase; letter-spacing: 0.4px;
     }
     .option-choose-total { font-size: 18px; font-weight: 800; color: var(--text-primary); }
-    .option-choose-scope { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; white-space: pre-wrap; }
+    .option-choose-scope { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
+    .option-choose-scope > :first-child { margin-top: 0; }
+    .option-choose-scope h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 10px 0 4px; }
+    .option-choose-scope h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 8px 0 4px; }
+    .option-choose-scope ul { margin: 4px 0 6px; padding-left: 18px; }
+    .option-choose-scope strong { color: var(--text-primary); }
+    .option-choose-scope .scope-break { height: 4px; }
     .option-choose-meta { font-size: 12px; color: var(--text-hint); }
     .sign-block {
       background: #fff;
@@ -189,7 +195,7 @@ function renderPage() {
     h += `<div class="qp-option-title">${optTitle}${accBadge}</div>`;
     h += `<div class="qp-option-total">$${money(opt.total)}</div>`;
     h += '</div>';
-    if (opt.scope_summary) h += `<div style="font-size:13px;color:#3c4043;white-space:pre-line;margin-bottom:10px;">${esc(opt.scope_summary)}</div>`;
+    if (opt.scope_summary) h += `<div class="qp-scope">${renderScopeMarkdown(opt.scope_summary)}</div>`;
     h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
     h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${formatDurationForOption(opt, fr)} · `;
     h += `${opt.materials_included ? `<span class="qp-badge included">${fr ? 'Matériaux inclus' : 'Materials included'}</span>` : `<span class="qp-badge excluded">${fr ? 'Matériaux exclus' : 'Materials excluded'}</span>`}`;
@@ -277,7 +283,7 @@ function renderSignBlock(q, fr, options, multi) {
       h += `<div class="option-choose-title">Option ${esc(opt.key)}</div>`;
       h += `<div class="option-choose-total">$${money(opt.total)}</div>`;
       h += '</div>';
-      if (opt.scope_summary) h += `<div class="option-choose-scope">${esc(opt.scope_summary)}</div>`;
+      if (opt.scope_summary) h += `<div class="option-choose-scope">${renderScopeMarkdown(opt.scope_summary)}</div>`;
       h += `<div class="option-choose-meta">${formatDurationForOption(opt, fr)} · ${opt.materials_included ? (fr ? 'Matériaux inclus' : 'Materials included') : (fr ? 'Matériaux exclus' : 'Materials excluded')}</div>`;
       h += '</div>';
     });
@@ -406,6 +412,39 @@ function setupSigning(quote, fr, multi) {
 /* utils */
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+/* Mirror of renderScopeMarkdown() in js/app.js — sign.html is a separate
+   bundle so the helper is duplicated. Keep the two in sync. */
+function renderScopeMarkdown(text) {
+  if (!text) return '';
+  const escaped = String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline = s => s.replace(/\*\*([^\n*]+?)\*\*/g, '<strong>$1</strong>');
+  const lines = escaped.split('\n');
+  let out = '';
+  let inList = false;
+  const closeList = () => { if (inList) { out += '</ul>'; inList = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/,'');
+    if (!line.trim()) { closeList(); out += '<div class="scope-break"></div>'; continue; }
+    let m;
+    if ((m = line.match(/^(#{1,6})\s+(.+)$/))) {
+      closeList();
+      const lvl = m[1].length;
+      const tag = lvl === 1 ? 'h3' : (lvl === 2 ? 'h4' : 'h5');
+      out += `<${tag}>${inline(m[2])}</${tag}>`;
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*]\s+(.+)$/))) {
+      if (!inList) { out += '<ul>'; inList = true; }
+      out += `<li>${inline(m[1])}</li>`;
+      continue;
+    }
+    closeList();
+    out += `<div class="scope-line">${inline(line)}</div>`;
+  }
+  closeList();
+  return out;
+}
 function formatDurationForOption(opt, fr) {
   const unit = opt && opt.duration_unit;
   const value = opt && (opt.duration_value || (unit === 'days' ? null : opt.duration_weeks));
