@@ -403,6 +403,10 @@ Deno.serve(async (req) => {
         html: buildProgressEmailHtml(proj, quote, lang),
       };
       if (REPLY_TO) payload.reply_to = REPLY_TO;
+      // BCC the contractor on every customer-facing email so they always have
+      // a copy of what the customer received. Configurable via EMAIL_BCC.
+      const BCC = (Deno.env.get("EMAIL_BCC") ?? "renodesign@mlpexperience.com").trim();
+      if (BCC) payload.bcc = [BCC];
 
       const rRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -500,6 +504,10 @@ Deno.serve(async (req) => {
         html: buildInvoiceEmailHtml(inv, quote, allInv, lang, billUrl),
       };
       if (REPLY_TO) payload.reply_to = REPLY_TO;
+      // BCC the contractor on every customer-facing email so they always have
+      // a copy of what the customer received. Configurable via EMAIL_BCC.
+      const BCC = (Deno.env.get("EMAIL_BCC") ?? "renodesign@mlpexperience.com").trim();
+      if (BCC) payload.bcc = [BCC];
 
       const rRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
