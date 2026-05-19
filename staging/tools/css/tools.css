@@ -1072,6 +1072,28 @@ body {
 .schedule-total.ok  { background: var(--green-light); color: var(--green); }
 .schedule-total.bad { background: #fce8e6; color: var(--red); }
 
+/* ---------------- Promotions (informational line items) ---------------- */
+.promo-card {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: var(--surface);
+  border: 1.5px solid var(--outline-light);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.promo-card .promo-text {
+  flex: 1; min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  resize: vertical;
+}
+.promo-remove {
+  background: none; border: none; padding: 4px;
+  color: var(--text-hint); cursor: pointer; border-radius: 6px;
+  display: flex; align-items: center; flex-shrink: 0;
+}
+.promo-remove:hover { background: var(--red-light); color: var(--red); }
+
 /* ---------------- Step 2 — Upload zone & file list ---------------- */
 .upload-zone { display: block; }
 .upload-hint {

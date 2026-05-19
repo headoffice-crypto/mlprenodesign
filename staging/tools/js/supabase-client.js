@@ -357,10 +357,11 @@ async function getOrGenerateInvoicesForProject(project, quote) {
   const rand4 = () => Math.random().toString(36).slice(2, 6).toUpperCase();
   const y = new Date().getFullYear();
 
+  const apply = accepted.apply_taxes !== false;
   const rows = schedule.map((s, idx) => {
     const amtBefore = Math.round(base * s.pct) / 100;
-    const gst = Math.round(amtBefore * 0.05 * 100) / 100;
-    const qst = Math.round(amtBefore * 0.09975 * 100) / 100;
+    const gst = apply ? Math.round(amtBefore * 0.05 * 100) / 100 : 0;
+    const qst = apply ? Math.round(amtBefore * 0.09975 * 100) / 100 : 0;
     const total = Math.round((amtBefore + gst + qst) * 100) / 100;
     return {
       project_id: project.id,

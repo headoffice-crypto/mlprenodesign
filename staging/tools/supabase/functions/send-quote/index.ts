@@ -98,6 +98,15 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
   if (options.length) {
     optionsBlock = '<div style="margin:20px 0;">';
     options.forEach((o) => {
+      const promos = Array.isArray(o.promotions)
+        ? o.promotions.filter((p) => p && p.text && String(p.text).trim())
+        : [];
+      const promoBlock = promos.length
+        ? `<div style="margin-top:10px;padding:10px 12px;background:#fffaf0;border:1px solid #ecd9a9;border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#a68a3e;margin-bottom:6px;">${fr ? "Promotions" : "Promotions"}</div>
+            <ul style="margin:0;padding-left:18px;color:#5f6368;font-size:13px;line-height:1.5;">${promos.map((p) => `<li style="margin:2px 0;">${escHtml(p.text)}</li>`).join("")}</ul>
+          </div>`
+        : "";
       optionsBlock += `
         <div style="border:1px solid #e8eaed;border-radius:10px;padding:14px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
@@ -105,6 +114,7 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
             <strong style="color:#202124;font-size:16px;">$${money(o.total)}</strong>
           </div>
           ${o.scope_summary ? `<div style="color:#5f6368;font-size:13px;margin-top:6px;line-height:1.5;">${renderScopeMarkdown(o.scope_summary)}</div>` : ""}
+          ${promoBlock}
         </div>`;
     });
     optionsBlock += "</div>";

@@ -15,7 +15,9 @@ let quoteState = {
   duration_unit: 'weeks',        // 'weeks' | 'days'
   duration_weeks: 2,             // canonical value in weeks (kept for backwards compat with sign.html / invoices)
   materials_included: true,
-  base_price: 0
+  base_price: 0,
+  apply_taxes: true,             // when false, TPS/TVQ are 0 and total = subtotal
+  promotions: []                 // [{ text }] — informational only, no price impact
 };
 
 let selectedPaymentOption = 'A';
@@ -84,10 +86,19 @@ const I18N = {
   schedule_default_title: { fr: 'Nouvel échéancier', en: 'New schedule' },
   schedule_invalid_save: { fr: 'L\'échéancier sélectionné doit totaliser 100 % avant la génération.', en: 'The selected schedule must total 100% before generating.' },
   materials_label: { fr: 'Matériaux inclus ?', en: 'Materials included?' },
+  taxes_label: { fr: 'Taxes applicables ?', en: 'Taxes applicable?' },
   yes: { fr: 'Oui', en: 'Yes' },
   no:  { fr: 'Non', en: 'No' },
   subtotal: { fr: 'Sous-total', en: 'Subtotal' },
   total_with_tax: { fr: 'Total avec taxes', en: 'Total with taxes' },
+  total_no_tax: { fr: 'Total (taxes non applicables)', en: 'Total (no taxes)' },
+
+  promo_title: { fr: 'Promotions', en: 'Promotions' },
+  promo_sub:   { fr: 'Mentions promotionnelles visibles par le client. N\'affecte pas le prix.', en: 'Promotional notes shown to the client. Does not affect the price.' },
+  promo_placeholder: { fr: 'Ex. Rabais fidélité : 5 % à appliquer sur votre prochain projet (valide jusqu\'au 31 décembre 2026).', en: 'e.g. Loyalty offer: 5% off your next project (valid through Dec 31, 2026).' },
+  promo_remove: { fr: 'Supprimer cette promotion', en: 'Remove this promotion' },
+  add_promo: { fr: 'Ajouter une promotion', en: 'Add a promotion' },
+  promo_section_heading: { fr: 'Promotions', en: 'Promotions' },
 
   terms_title: { fr: 'Modalités de paiement', en: 'Payment terms' },
   terms_sub:   { fr: 'Échéancier des paiements.', en: 'Payment schedule.' },
@@ -221,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('f-payment-methods').value = PAYMENT_METHODS[lang];
   document.getElementById('f-notes').value = DEFAULT_NOTES[lang];
   buildPaymentOptionsUI();
+  buildPromotionsUI();
   initContractorSignaturePad();
 
   const params = new URLSearchParams(location.search);
@@ -286,6 +298,7 @@ function setLang(l) {
   applyI18N();
   refreshSendButtonForState();
   buildPaymentOptionsUI();
+  buildPromotionsUI();
   renderTaxPreview();
   if (savedQuote) renderFinalQuote();
 }
@@ -493,6 +506,14 @@ function setMaterials(included) {
   saveDraft();
 }
 
+function setApplyTaxes(apply) {
+  quoteState.apply_taxes = !!apply;
+  document.getElementById('chip-tax-yes').className = 'chip' + (apply ? ' active' : '');
+  document.getElementById('chip-tax-no').className  = 'chip' + (apply ? '' : ' active');
+  renderTaxPreview();
+  saveDraft();
+}
+
 function readFormIntoState() {
   quoteState.project_title  = val('f-project-title');
   quoteState.scope_summary  = document.getElementById('f-scope').value; // verbatim — no .trim()
@@ -514,22 +535,26 @@ function durationLabel(value, unit, fr) {
 function renderTaxPreview() {
   readFormIntoState();
   const sub = quoteState.base_price;
-  const gst = round2(sub * 0.05);
-  const qst = round2(sub * 0.09975);
+  const apply = quoteState.apply_taxes !== false;
+  const gst = apply ? round2(sub * 0.05) : 0;
+  const qst = apply ? round2(sub * 0.09975) : 0;
   const total = round2(sub + gst + qst);
-  document.getElementById('tax-preview').innerHTML = `
-    <div class="tax-row"><span>${esc(t('subtotal'))}</span><span>$${money(sub)}</span></div>
-    <div class="tax-row"><span>TPS 5%</span><span>$${money(gst)}</span></div>
-    <div class="tax-row"><span>TVQ 9.975%</span><span>$${money(qst)}</span></div>
-    <div class="tax-row total"><span>${esc(t('total_with_tax'))}</span><span>$${money(total)}</span></div>
-  `;
+  const totalLabel = apply ? t('total_with_tax') : t('total_no_tax');
+  let h = `<div class="tax-row"><span>${esc(t('subtotal'))}</span><span>$${money(sub)}</span></div>`;
+  if (apply) {
+    h += `<div class="tax-row"><span>TPS 5%</span><span>$${money(gst)}</span></div>`;
+    h += `<div class="tax-row"><span>TVQ 9.975%</span><span>$${money(qst)}</span></div>`;
+  }
+  h += `<div class="tax-row total"><span>${esc(totalLabel)}</span><span>$${money(total)}</span></div>`;
+  document.getElementById('tax-preview').innerHTML = h;
 }
 
 /* Build a single-option array for storage (compatible with sign.html / quotes.html) */
 function buildOptionsArray() {
   const sub = quoteState.base_price;
-  const gst = round2(sub * 0.05);
-  const qst = round2(sub * 0.09975);
+  const apply = quoteState.apply_taxes !== false;
+  const gst = apply ? round2(sub * 0.05) : 0;
+  const qst = apply ? round2(sub * 0.09975) : 0;
   return [{
     key: 'A',
     title: 'Option A',
@@ -541,6 +566,8 @@ function buildOptionsArray() {
     materials_budget: 0,
     price_mode: 'single',
     base_price: sub,
+    apply_taxes: apply,
+    promotions: Array.isArray(quoteState.promotions) ? quoteState.promotions.filter(p => p && p.text && p.text.trim()) : [],
     line_items: [],
     subtotal: sub,
     gst,
@@ -713,6 +740,53 @@ function removeSchedule(key) {
 }
 
 /* ============================================
+   PROMOTIONS — informational line items shown to the client
+   ============================================ */
+function buildPromotionsUI() {
+  const container = document.getElementById('promotions-container');
+  if (!container) return;
+  if (!Array.isArray(quoteState.promotions)) quoteState.promotions = [];
+  if (!quoteState.promotions.length) {
+    container.innerHTML = `<div class="promo-empty" style="font-size:12px;color:var(--text-hint);padding:10px 4px;">${esc(lang === 'fr' ? 'Aucune promotion pour le moment.' : 'No promotions yet.')}</div>`;
+    return;
+  }
+  container.innerHTML = quoteState.promotions.map((p, idx) => renderPromoCard(p, idx)).join('');
+}
+
+function renderPromoCard(promo, idx) {
+  const text = promo && typeof promo.text === 'string' ? promo.text : '';
+  return `<div class="promo-card" data-idx="${idx}">
+    <textarea class="form-textarea promo-text" rows="2" placeholder="${esc(t('promo_placeholder'))}" oninput="onPromoTextInput(${idx}, this.value)">${esc(text)}</textarea>
+    <button type="button" class="promo-remove" onclick="removePromotion(${idx})" title="${esc(t('promo_remove'))}">
+      <span class="material-icons-round" style="font-size:18px;">close</span>
+    </button>
+  </div>`;
+}
+
+function onPromoTextInput(idx, value) {
+  if (!Array.isArray(quoteState.promotions) || !quoteState.promotions[idx]) return;
+  quoteState.promotions[idx].text = value;
+  saveDraft();
+}
+
+function addPromotion() {
+  if (!Array.isArray(quoteState.promotions)) quoteState.promotions = [];
+  quoteState.promotions.push({ text: '' });
+  buildPromotionsUI();
+  // Focus the newly added textarea so the contractor can type right away.
+  const cards = document.querySelectorAll('#promotions-container .promo-card .promo-text');
+  if (cards.length) cards[cards.length - 1].focus();
+  saveDraft();
+}
+
+function removePromotion(idx) {
+  if (!Array.isArray(quoteState.promotions) || !quoteState.promotions[idx]) return;
+  quoteState.promotions.splice(idx, 1);
+  buildPromotionsUI();
+  saveDraft();
+}
+
+/* ============================================
    SIGNATURE PAD
    ============================================ */
 function initContractorSignaturePad() {
@@ -859,6 +933,13 @@ async function loadDraftById(id) {
     document.getElementById('f-duration').value      = savedValue;
     document.getElementById('f-duration-unit').value = savedUnit;
     setMaterials(opt ? !!opt.materials_included : true);
+    // apply_taxes is opt-in: default true for legacy quotes that don't carry the flag.
+    setApplyTaxes(opt && opt.apply_taxes === false ? false : true);
+    // Promotions are informational; restore them so the contractor can edit.
+    quoteState.promotions = Array.isArray(opt?.promotions)
+      ? opt.promotions.map(p => ({ text: (p && typeof p.text === 'string') ? p.text : '' }))
+      : [];
+    buildPromotionsUI();
 
     // Restore the embedded payment schedule if present (so a quote loaded on
     // a different device still shows the exact schedule the customer saw).
@@ -1114,9 +1195,13 @@ function renderFinalQuote() {
   const fr    = lang === 'fr';
   const schedule = findSchedule(selectedPaymentOption);
   const sub   = quoteState.base_price;
-  const gst   = round2(sub * 0.05);
-  const qst   = round2(sub * 0.09975);
+  const apply = quoteState.apply_taxes !== false;
+  const gst   = apply ? round2(sub * 0.05) : 0;
+  const qst   = apply ? round2(sub * 0.09975) : 0;
   const total = round2(sub + gst + qst);
+  const promos = Array.isArray(quoteState.promotions)
+    ? quoteState.promotions.filter(p => p && p.text && p.text.trim())
+    : [];
 
   let h = '<div class="quote-preview">';
   h += '<div class="qp-header"><div>';
@@ -1161,11 +1246,23 @@ function renderFinalQuote() {
 
   h += '<div class="qp-totals">';
   h += `<div class="qp-total-row"><span>${fr ? 'Sous-total' : 'Subtotal'}</span><span>$${money(sub)}</span></div>`;
-  h += `<div class="qp-total-row"><span>TPS 5%</span><span>$${money(gst)}</span></div>`;
-  h += `<div class="qp-total-row"><span>TVQ 9.975%</span><span>$${money(qst)}</span></div>`;
-  h += `<div class="qp-total-row qp-grand-total"><span>${fr ? 'Total avec taxes' : 'Total with taxes'}</span><span>$${money(total)}</span></div>`;
+  if (apply) {
+    h += `<div class="qp-total-row"><span>TPS 5%</span><span>$${money(gst)}</span></div>`;
+    h += `<div class="qp-total-row"><span>TVQ 9.975%</span><span>$${money(qst)}</span></div>`;
+  }
+  const totalLabel = apply
+    ? (fr ? 'Total avec taxes' : 'Total with taxes')
+    : (fr ? 'Total (taxes non applicables)' : 'Total (no taxes)');
+  h += `<div class="qp-total-row qp-grand-total"><span>${totalLabel}</span><span>$${money(total)}</span></div>`;
   h += '</div>';
   h += '</div>';
+
+  if (promos.length) {
+    h += `<h2>${fr ? 'Promotions' : 'Promotions'}</h2>`;
+    h += '<ul class="qp-section qp-promos" style="margin:0;padding-left:20px;">';
+    promos.forEach(p => { h += `<li style="margin-bottom:6px;">${esc(p.text)}</li>`; });
+    h += '</ul>';
+  }
 
   h += `<h2>${fr ? 'Modalités de paiement' : 'Payment Terms'}</h2>`;
   h += `<div class="qp-section">${esc(scheduleDescription(schedule, lang))}</div>`;

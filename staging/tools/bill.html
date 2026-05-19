@@ -376,8 +376,10 @@ function render(inv, q, all) {
     <div class="breakdown">
       <h3 class="sec-h">${T.breakdown}</h3>
       <div class="row"><span class="lbl">${T.subtotal}</span><span class="val">$${money(inv.amount_before_tax)}</span></div>
+      ${(Number(inv.gst) || Number(inv.qst)) ? `
       <div class="row"><span class="lbl">TPS (5%)</span><span class="val">$${money(inv.gst)}</span></div>
       <div class="row"><span class="lbl">TVQ (9.975%)</span><span class="val">$${money(inv.qst)}</span></div>
+      ` : ''}
       <div class="row total"><span class="lbl">${isPaid ? T.amountPaid : T.amountDue}</span><span class="val">$${money(inv.amount_total)}</span></div>
     </div>
 

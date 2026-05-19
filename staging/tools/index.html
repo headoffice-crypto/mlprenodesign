@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=37">
+  <link rel="stylesheet" href="css/tools.css?v=38">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v37</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v38</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -148,11 +148,20 @@
           </div>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label class="form-label" data-i18n="materials_label">Matériaux inclus ?</label>
-        <div class="chip-group">
-          <button class="chip active" id="chip-mat-yes" onclick="setMaterials(true)" data-i18n="yes">Oui</button>
-          <button class="chip" id="chip-mat-no" onclick="setMaterials(false)" data-i18n="no">Non</button>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" data-i18n="materials_label">Matériaux inclus ?</label>
+          <div class="chip-group">
+            <button class="chip active" id="chip-mat-yes" onclick="setMaterials(true)" data-i18n="yes">Oui</button>
+            <button class="chip" id="chip-mat-no" onclick="setMaterials(false)" data-i18n="no">Non</button>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" data-i18n="taxes_label">Taxes applicables ?</label>
+          <div class="chip-group">
+            <button class="chip active" id="chip-tax-yes" onclick="setApplyTaxes(true)" data-i18n="yes">Oui</button>
+            <button class="chip" id="chip-tax-no" onclick="setApplyTaxes(false)" data-i18n="no">Non</button>
+          </div>
         </div>
       </div>
       <div class="tax-preview" id="tax-preview"></div>
@@ -194,6 +203,21 @@
         <textarea class="form-textarea" id="f-notes" rows="5"></textarea>
       </div>
     </div>
+  </section>
+
+  <!-- 5b. PROMOTIONS -->
+  <section class="section">
+    <div class="section-head">
+      <div class="step-icon gold"><span class="material-icons-round">local_offer</span></div>
+      <div>
+        <div class="section-title" data-i18n="promo_title">Promotions</div>
+        <div class="section-sub" data-i18n="promo_sub">Mentions promotionnelles visibles par le client. N'affecte pas le prix.</div>
+      </div>
+    </div>
+    <div id="promotions-container"></div>
+    <button class="btn-add" type="button" onclick="addPromotion()">
+      + <span data-i18n="add_promo">Ajouter une promotion</span>
+    </button>
   </section>
 
   <!-- 6. SIGNATURE -->
@@ -312,11 +336,11 @@
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
 </script>
-<script src="js/config.js?v=37"></script>
-<script src="js/supabase-client.js?v=37"></script>
-<script src="js/signature-pad.js?v=37"></script>
-<script src="js/openai.js?v=37"></script>
-<script src="js/app.js?v=37"></script>
-<script src="js/pwa.js?v=37"></script>
+<script src="js/config.js?v=38"></script>
+<script src="js/supabase-client.js?v=38"></script>
+<script src="js/signature-pad.js?v=38"></script>
+<script src="js/openai.js?v=38"></script>
+<script src="js/app.js?v=38"></script>
+<script src="js/pwa.js?v=38"></script>
 </body>
 </html>

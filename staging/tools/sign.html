@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=37">
+  <link rel="stylesheet" href="css/tools.css?v=38">
   <style>
     body { padding-bottom: 40px; }
     .container { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
@@ -209,14 +209,32 @@ function renderPage() {
       });
       h += '</tbody></table>';
     }
+    const apply = opt.apply_taxes !== false;
     h += '<div class="qp-totals">';
     h += `<div class="qp-total-row"><span>${fr ? 'Sous-total' : 'Subtotal'}</span><span>$${money(opt.subtotal)}</span></div>`;
-    h += `<div class="qp-total-row"><span>TPS 5%</span><span>$${money(opt.gst)}</span></div>`;
-    h += `<div class="qp-total-row"><span>TVQ 9.975%</span><span>$${money(opt.qst)}</span></div>`;
-    h += `<div class="qp-total-row qp-grand-total"><span>${fr ? 'Total avec taxes' : 'Total with taxes'}</span><span>$${money(opt.total)}</span></div>`;
+    if (apply) {
+      h += `<div class="qp-total-row"><span>TPS 5%</span><span>$${money(opt.gst)}</span></div>`;
+      h += `<div class="qp-total-row"><span>TVQ 9.975%</span><span>$${money(opt.qst)}</span></div>`;
+    }
+    const totalLabel = apply
+      ? (fr ? 'Total avec taxes' : 'Total with taxes')
+      : (fr ? 'Total (taxes non applicables)' : 'Total (no taxes)');
+    h += `<div class="qp-total-row qp-grand-total"><span>${totalLabel}</span><span>$${money(opt.total)}</span></div>`;
     h += '</div>';
     h += '</div>';
   });
+
+  // Promotions — informational, drawn from the accepted/first option that carries them.
+  const promoSource = options.find(o => Array.isArray(o.promotions) && o.promotions.length) || options[0];
+  const promos = (promoSource && Array.isArray(promoSource.promotions))
+    ? promoSource.promotions.filter(p => p && p.text && String(p.text).trim())
+    : [];
+  if (promos.length) {
+    h += `<h2>${fr ? 'Promotions' : 'Promotions'}</h2>`;
+    h += '<ul class="qp-section" style="margin:0;padding-left:20px;">';
+    promos.forEach(p => { h += `<li style="margin-bottom:6px;">${esc(p.text)}</li>`; });
+    h += '</ul>';
+  }
 
   const embedded = q.ai_conversation && q.ai_conversation.payment_schedule;
   let payText;
