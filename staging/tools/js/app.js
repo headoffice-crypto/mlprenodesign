@@ -91,7 +91,7 @@ const I18N = {
   no:  { fr: 'Non', en: 'No' },
   subtotal: { fr: 'Sous-total', en: 'Subtotal' },
   total_with_tax: { fr: 'Total avec taxes', en: 'Total with taxes' },
-  total_no_tax: { fr: 'Total (taxes non applicables)', en: 'Total (no taxes)' },
+  total_no_tax: { fr: 'Total avant taxes', en: 'Pre-tax total' },
 
   promo_title: { fr: 'Promotions', en: 'Promotions' },
   promo_sub:   { fr: 'Mentions promotionnelles visibles par le client. N\'affecte pas le prix.', en: 'Promotional notes shown to the client. Does not affect the price.' },
@@ -1252,7 +1252,7 @@ function renderFinalQuote() {
   }
   const totalLabel = apply
     ? (fr ? 'Total avec taxes' : 'Total with taxes')
-    : (fr ? 'Total (taxes non applicables)' : 'Total (no taxes)');
+    : (fr ? 'Total avant taxes' : 'Pre-tax total');
   h += `<div class="qp-total-row qp-grand-total"><span>${totalLabel}</span><span>$${money(total)}</span></div>`;
   h += '</div>';
   h += '</div>';

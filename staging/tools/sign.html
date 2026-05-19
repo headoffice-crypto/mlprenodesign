@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=38">
+  <link rel="stylesheet" href="css/tools.css?v=39">
   <style>
     body { padding-bottom: 40px; }
     .container { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
@@ -218,7 +218,7 @@ function renderPage() {
     }
     const totalLabel = apply
       ? (fr ? 'Total avec taxes' : 'Total with taxes')
-      : (fr ? 'Total (taxes non applicables)' : 'Total (no taxes)');
+      : (fr ? 'Total avant taxes' : 'Pre-tax total');
     h += `<div class="qp-total-row qp-grand-total"><span>${totalLabel}</span><span>$${money(opt.total)}</span></div>`;
     h += '</div>';
     h += '</div>';
