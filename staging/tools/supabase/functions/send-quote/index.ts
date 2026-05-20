@@ -63,6 +63,44 @@ function renderScopeMarkdown(text) {
   return out;
 }
 
+/* ===== Internal-copy send =====
+   Customer-facing emails are mirrored to an internal inbox so the contractor
+   always has a copy of what the client received. Sent as a SEPARATE Resend
+   request (not a BCC) so a silent-drop / spam filter on the receiving side
+   can't cost us the audit trail — and so the failure of one doesn't fail the
+   other. Fire-and-forget: never throws, never blocks the main response. */
+async function sendInternalCopy({ html, subject, customerTo, FROM, REPLY_TO, RESEND_KEY }) {
+  const internalTo = (Deno.env.get("EMAIL_INTERNAL_COPY") ?? "renodesign@mlpexperience.com").trim();
+  if (!internalTo) return { skipped: true };
+  if (!RESEND_KEY) return { skipped: true };
+  // Avoid an obvious self-send (if the contractor explicitly addressed the
+  // internal inbox already, no need to duplicate).
+  if (customerTo && customerTo.trim().toLowerCase() === internalTo.toLowerCase()) {
+    return { skipped: true };
+  }
+  const notice = `<div style="background:#fff8e1;border:1px solid #f0c36d;color:#8a6d1a;padding:10px 14px;border-radius:8px;margin:0 0 16px;font-size:12px;font-weight:600;letter-spacing:0.3px;">Copie interne — courriel envoyé à <strong>${escHtml(customerTo || "")}</strong></div>`;
+  // Inject the notice right after the opening <body ...> tag if present,
+  // otherwise just prepend so the recipient sees it at the top.
+  const copyHtml = html && /<body[^>]*>/i.test(html)
+    ? html.replace(/(<body[^>]*>)/i, `$1${notice}`)
+    : (notice + (html || ""));
+  const copySubject = `[Copie interne] ${subject || ""}${customerTo ? ` — ${customerTo}` : ""}`;
+  const copyPayload = { from: FROM, to: [internalTo], subject: copySubject, html: copyHtml };
+  if (REPLY_TO) copyPayload.reply_to = REPLY_TO;
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify(copyPayload),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, status: r.status, error: d.message || d.name || "Resend error" };
+    return { ok: true, id: d.id, to: internalTo };
+  } catch (err) {
+    return { ok: false, error: err?.message ?? String(err) };
+  }
+}
+
 async function sbGet(url, key) {
   const r = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
   if (!r.ok) throw new Error(`Supabase fetch ${r.status}`);
@@ -403,10 +441,6 @@ Deno.serve(async (req) => {
         html: buildProgressEmailHtml(proj, quote, lang),
       };
       if (REPLY_TO) payload.reply_to = REPLY_TO;
-      // BCC the contractor on every customer-facing email so they always have
-      // a copy of what the customer received. Configurable via EMAIL_BCC.
-      const BCC = (Deno.env.get("EMAIL_BCC") ?? "renodesign@mlpexperience.com").trim();
-      if (BCC) payload.bcc = [BCC];
 
       const rRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -416,7 +450,9 @@ Deno.serve(async (req) => {
       const rData = await rRes.json();
       if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
 
-      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, overall });
+      const copy = await sendInternalCopy({ html: payload.html, subject, customerTo: emailTo, FROM, REPLY_TO, RESEND_KEY });
+
+      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, overall, internal_copy: copy });
     }
 
     // ---------- INVOICE PATH ----------
@@ -504,10 +540,6 @@ Deno.serve(async (req) => {
         html: buildInvoiceEmailHtml(inv, quote, allInv, lang, billUrl),
       };
       if (REPLY_TO) payload.reply_to = REPLY_TO;
-      // BCC the contractor on every customer-facing email so they always have
-      // a copy of what the customer received. Configurable via EMAIL_BCC.
-      const BCC = (Deno.env.get("EMAIL_BCC") ?? "renodesign@mlpexperience.com").trim();
-      if (BCC) payload.bcc = [BCC];
 
       const rRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -516,6 +548,8 @@ Deno.serve(async (req) => {
       });
       const rData = await rRes.json();
       if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
+
+      const copy = await sendInternalCopy({ html: payload.html, subject, customerTo: emailTo, FROM, REPLY_TO, RESEND_KEY });
 
       if (!isPaid) {
         await sbPatch(`${SUPABASE_URL}/rest/v1/invoices?id=eq.${encodeURIComponent(inv.id)}`, SUPABASE_KEY, {
@@ -526,7 +560,7 @@ Deno.serve(async (req) => {
           sent_at: new Date().toISOString()
         });
       }
-      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, paid: isPaid });
+      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, paid: isPaid, internal_copy: copy });
     }
 
     // ---------- QUOTE PATH (existing) ----------
@@ -622,9 +656,11 @@ Deno.serve(async (req) => {
     const rData = await rRes.json();
     if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
 
+    const copy = await sendInternalCopy({ html: payload.html, subject, customerTo: emailTo, FROM, REPLY_TO, RESEND_KEY });
+
     await sbInsert(`${SUPABASE_URL}/rest/v1/quote_events`, SUPABASE_KEY, {
       quote_id: quote.id, event_type: isDraft ? "draft_email_sent" : "email_sent",
-      payload: { to: emailTo, resend_id: rData.id, draft: isDraft, revision },
+      payload: { to: emailTo, resend_id: rData.id, draft: isDraft, revision, internal_copy: copy },
     });
     // Update sent_at on the first send AND on every re-send so the contractor
     // sees when the latest revision actually went out.
@@ -634,7 +670,7 @@ Deno.serve(async (req) => {
         status: quote.status === "draft" ? "sent" : quote.status,
       });
     }
-    return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, draft: isDraft });
+    return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, draft: isDraft, internal_copy: copy });
   } catch (err) {
     return jsonResp({ error: err?.message ?? String(err) }, 500);
   }
