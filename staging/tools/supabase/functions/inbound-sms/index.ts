@@ -18,6 +18,15 @@
 
 const CONTRACTOR_PHONE = "+15145736443";
 
+// Quotes default to French. Only switch to English when the contractor
+// explicitly asks (case-insensitive). Matches:
+//   - the word "english" anywhere
+//   - "(EN)" with parens
+//   - a prefix like "EN:" / "en:" at the start of the SMS
+// Loose markers like a bare "en " are intentionally NOT matched — "en" is a
+// common French preposition ("démolition en cuisine") and would false-trigger.
+const ENGLISH_REQUEST = /\benglish\b|\(en\)|^\s*en\s*:/i;
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -165,7 +174,7 @@ Rules:
 - Be lenient. Casual SMS with abbreviations, accents, typos: do your best.
 - If the contractor sends a follow-up message that adds info, merge it into priorExtracted (which the system passes in).
 - "missing_fields" lists the fields you still need to draft a usable quote. ALWAYS include any field that is empty/zero. Required minimum to proceed: client_name, scope_summary, base_price.
-- Language: detect from the SMS; default fr unless the contractor writes English.
+- Language is set by the system, not by you — always return "language": "fr". The system overrides it to "en" only when the contractor explicitly asks for English.
 - scope_summary should preserve the actual work description. The contractor may want light formatting — leave the raw text close to what was sent.
 - project_title: a 2-5 word label. If unclear, guess from scope (e.g. "Cuisine", "Salle de bain", "Rénovation").
 
@@ -412,7 +421,11 @@ async function handleCollecting(s: Session, body: string): Promise<Response> {
   }
   if (!merged.duration_value || Number(merged.duration_value) <= 0) missing.push("duration_value");
 
-  const lang = (merged.language === "en" ? "en" : "fr") as "en" | "fr";
+  // Quotes default to French. Switch to English only on explicit request — and
+  // once switched, stay switched for the rest of this session (sticky).
+  const askedEnglishNow = ENGLISH_REQUEST.test(body);
+  const lang: "en" | "fr" = (s.language === "en" || askedEnglishNow) ? "en" : "fr";
+  merged.language = lang;
 
   if (missing.length) {
     await updateSession(s.id, { extracted: merged, language: lang });
