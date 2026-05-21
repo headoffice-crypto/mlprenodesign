@@ -144,51 +144,98 @@ function generateQuoteNumber() {
 async function extractWithClaude(input: {
   freshText: string;
   priorExtracted: Record<string, unknown>;
+  targetLanguage: "fr" | "en";
 }) {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY missing");
 
-  const system = `You are a quote-extraction assistant for a Quebec residential contractor (MLP Reno & Design).
+  const targetIsFr = input.targetLanguage === "fr";
 
-The contractor texts you in short, casual SMS style — sometimes one message, sometimes multiple — describing a new project: who the customer is, the work, the price, the duration. Your job: extract structured fields.
+  const system = `You are a quote-drafting assistant for a Quebec residential contractor (MLP Reno & Design).
 
-YOU MUST RETURN VALID JSON. No prose, no markdown, no code fences.
+The contractor texts you in short, casual SMS shorthand describing a new project. Your job is to:
+1. Extract structured fields (client info, price, duration).
+2. Transform the rough SMS scope into POLISHED, PROFESSIONAL prose in the target language — fully translated if needed, organized into logical sections with markdown headings, and itemized with bullets. This is what the customer will see on the formal quote, so it must read like a contractor's proposal — never like an SMS.
+
+YOU MUST RETURN VALID JSON. No prose, no markdown fences outside the JSON.
 
 Schema:
 {
   "client_name": "string",
   "client_email": "string",
-  "client_phone": "string",     // any format the contractor wrote
-  "client_address": "string",
-  "project_title": "string",     // short — e.g. "Rénovation cuisine"
-  "scope_summary": "string",     // the actual work, kept close to verbatim, light tidy ok
-  "base_price": number,          // CAD pre-tax, plain number, 0 if not given
-  "duration_value": number,      // integer, 0 if not given
+  "client_phone": "string",     // any format the contractor wrote — do not reformat
+  "client_address": "string",   // street address, in target language only if the wording differs (e.g. "Mtl" → "Montréal")
+  "project_title": "string",    // 2–5 word label IN TARGET LANGUAGE (e.g. "Rénovation cuisine" / "Kitchen renovation")
+  "scope_summary": "string",    // POLISHED + TRANSLATED + STRUCTURED — see SCOPE RULES below
+  "base_price": number,         // CAD pre-tax, plain number, 0 if not given
+  "duration_value": number,     // integer, 0 if not given
   "duration_unit": "weeks" | "days",
-  "materials_included": boolean, // default true; false only if explicitly excluded
-  "language": "fr" | "en",
+  "materials_included": boolean,// default true; false only if explicitly excluded
   "missing_fields": ["client_name" | "client_email" | "client_phone" | "client_address" | "scope_summary" | "base_price" | "duration_value"]
 }
 
-Rules:
-- Be lenient. Casual SMS with abbreviations, accents, typos: do your best.
-- If the contractor sends a follow-up message that adds info, merge it into priorExtracted (which the system passes in).
-- "missing_fields" lists the fields you still need to draft a usable quote. ALWAYS include any field that is empty/zero. Required minimum to proceed: client_name, scope_summary, base_price.
-- Language is set by the system, not by you — always return "language": "fr". The system overrides it to "en" only when the contractor explicitly asks for English.
-- scope_summary should preserve the actual work description. The contractor may want light formatting — leave the raw text close to what was sent.
-- project_title: a 2-5 word label. If unclear, guess from scope (e.g. "Cuisine", "Salle de bain", "Rénovation").
+TARGET LANGUAGE: ${input.targetLanguage} — ${targetIsFr ? "all customer-visible text (project_title, scope_summary, address fixups) MUST be in professional Quebec French" : "all customer-visible text must be in professional English"}.
+
+★★★ SCOPE_SUMMARY — POLISH + TRANSLATE + STRUCTURE ★★★
+
+The customer reads scope_summary. Never paste raw SMS shorthand. Always produce a clean, professional, organized scope in the TARGET LANGUAGE.
+
+Steps:
+
+1. TRANSLATE: if the SMS is in a different language than the target, translate every work item fully. Don't leave English words inside a French scope or vice versa.
+
+2. ORGANIZE INTO SECTIONS: group related items under headings. Each heading line starts with "## " (two hashes + space). Common section names:
+   - Quebec French: "## Démolition", "## Plomberie", "## Électricité", "## Cuisine", "## Salle de bain", "## Plancher", "## Peinture", "## Finition", "## Extérieur", "## Aménagement paysager", etc.
+   - English: "## Demolition", "## Plumbing", "## Electrical", "## Kitchen", "## Bathroom", "## Flooring", "## Painting", "## Finishing", "## Exterior", "## Landscaping", etc.
+
+3. ITEMIZE: under each heading, list each work item as a bullet starting with "- " (dash + space). One concise professional sentence per bullet. No fragments. Use proper Quebec construction terminology (FR: armoires, comptoir, dosseret, ébénisterie, plomberie, électricité, plâtrage, plinthes, moulures, sablage, vernissage, etc.).
+
+4. POLISH: complete sentences, correct spelling, capitalize French/English nouns correctly. Expand abbreviations ("démo" → "Démolition", "qrtz" → "quartz", "sb" → "salle de bain", "ckt" → "cuisine"). No SMS abbreviations in the output.
+
+5. DON'T INVENT: if the SMS only mentions 3 items, output 3 bullets. Do not pad with imaginary items. But you MAY phrase each item more fully than the SMS shorthand (e.g. SMS "shaker cabinets" → bullet "Installation d'armoires de cuisine de style shaker.").
+
+EXAMPLE (target=fr):
+SMS input: "kitchen reno: demo, shaker cabinets, quartz counter, paint, basic plumbing reconnect"
+scope_summary output:
+"## Démolition
+- Démolition complète de la cuisine existante (armoires, comptoirs et accessoires).
+
+## Cuisine
+- Fourniture et installation d'armoires de cuisine de style shaker.
+- Pose d'un comptoir en quartz, incluant le découpage et l'ajustement.
+
+## Plomberie
+- Reconnexion des appareils sanitaires existants (évier, lave-vaisselle).
+
+## Peinture
+- Application d'apprêt et de deux couches de peinture sur les murs et le plafond."
+
+EXAMPLE (target=en, same SMS): replace each section/bullet with the equivalent professional English.
+
+OTHER FIELDS
+
+- client_name, client_email, client_phone: copy as written, do not translate (names and emails are language-neutral).
+- client_address: keep as is, but expand Quebec city abbreviations to full names when target=fr ("Mtl" → "Montréal", "Qc" → "QC", "St-Jérôme" → "Saint-Jérôme").
+- project_title: short label in target language. From scope, infer a clean title (e.g. "Rénovation cuisine", "Construction de terrasse", "Salle de bain principale", "Kitchen renovation").
+
+ON FOLLOW-UP MESSAGES (priorExtracted is non-empty)
+- The contractor is adding/correcting info. Merge intelligently:
+  - For text fields (client_*, project_title): replace if the new SMS provides a new value, otherwise keep prior.
+  - For scope_summary: the prior is already POLISHED — re-polish the combined set. Add new work items into the appropriate section (creating new sections as needed). Reorganize if needed. Keep prior items unless the contractor explicitly removes them.
+
+"missing_fields": ALWAYS include any field still empty/zero. Required minimum to proceed: client_name, scope_summary, base_price.
 
 PRICE — READ THE EXACT NUMBER, DO NOT DROP DIGITS
-- A scope often contains dimensions (e.g. "16x20", "10' x 12'", "2 floors"). Those are NOT prices. The price is the number written with a currency marker: $, "CAD", "$", "k$", "dollars", "prix", "total", "budget".
-- Read the price digits exactly as written. "$7800" is 7800, not 800. "$15,000" is 15000. "$9.5k" is 9500. "$1,250.50" is 1250.50.
-- If multiple numbers appear, the price is the one nearest a $ sign or the word "prix"/"budget"/"price"/"total".
-- If the contractor says "$15000 total avec taxes" or "tx incluses", back out 5% + 9.975% to a pre-tax amount. Otherwise treat as pre-tax.
+- A scope often contains dimensions ("16x20", "10' x 12'", "2 étages"). Those are NOT prices. The price has a currency marker: $, CAD, dollars, prix, budget, total.
+- Read the price digits exactly. "$7800" is 7800. "$15,000" is 15000. "$9.5k" is 9500.
+- If multiple numbers appear, the price is the one nearest a $ sign or the words "prix" / "budget" / "price" / "total".
+- If "tx incluses" / "with tax" / "avec taxes", back out 5% + 9.975% to get pre-tax. Otherwise treat as pre-tax.
 - If no clear price is given, return 0.
 
 DURATION
-- Prefer "weeks". If they say "10 days" use days. If unspecified → 0.`;
+- Prefer "weeks". If contractor says "10 days" use days. If unspecified → 0.`;
 
-  const userText = `priorExtracted:\n${JSON.stringify(input.priorExtracted, null, 2)}\n\n=== NEW SMS FROM CONTRACTOR ===\n${input.freshText}\n=== END ===\n\nReturn ONLY the JSON object. Start with { end with }.`;
+  const userText = `priorExtracted:\n${JSON.stringify(input.priorExtracted, null, 2)}\n\n=== NEW SMS FROM CONTRACTOR ===\n${input.freshText}\n=== END ===\n\nReturn ONLY the JSON object. Start with { end with }. Target language: ${input.targetLanguage}.`;
 
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -200,7 +247,7 @@ DURATION
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       system,
-      max_tokens: 1500,
+      max_tokens: 4000,
       messages: [{ role: "user", content: userText }],
     }),
   });
@@ -388,20 +435,34 @@ const RESET_KEYWORDS = ["reset", "recommencer", "restart", "annuler", "cancel", 
 const NONE_KEYWORDS  = ["none", "aucune", "aucun", "non", "no", "skip", "passer"];
 
 async function handleCollecting(s: Session, body: string): Promise<Response> {
+  // Quotes default to French. Switch to English only on explicit request — and
+  // once switched, stay switched for the rest of this session (sticky).
+  const askedEnglishNow = ENGLISH_REQUEST.test(body);
+  const lang: "en" | "fr" = (s.language === "en" || askedEnglishNow) ? "en" : "fr";
+
   let parsed: Record<string, any>;
   try {
-    parsed = await extractWithClaude({ freshText: body, priorExtracted: s.extracted });
+    parsed = await extractWithClaude({
+      freshText: body,
+      priorExtracted: s.extracted,
+      targetLanguage: lang,
+    });
   } catch (err) {
     await updateSession(s.id, { state: "failed", error: String(err) });
-    return twiml("⚠️ Erreur d'analyse. Renvoie le scope, le client, le prix et la durée en un message.");
+    return twiml(lang === "fr"
+      ? "⚠️ Erreur d'analyse. Renvoie le scope, le client, le prix et la durée en un message."
+      : "⚠️ Analysis error. Resend the scope, client, price and duration in one message.");
   }
 
   // Merge: only overwrite when the new value is non-empty.
+  // Note: scope_summary intentionally replaces priorExtracted's scope wholesale
+  // — Claude was just told to merge follow-up info into the polished version
+  // itself, so its output is the authoritative new scope.
   const merged: Record<string, any> = { ...s.extracted };
   for (const k of [
     "client_name","client_email","client_phone","client_address",
     "project_title","scope_summary","base_price","duration_value",
-    "duration_unit","materials_included","language",
+    "duration_unit","materials_included",
   ]) {
     const v = parsed[k];
     if (v === undefined || v === null) continue;
@@ -410,6 +471,7 @@ async function handleCollecting(s: Session, body: string): Promise<Response> {
     if (typeof v === "number" && k === "duration_value" && v <= 0 && (merged[k] ?? 0) > 0) continue;
     merged[k] = v;
   }
+  merged.language = lang;
 
   // Required minimum to move forward.
   const required = ["client_name", "scope_summary", "base_price"] as const;
@@ -420,12 +482,6 @@ async function handleCollecting(s: Session, body: string): Promise<Response> {
     else if (!v || (typeof v === "string" && !v.trim())) missing.push(k);
   }
   if (!merged.duration_value || Number(merged.duration_value) <= 0) missing.push("duration_value");
-
-  // Quotes default to French. Switch to English only on explicit request — and
-  // once switched, stay switched for the rest of this session (sticky).
-  const askedEnglishNow = ENGLISH_REQUEST.test(body);
-  const lang: "en" | "fr" = (s.language === "en" || askedEnglishNow) ? "en" : "fr";
-  merged.language = lang;
 
   if (missing.length) {
     await updateSession(s.id, { extracted: merged, language: lang });
