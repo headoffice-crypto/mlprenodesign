@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1f2e"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0c074"/>
+      <stop offset="100%" stop-color="#c8a45a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle gold corner accents -->
+  <rect x="0" y="0" width="1200" height="6" fill="#c8a45a"/>
+  <rect x="0" y="624" width="1200" height="6" fill="#c8a45a"/>
+
+  <!-- Gold "M" mark -->
+  <g transform="translate(140 165)">
+    <rect width="300" height="300" rx="56" fill="#1f2533" stroke="url(#goldStroke)" stroke-width="4"/>
+    <text x="150" y="165" text-anchor="middle" dominant-baseline="central"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="800" font-size="200" fill="#c8a45a"
+          letter-spacing="-8">M</text>
+  </g>
+
+  <!-- Brand name + tagline -->
+  <g transform="translate(495 215)">
+    <text x="0" y="0"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="800" font-size="76" fill="#ffffff"
+          letter-spacing="-1.5">MLP RENO</text>
+    <text x="0" y="86"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="800" font-size="76" fill="#c8a45a"
+          letter-spacing="-1.5">&amp; DESIGN</text>
+    <text x="0" y="160"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="500" font-size="28" fill="#9aa0a6"
+          letter-spacing="3">CONSTRUCTION &amp; RÉNOVATION</text>
+    <text x="0" y="208"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="400" font-size="24" fill="#9aa0a6">
+      Entrepreneur général · Montréal &amp; Grand Montréal
+    </text>
+  </g>
+
+  <!-- Bottom credentials bar -->
+  <g transform="translate(140 540)">
+    <text x="0" y="0"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="600" font-size="22" fill="#c8a45a"
+          letter-spacing="1.2">RBQ 5847-0378-01</text>
+    <text x="280" y="0"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="600" font-size="22" fill="#c8a45a"
+          letter-spacing="1.2">·</text>
+    <text x="305" y="0"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="600" font-size="22" fill="#c8a45a"
+          letter-spacing="1.2">15+ ANS D'EXPÉRIENCE</text>
+    <text x="700" y="0"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="600" font-size="22" fill="#c8a45a"
+          letter-spacing="1.2">·</text>
+    <text x="725" y="0"
+          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+          font-weight="600" font-size="22" fill="#c8a45a"
+          letter-spacing="1.2">MLPRENODESIGN.CA</text>
+  </g>
+</svg>
