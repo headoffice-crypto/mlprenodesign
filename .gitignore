@@ -40,6 +40,9 @@ site/public/
 # Recorder dependencies — Playwright + Chromium pulled by `npm install` in /promo
 promo/node_modules/
 
+# Any other npm installs at the repo root (e.g. one-shot sharp for OG image render)
+/node_modules/
+
 # Loose root-level public/ — Vercel auto-detects this as a static-output folder
 # and breaks production. Keep any QR assets under site/ instead.
 public/
