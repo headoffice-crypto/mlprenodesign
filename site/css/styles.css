@@ -1228,6 +1228,18 @@ section {
     font-size: 0.875rem;
 }
 
+.footer-bottom .footer-division {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.3px;
+}
+
+.footer-bottom .footer-division strong {
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 600;
+}
+
 /* ====================================
    Accessibility
    ==================================== */

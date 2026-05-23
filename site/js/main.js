@@ -10,19 +10,19 @@
     // Mobile Menu Toggle
     // ====================================
     const navToggle = document.querySelector('.nav-toggle');
-    const navRightMobile = document.querySelectorAll('.nav-right')[1]; // Get mobile menu (second .nav-right)
+    const mobileMenu = document.querySelector('.mobile-menu');
     const navLinks = document.querySelectorAll('.nav-link');
 
-    if (navToggle && navRightMobile) {
+    if (navToggle && mobileMenu) {
         // Toggle mobile menu
         navToggle.addEventListener('click', function() {
-            const isOpen = !navRightMobile.classList.contains('-translate-x-full');
+            const isOpen = !mobileMenu.classList.contains('translate-x-full');
 
             if (isOpen) {
-                navRightMobile.classList.add('-translate-x-full');
+                mobileMenu.classList.add('translate-x-full');
                 document.body.style.overflow = '';
             } else {
-                navRightMobile.classList.remove('-translate-x-full');
+                mobileMenu.classList.remove('translate-x-full');
                 document.body.style.overflow = 'hidden';
             }
         });
@@ -30,29 +30,29 @@
         // Close menu when clicking on a link
         navLinks.forEach(function(link) {
             link.addEventListener('click', function() {
-                navRightMobile.classList.add('-translate-x-full');
+                mobileMenu.classList.add('translate-x-full');
                 document.body.style.overflow = '';
             });
         });
 
         // Close menu when clicking outside
         document.addEventListener('click', function(event) {
-            const isClickInsideMenu = navRightMobile.contains(event.target);
+            const isClickInsideMenu = mobileMenu.contains(event.target);
             const isClickOnToggle = navToggle.contains(event.target);
-            const isOpen = !navRightMobile.classList.contains('-translate-x-full');
+            const isOpen = !mobileMenu.classList.contains('translate-x-full');
 
             if (!isClickInsideMenu && !isClickOnToggle && isOpen) {
-                navRightMobile.classList.add('-translate-x-full');
+                mobileMenu.classList.add('translate-x-full');
                 document.body.style.overflow = '';
             }
         });
 
         // Close menu on escape key
         document.addEventListener('keydown', function(event) {
-            const isOpen = !navRightMobile.classList.contains('-translate-x-full');
+            const isOpen = !mobileMenu.classList.contains('translate-x-full');
 
             if (event.key === 'Escape' && isOpen) {
-                navRightMobile.classList.add('-translate-x-full');
+                mobileMenu.classList.add('translate-x-full');
                 document.body.style.overflow = '';
             }
         });
@@ -79,7 +79,7 @@
                 e.preventDefault();
 
                 // Calculate offset for sticky header
-                const header = document.querySelector('.header');
+                const header = document.querySelector('header');
                 const headerHeight = header ? header.offsetHeight : 0;
                 const targetPosition = targetSection.offsetTop - headerHeight;
 
