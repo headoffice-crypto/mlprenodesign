@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carte d'affaires · MLP Reno & Design</title>
+  <link rel="stylesheet" href="/event/event.css">
+  <style>
+    /* =========================================================
+       Business card preview
+       ========================================================= */
+    .card-stage {
+      display: grid;
+      gap: 28px;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      margin-top: 24px;
+      justify-items: center;
+    }
+
+    .card-face {
+      width: 100%;
+      max-width: 460px;
+      aspect-ratio: 1.75; /* North-American 3.5 x 2 in. */
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 28px 70px -30px rgba(0,0,0,0.7), 0 0 0 1px rgba(245,241,232,0.06) inset;
+      position: relative;
+      isolation: isolate;
+    }
+
+    /* Front */
+    .card-front {
+      background:
+        radial-gradient(120% 80% at 110% -10%, rgba(200,167,102,0.18) 0%, transparent 55%),
+        linear-gradient(140deg, #0b0f17 0%, #131a26 100%);
+      color: var(--ink);
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-front::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(200,167,102,0.4) 50%, transparent 100%);
+      height: 1px;
+      top: auto;
+      bottom: 70px;
+      opacity: 0.5;
+      z-index: 0;
+    }
+    .cf-head { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+    .cf-logo {
+      width: 42px; height: 42px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--gold), var(--terra));
+      display: grid; place-items: center;
+      font-weight: 800; color: #1a1208; font-size: 18px;
+      letter-spacing: .02em;
+    }
+    .cf-brand-name { font-weight: 700; font-size: 13px; letter-spacing: .12em; line-height: 1; }
+    .cf-brand-tag { font-size: 10px; letter-spacing: .18em; color: var(--ink-soft); text-transform: uppercase; margin-top: 4px; }
+
+    .cf-middle { position: relative; z-index: 1; }
+    .cf-person-name {
+      font-family: var(--serif);
+      font-size: 28px;
+      line-height: 1.05;
+      margin: 0 0 4px;
+      font-weight: 600;
+      letter-spacing: -.01em;
+    }
+    .cf-person-title {
+      font-size: 10px;
+      letter-spacing: .22em;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .cf-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .cf-contact {
+      display: grid;
+      gap: 3px;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      line-height: 1.3;
+    }
+    .cf-contact strong { color: var(--ink); font-weight: 600; }
+    .cf-division {
+      font-size: 8.5px;
+      letter-spacing: .14em;
+      color: rgba(245,241,232,0.45);
+      text-transform: uppercase;
+      text-align: right;
+      max-width: 130px;
+      line-height: 1.4;
+    }
+
+    /* Back */
+    .card-back {
+      background: #fafaf7;
+      color: #1a1208;
+      padding: 22px 26px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+    }
+    .card-back::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(80% 60% at 0% 100%, rgba(168,90,59,0.10) 0%, transparent 60%),
+        radial-gradient(60% 50% at 100% 0%, rgba(200,167,102,0.18) 0%, transparent 60%);
+      z-index: 0;
+    }
+    .cb-text { display: flex; flex-direction: column; gap: 8px; height: 100%; position: relative; z-index: 1; }
+    .cb-eyebrow { font-size: 9.5px; letter-spacing: .26em; color: var(--terra); text-transform: uppercase; font-weight: 700; }
+    .cb-cta {
+      font-family: var(--serif);
+      font-size: 24px;
+      line-height: 1.1;
+      margin: 0;
+      color: #1a1208;
+      font-weight: 600;
+      max-width: 14ch;
+    }
+    .cb-sub { font-size: 11px; color: #5b554a; line-height: 1.4; max-width: 22ch; }
+    .cb-brand { font-size: 8.5px; letter-spacing: .18em; color: #9b9484; text-transform: uppercase; margin-top: auto; }
+    .cb-qr {
+      width: 150px;
+      height: 150px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+      position: relative;
+      z-index: 1;
+    }
+    .cb-qr img { width: 100%; height: 100%; display: block; }
+
+    /* Hint label under the QR preview */
+    .card-label {
+      font-size: 11px;
+      letter-spacing: .16em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+
+    /* Action row */
+    .action-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+
+    /* =========================================================
+       Print : exact 3.5 x 2 in. business-card paper
+       Two pages — front then back, so a duplex printer (or a
+       second pass) gives you a finished card.
+       ========================================================= */
+    @media print {
+      :root { color-scheme: light; }
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      body > * { display: none !important; }
+      body > #print-stage { display: block !important; }
+      #print-stage .card-face {
+        width: 88.9mm !important;
+        height: 50.8mm !important;
+        max-width: none !important;
+        aspect-ratio: auto !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        page-break-after: always;
+        break-after: page;
+      }
+      #print-stage .card-face:last-child { page-break-after: auto; break-after: auto; }
+      @page { size: 88.9mm 50.8mm; margin: 0; }
+      .card-back { background: #fff !important; }
+      .card-back::before { display: none !important; }
+      /* Make colors stick on most browsers */
+      .card-face, .card-face * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="ev-wrap ev-section">
+    <div class="ev-eyebrow">Outils · Impression</div>
+    <h1 class="ev-h1">Carte d'affaires</h1>
+    <p class="ev-lead">
+      Carte recto-verso avec code QR. Partagez-la avec vos clients et partenaires&nbsp;:
+      un scan suffit pour vous ajouter à leurs contacts (iPhone et Android, depuis l'appareil photo).
+    </p>
+
+    <!-- =====================================================
+         Personalize panel
+    ====================================================== -->
+    <div class="ev-card mt-8">
+      <h2 class="ev-h3" style="margin-bottom: 16px;">Personnaliser</h2>
+      <div class="ev-grid ev-grid-2">
+        <div class="ev-field">
+          <label class="ev-label" for="f-name">Nom affiché</label>
+          <input class="ev-input" id="f-name" value="MLP Reno &amp; Design">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="f-title">Titre / rôle</label>
+          <input class="ev-input" id="f-title" value="Rénovation résidentielle">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="f-phone">Téléphone</label>
+          <input class="ev-input" id="f-phone" value="(450) 500-8936">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="f-email">Courriel</label>
+          <input class="ev-input" id="f-email" value="info@mlprenodesign.ca">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="f-url">Site web</label>
+          <input class="ev-input" id="f-url" value="https://mlprenodesign.ca">
+        </div>
+        <div class="ev-field">
+          <label class="ev-label" for="f-area">Zone de service</label>
+          <input class="ev-input" id="f-area" value="Montréal et Grand Montréal">
+        </div>
+      </div>
+      <p style="margin: 14px 0 0; color: var(--ink-soft); font-size: 13px;">
+        Les modifications s'appliquent à l'aperçu et au code QR vCard en direct.
+      </p>
+    </div>
+
+    <!-- =====================================================
+         Card preview (front + back)
+    ====================================================== -->
+    <div id="print-stage" class="card-stage">
+
+      <!-- Front -->
+      <div>
+        <div class="card-face card-front">
+          <div class="cf-head">
+            <div class="cf-logo">M</div>
+            <div>
+              <div class="cf-brand-name">MLP RENO &amp; DESIGN</div>
+              <div class="cf-brand-tag">Rénovation résidentielle</div>
+            </div>
+          </div>
+
+          <div class="cf-middle">
+            <h2 class="cf-person-name" id="show-name">MLP Reno &amp; Design</h2>
+            <div class="cf-person-title" id="show-title">Rénovation résidentielle</div>
+          </div>
+
+          <div class="cf-foot">
+            <div class="cf-contact">
+              <div><strong id="show-phone">(450) 500-8936</strong></div>
+              <div id="show-email">info@mlprenodesign.ca</div>
+              <div id="show-url">mlprenodesign.ca</div>
+              <div id="show-area" style="margin-top: 6px; font-style: italic;">Montréal et Grand Montréal</div>
+            </div>
+            <div class="cf-division">
+              Une division de<br>MLP Gestion et Consultation Inc.
+            </div>
+          </div>
+        </div>
+        <div class="card-label">Recto</div>
+      </div>
+
+      <!-- Back -->
+      <div>
+        <div class="card-face card-back">
+          <div class="cb-text">
+            <div class="cb-eyebrow">Carte de contact</div>
+            <h3 class="cb-cta">Ajoutez-moi à vos contacts.</h3>
+            <p class="cb-sub">Scannez ce code avec l'appareil photo de votre téléphone — un seul geste pour tout enregistrer.</p>
+            <div class="cb-brand">MLP Reno &amp; Design · RBQ · APCHQ</div>
+          </div>
+          <div class="cb-qr">
+            <img id="qr-img" src="" alt="Code QR vCard">
+          </div>
+        </div>
+        <div class="card-label">Verso · vCard</div>
+      </div>
+
+    </div>
+
+    <!-- =====================================================
+         Actions
+    ====================================================== -->
+    <div class="action-row">
+      <button class="ev-btn ev-btn-primary" onclick="window.print()">Imprimer la carte</button>
+      <a id="dl-qr"  class="ev-btn ev-btn-outline" download="mlp-vcard-qr.png">Télécharger le code QR</a>
+      <a id="dl-vcf" class="ev-btn ev-btn-outline" download="mlp-reno-design.vcf">Télécharger la fiche .vcf</a>
+    </div>
+
+    <div class="ev-divider"></div>
+
+    <h2 class="ev-h3">Conseils d'impression</h2>
+    <ul style="color: var(--ink-soft); line-height: 1.7; padding-left: 1.2rem; max-width: 70ch;">
+      <li>Format papier&nbsp;: <strong>3,5 × 2 po</strong> (88,9 × 50,8 mm) — standard nord-américain.</li>
+      <li>Pour un meilleur rendu, imprimez sur papier <strong>mat 300 g/m²</strong> ou plus.</li>
+      <li>Activez « Imprimer les arrière-plans / les couleurs » dans la fenêtre d'impression du navigateur.</li>
+      <li>Le code QR fonctionne avec l'appareil photo natif (iPhone, Android). Tester avant de tirer en quantité.</li>
+    </ul>
+
+    <div class="ev-divider"></div>
+    <a href="/" class="ev-btn ev-btn-outline">← Retour au site</a>
+  </main>
+
+  <script>
+    // -------- Helpers ------------------------------------------------------
+    function normalizePhone(raw) {
+      const digits = (raw || '').replace(/\D/g, '');
+      if (!digits) return '';
+      // Default to North American +1 if 10 digits, else assume already E.164-ish
+      if (digits.length === 10) return '+1' + digits;
+      if (digits.length === 11 && digits.startsWith('1')) return '+' + digits;
+      return '+' + digits;
+    }
+
+    function vcardEscape(value) {
+      return String(value || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\n/g, '\\n')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;');
+    }
+
+    function buildVcard(d) {
+      const tel = normalizePhone(d.phone);
+      const lines = [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'N:' + vcardEscape(d.name) + ';;;;',
+        'FN:' + vcardEscape(d.name),
+        'ORG:' + vcardEscape(d.name) + ';Division de MLP Gestion et Consultation Inc.',
+        d.title ? 'TITLE:' + vcardEscape(d.title) : '',
+        tel ? 'TEL;TYPE=WORK,VOICE:' + tel : '',
+        d.email ? 'EMAIL;TYPE=WORK,INTERNET:' + vcardEscape(d.email) : '',
+        d.url ? 'URL:' + d.url : '',
+        'ADR;TYPE=WORK:;;;Montréal;QC;;Canada',
+        'NOTE:' + vcardEscape('Entrepreneur général RBQ - ' + (d.area || 'Montréal et Grand Montréal')),
+        'END:VCARD'
+      ];
+      return lines.filter(Boolean).join('\r\n');
+    }
+
+    // -------- Live preview -------------------------------------------------
+    const FIELDS = ['f-name','f-title','f-phone','f-email','f-url','f-area'];
+
+    function read() {
+      return {
+        name:  document.getElementById('f-name').value.trim(),
+        title: document.getElementById('f-title').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        url:   document.getElementById('f-url').value.trim(),
+        area:  document.getElementById('f-area').value.trim(),
+      };
+    }
+
+    function render() {
+      const d = read();
+      document.getElementById('show-name').textContent  = d.name;
+      document.getElementById('show-title').textContent = d.title;
+      document.getElementById('show-phone').textContent = d.phone;
+      document.getElementById('show-email').textContent = d.email;
+      document.getElementById('show-url').textContent   = d.url.replace(/^https?:\/\//, '');
+      document.getElementById('show-area').textContent  = d.area;
+
+      const vcard = buildVcard(d);
+      const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=2&ecc=M&data=' + encodeURIComponent(vcard);
+
+      document.getElementById('qr-img').src = qrUrl;
+      document.getElementById('dl-qr').href = qrUrl;
+
+      const vcfDataUri = 'data:text/vcard;charset=utf-8,' + encodeURIComponent(vcard);
+      document.getElementById('dl-vcf').href = vcfDataUri;
+    }
+
+    FIELDS.forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+    });
+    render();
+  </script>
+</body>
+</html>
