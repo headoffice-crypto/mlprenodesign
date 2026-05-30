@@ -145,13 +145,33 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
             <ul style="margin:0;padding-left:18px;color:#5f6368;font-size:13px;line-height:1.5;">${promos.map((p) => `<li style="margin:2px 0;">${escHtml(p.text)}</li>`).join("")}</ul>
           </div>`
         : "";
+      const isDetailed = o && o.quote_mode === "detailed" && Array.isArray(o.sections) && o.sections.length > 0;
+      let scopeBlock = "";
+      if (isDetailed) {
+        scopeBlock = '<div style="margin-top:6px;">';
+        o.sections.forEach((sec, idx) => {
+          const sectionTitle = (sec && sec.title && String(sec.title).trim()) || `${fr ? "Section" : "Section"} ${idx + 1}`;
+          const sectionTotal = Number(sec && sec.total) || 0;
+          scopeBlock += `
+            <div style="margin:10px 0;padding:10px 12px;border:1px solid #e8eaed;border-radius:8px;background:#fafbfc;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:4px;">
+                <strong style="color:#202124;font-size:14px;">${escHtml(sectionTitle)}</strong>
+                <strong style="color:#202124;font-size:14px;">$${money(sectionTotal)}</strong>
+              </div>
+              ${sec && sec.scope_summary ? `<div style="color:#5f6368;font-size:13px;line-height:1.5;">${renderScopeMarkdown(sec.scope_summary)}</div>` : ""}
+            </div>`;
+        });
+        scopeBlock += "</div>";
+      } else if (o.scope_summary) {
+        scopeBlock = `<div style="color:#5f6368;font-size:13px;margin-top:6px;line-height:1.5;">${renderScopeMarkdown(o.scope_summary)}</div>`;
+      }
       optionsBlock += `
         <div style="border:1px solid #e8eaed;border-radius:10px;padding:14px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
             <strong style="color:#c8a45a;text-transform:uppercase;letter-spacing:0.4px;">${escHtml(o.title || o.key)}</strong>
             <strong style="color:#202124;font-size:16px;">$${money(o.total)}</strong>
           </div>
-          ${o.scope_summary ? `<div style="color:#5f6368;font-size:13px;margin-top:6px;line-height:1.5;">${renderScopeMarkdown(o.scope_summary)}</div>` : ""}
+          ${scopeBlock}
           ${promoBlock}
         </div>`;
     });

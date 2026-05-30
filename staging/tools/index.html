@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=39">
+  <link rel="stylesheet" href="css/tools.css?v=40">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
 <div class="header">
   <div class="header-brand">
     <div class="header-logo">M</div>
-    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v39</span></h1>
+    <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v40</span></h1>
   </div>
   <div style="display:flex;gap:6px;align-items:center;">
     <a href="quotes.html" class="header-link" title="Soumissions"><span class="material-icons-round">description</span></a>
@@ -55,29 +55,52 @@
     <div id="pdf-error-banner" style="display:none;background:#fce8e6;border:1px solid #d93025;color:#a50e0e;padding:12px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;white-space:pre-wrap;"></div>
 
     <div class="card">
-      <div class="form-group">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
-          <label class="form-label" style="margin:0;" data-i18n="scope_label">Portée des travaux</label>
-          <button type="button" class="btn-link" onclick="document.getElementById('pdf-input').click()">
-            <span class="material-icons-round" style="font-size:18px;vertical-align:middle;">upload_file</span>
-            <span data-i18n="upload_pdf">Téléverser un PDF</span>
-          </button>
-          <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none;" onchange="onPdfPicked(event)">
+      <!-- Mode toggle: Simplified (single scope + single price) vs Detailed (sections with per-section totals) -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label" data-i18n="mode_label">Type de soumission</label>
+        <div class="chip-group">
+          <button class="chip active" id="chip-mode-simple" type="button" onclick="setQuoteMode('simple')" data-i18n="mode_simple">Simplifiée</button>
+          <button class="chip" id="chip-mode-detailed" type="button" onclick="setQuoteMode('detailed')" data-i18n="mode_detailed">Détaillée (sections)</button>
         </div>
-        <div class="scope-toolbar" role="toolbar" aria-label="Mise en forme">
-          <button type="button" class="tb-btn" onclick="scopeFormat('bold')" data-i18n-title="scope_fmt_bold" title="Gras (sélection)"><b>B</b></button>
-          <button type="button" class="tb-btn" onclick="scopeFormat('subtitle')" data-i18n-title="scope_fmt_subtitle" title="Titre"><span class="material-icons-round">title</span><span data-i18n="scope_fmt_subtitle_label">Titre</span></button>
-          <button type="button" class="tb-btn" onclick="scopeFormat('bullet')" data-i18n-title="scope_fmt_bullet" title="Liste à puces"><span class="material-icons-round">format_list_bulleted</span><span data-i18n="scope_fmt_bullet_label">Liste</span></button>
-        </div>
-        <textarea id="f-scope" class="form-textarea" rows="9" style="min-height:180px;" data-i18n-placeholder="scope_placeholder" placeholder="Collez ici le texte du scope, le courriel client, le contenu du PDF, etc."
-          oninput="renderAnalyzeButton()"></textarea>
-        <div class="form-helper" data-i18n="scope_fmt_hint">Mise en forme : <b>**gras**</b> · <b>## Titre</b> · <b>- puce</b></div>
-        <div id="pdf-status" class="form-helper" style="display:none;"></div>
+        <div class="form-helper" data-i18n="mode_hint">La soumission détaillée vous laisse regrouper le projet en sections avec un prix par section.</div>
       </div>
-      <button id="btn-analyze" class="btn btn-primary btn-analyze" onclick="runAnalysis()" style="display:none;">
-        <span class="material-icons-round">auto_awesome</span>
-        <span data-i18n="analyze_btn">Analyser et remplir le formulaire</span>
-      </button>
+
+      <!-- SIMPLE MODE: single scope textarea -->
+      <div id="simple-mode-block">
+        <div class="form-group" style="margin-bottom:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+            <label class="form-label" style="margin:0;" data-i18n="scope_label">Portée des travaux</label>
+            <button type="button" class="btn-link" onclick="document.getElementById('pdf-input').click()">
+              <span class="material-icons-round" style="font-size:18px;vertical-align:middle;">upload_file</span>
+              <span data-i18n="upload_pdf">Téléverser un PDF</span>
+            </button>
+            <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none;" onchange="onPdfPicked(event)">
+          </div>
+          <div class="scope-toolbar" role="toolbar" aria-label="Mise en forme">
+            <button type="button" class="tb-btn" onclick="scopeFormat('bold')" data-i18n-title="scope_fmt_bold" title="Gras (sélection)"><b>B</b></button>
+            <button type="button" class="tb-btn" onclick="scopeFormat('subtitle')" data-i18n-title="scope_fmt_subtitle" title="Titre"><span class="material-icons-round">title</span><span data-i18n="scope_fmt_subtitle_label">Titre</span></button>
+            <button type="button" class="tb-btn" onclick="scopeFormat('bullet')" data-i18n-title="scope_fmt_bullet" title="Liste à puces"><span class="material-icons-round">format_list_bulleted</span><span data-i18n="scope_fmt_bullet_label">Liste</span></button>
+            <button type="button" class="tb-btn tb-grammar" id="tb-grammar-scope" onclick="correctGrammar('f-scope', this)" data-i18n-title="scope_fmt_grammar" title="Corriger l'orthographe et la grammaire"><span class="material-icons-round">auto_fix_high</span><span data-i18n="scope_fmt_grammar_label">Corriger</span></button>
+          </div>
+          <textarea id="f-scope" class="form-textarea" rows="9" style="min-height:180px;" data-i18n-placeholder="scope_placeholder" placeholder="Collez ici le texte du scope, le courriel client, le contenu du PDF, etc."
+            oninput="renderAnalyzeButton()"></textarea>
+          <div class="form-helper" data-i18n="scope_fmt_hint">Mise en forme : <b>**gras**</b> · <b>## Titre</b> · <b>- puce</b></div>
+          <div id="pdf-status" class="form-helper" style="display:none;"></div>
+        </div>
+        <button id="btn-analyze" class="btn btn-primary btn-analyze" onclick="runAnalysis()" style="display:none;margin-top:12px;">
+          <span class="material-icons-round">auto_awesome</span>
+          <span data-i18n="analyze_btn">Analyser et remplir le formulaire</span>
+        </button>
+      </div>
+
+      <!-- DETAILED MODE: repeatable sections each with title + scope + total -->
+      <div id="detailed-mode-block" style="display:none;">
+        <div id="sections-container"></div>
+        <button class="btn-add" type="button" onclick="addSection()">
+          + <span data-i18n="add_section">Ajouter une section</span>
+        </button>
+        <div class="form-helper" data-i18n="sections_hint">Chaque section a son propre prix avant taxes. Le total est la somme des sections.</div>
+      </div>
     </div>
   </section>
 
@@ -132,8 +155,8 @@
       </div>
     </div>
     <div class="card">
-      <div class="form-row">
-        <div class="form-group">
+      <div class="form-row" id="price-duration-row">
+        <div class="form-group" id="base-price-group">
           <label class="form-label" data-i18n="base_price_label">Prix avant taxes ($)</label>
           <input class="form-input" type="number" min="0" step="100" id="f-base-price" placeholder="Ex. 19000">
         </div>
@@ -336,11 +359,11 @@
       'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   }
 </script>
-<script src="js/config.js?v=39"></script>
-<script src="js/supabase-client.js?v=39"></script>
-<script src="js/signature-pad.js?v=39"></script>
-<script src="js/openai.js?v=39"></script>
-<script src="js/app.js?v=39"></script>
-<script src="js/pwa.js?v=39"></script>
+<script src="js/config.js?v=40"></script>
+<script src="js/supabase-client.js?v=40"></script>
+<script src="js/signature-pad.js?v=40"></script>
+<script src="js/openai.js?v=40"></script>
+<script src="js/app.js?v=40"></script>
+<script src="js/pwa.js?v=40"></script>
 </body>
 </html>

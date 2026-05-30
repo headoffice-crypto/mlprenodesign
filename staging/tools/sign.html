@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="css/tools.css?v=39">
+  <link rel="stylesheet" href="css/tools.css?v=40">
   <style>
     body { padding-bottom: 40px; }
     .container { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
@@ -195,8 +195,21 @@ function renderPage() {
     h += `<div class="qp-option-title">${optTitle}${accBadge}</div>`;
     h += `<div class="qp-option-total">$${money(opt.total)}</div>`;
     h += '</div>';
-    if (opt.scope_summary) h += `<div class="qp-scope">${renderScopeMarkdown(opt.scope_summary)}</div>`;
-    h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
+    const isDetailed = opt.quote_mode === 'detailed' && Array.isArray(opt.sections) && opt.sections.length > 0;
+    if (isDetailed) {
+      opt.sections.forEach((sec, idx) => {
+        const title = (sec && sec.title && String(sec.title).trim()) || `${fr ? 'Section' : 'Section'} ${idx + 1}`;
+        h += `<div class="qp-section-block">`;
+        h += `<div class="qp-section-head"><div class="qp-section-title">${esc(title)}</div><div class="qp-section-total">$${money(Number(sec && sec.total) || 0)}</div></div>`;
+        if (sec && sec.scope_summary) {
+          h += `<div class="qp-scope">${renderScopeMarkdown(sec.scope_summary)}</div>`;
+        }
+        h += `</div>`;
+      });
+    } else if (opt.scope_summary) {
+      h += `<div class="qp-scope">${renderScopeMarkdown(opt.scope_summary)}</div>`;
+    }
+    h += `<div style="font-size:12px;color:#5f6368;margin:${isDetailed ? '12px' : '0'} 0 8px;">`;
     h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${formatDurationForOption(opt, fr)} · `;
     h += `${opt.materials_included ? `<span class="qp-badge included">${fr ? 'Matériaux inclus' : 'Materials included'}</span>` : `<span class="qp-badge excluded">${fr ? 'Matériaux exclus' : 'Materials excluded'}</span>`}`;
     h += '</div>';

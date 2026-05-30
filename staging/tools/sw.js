@@ -1,5 +1,5 @@
 /* MLP Tools service worker — network-first for app shell, fallback to cache. */
-const CACHE = 'mlp-tools-v39';
+const CACHE = 'mlp-tools-v40';
 const SHELL = [
   './',
   './index.html',

@@ -10,12 +10,14 @@ let lang = 'fr';
    sign.html / quotes.html which expect an `options` array on the row. */
 let quoteState = {
   project_title: '',
-  scope_summary: '',
+  quote_mode: 'simple',          // 'simple' | 'detailed'
+  scope_summary: '',             // used in 'simple' mode
+  sections: [],                  // used in 'detailed' mode: [{ title, scope_summary, total }]
   duration_value: 2,             // raw number the contractor entered
   duration_unit: 'weeks',        // 'weeks' | 'days'
   duration_weeks: 2,             // canonical value in weeks (kept for backwards compat with sign.html / invoices)
   materials_included: true,
-  base_price: 0,
+  base_price: 0,                 // single number in simple mode, sum of section totals in detailed mode
   apply_taxes: true,             // when false, TPS/TVQ are 0 and total = subtotal
   promotions: []                 // [{ text }] — informational only, no price impact
 };
@@ -45,7 +47,27 @@ const I18N = {
   scope_fmt_bullet:   { fr: 'Liste à puces',     en: 'Bullet list' },
   scope_fmt_subtitle_label: { fr: 'Titre',       en: 'Heading' },
   scope_fmt_bullet_label:   { fr: 'Liste',       en: 'List' },
+  scope_fmt_grammar:  { fr: 'Corriger l\'orthographe et la grammaire', en: 'Fix spelling and grammar' },
+  scope_fmt_grammar_label: { fr: 'Corriger',     en: 'Fix grammar' },
   scope_fmt_hint:     { fr: 'Mise en forme : <b>**gras**</b> · <b>## Titre</b> · <b>- puce</b>', en: 'Formatting: <b>**bold**</b> · <b>## Heading</b> · <b>- bullet</b>' },
+  mode_label:         { fr: 'Type de soumission', en: 'Quote type' },
+  mode_simple:        { fr: 'Simplifiée',         en: 'Simplified' },
+  mode_detailed:      { fr: 'Détaillée (sections)', en: 'Detailed (sections)' },
+  mode_hint:          { fr: 'La soumission détaillée vous laisse regrouper le projet en sections avec un prix par section.', en: 'Detailed mode lets you group the project into sections with a price per section.' },
+  add_section:        { fr: 'Ajouter une section', en: 'Add a section' },
+  remove_section:     { fr: 'Supprimer cette section', en: 'Remove this section' },
+  sections_hint:      { fr: 'Chaque section a son propre prix avant taxes. Le total est la somme des sections.', en: 'Each section has its own pre-tax price. The total is the sum of all sections.' },
+  section_title_label: { fr: 'Titre de la section', en: 'Section title' },
+  section_title_ph:   { fr: 'Ex. Cuisine, Salle de bain, Démolition…', en: 'e.g. Kitchen, Bathroom, Demolition…' },
+  section_scope_label: { fr: 'Détails de la section', en: 'Section details' },
+  section_total_label: { fr: 'Prix avant taxes de la section ($)', en: 'Section pre-tax price ($)' },
+  section_default_title: { fr: 'Nouvelle section', en: 'New section' },
+  sections_required:  { fr: 'Ajoutez au moins une section avec un détail et un prix.', en: 'Add at least one section with details and a price.' },
+  grammar_correcting: { fr: 'Correction…',       en: 'Correcting…' },
+  grammar_fixed:      { fr: 'Texte corrigé.',    en: 'Text corrected.' },
+  grammar_unchanged:  { fr: 'Aucune correction nécessaire.', en: 'No corrections needed.' },
+  grammar_failed:     { fr: 'Échec de la correction',  en: 'Correction failed' },
+  grammar_empty:      { fr: 'Aucun texte à corriger.', en: 'No text to correct.' },
   upload_pdf: { fr: 'Téléverser un PDF', en: 'Upload a PDF' },
   pdf_extracting: { fr: 'Extraction du PDF…', en: 'Extracting PDF…' },
   pdf_extracted: { fr: 'PDF importé', en: 'PDF imported' },
@@ -299,6 +321,7 @@ function setLang(l) {
   refreshSendButtonForState();
   buildPaymentOptionsUI();
   buildPromotionsUI();
+  buildSectionsUI();
   renderTaxPreview();
   if (savedQuote) renderFinalQuote();
 }
@@ -523,7 +546,17 @@ function readFormIntoState() {
   quoteState.duration_weeks = quoteState.duration_unit === 'days'
     ? Math.max(1, Math.ceil(quoteState.duration_value / 5))
     : quoteState.duration_value;
-  quoteState.base_price     = Math.max(0, parseFloat(val('f-base-price')) || 0);
+  if (quoteState.quote_mode === 'detailed') {
+    // Sections are kept in quoteState.sections directly via input handlers.
+    quoteState.base_price = sectionsTotalSum();
+  } else {
+    quoteState.base_price = Math.max(0, parseFloat(val('f-base-price')) || 0);
+  }
+}
+
+function sectionsTotalSum() {
+  if (!Array.isArray(quoteState.sections)) return 0;
+  return quoteState.sections.reduce((s, sec) => s + (Number(sec && sec.total) || 0), 0);
 }
 
 function durationLabel(value, unit, fr) {
@@ -540,7 +573,15 @@ function renderTaxPreview() {
   const qst = apply ? round2(sub * 0.09975) : 0;
   const total = round2(sub + gst + qst);
   const totalLabel = apply ? t('total_with_tax') : t('total_no_tax');
-  let h = `<div class="tax-row"><span>${esc(t('subtotal'))}</span><span>$${money(sub)}</span></div>`;
+  let h = '';
+  if (quoteState.quote_mode === 'detailed' && Array.isArray(quoteState.sections) && quoteState.sections.length) {
+    quoteState.sections.forEach((sec, idx) => {
+      const title = (sec && sec.title && sec.title.trim()) || `${lang === 'fr' ? 'Section' : 'Section'} ${idx + 1}`;
+      const amt = Number(sec && sec.total) || 0;
+      h += `<div class="tax-row"><span>${esc(title)}</span><span>$${money(amt)}</span></div>`;
+    });
+  }
+  h += `<div class="tax-row"><span>${esc(t('subtotal'))}</span><span>$${money(sub)}</span></div>`;
   if (apply) {
     h += `<div class="tax-row"><span>TPS 5%</span><span>$${money(gst)}</span></div>`;
     h += `<div class="tax-row"><span>TVQ 9.975%</span><span>$${money(qst)}</span></div>`;
@@ -549,22 +590,51 @@ function renderTaxPreview() {
   document.getElementById('tax-preview').innerHTML = h;
 }
 
-/* Build a single-option array for storage (compatible with sign.html / quotes.html) */
+/* Build a single-option array for storage (compatible with sign.html / quotes.html).
+   In detailed mode we save the sections[] alongside a derived top-level
+   scope_summary (concatenation of section titles + content as Markdown) so any
+   legacy consumer that only reads scope_summary still sees usable text. */
 function buildOptionsArray() {
-  const sub = quoteState.base_price;
+  const detailed = quoteState.quote_mode === 'detailed';
+  const sub = detailed ? sectionsTotalSum() : quoteState.base_price;
   const apply = quoteState.apply_taxes !== false;
   const gst = apply ? round2(sub * 0.05) : 0;
   const qst = apply ? round2(sub * 0.09975) : 0;
+
+  const sections = detailed
+    ? (quoteState.sections || []).map(sec => ({
+        title:         (sec && sec.title) || '',
+        scope_summary: (sec && sec.scope_summary) || '',
+        total:         Math.max(0, Number(sec && sec.total) || 0)
+      }))
+    : [];
+
+  // Derived scope_summary for legacy consumers (search, email previews built
+  // before sections existed). Built as Markdown so renderers that already
+  // understand ## headings render it correctly.
+  const derivedScope = detailed
+    ? sections
+        .filter(s => (s.title && s.title.trim()) || (s.scope_summary && s.scope_summary.trim()))
+        .map(s => {
+          const head = s.title && s.title.trim() ? `## ${s.title.trim()}` : '';
+          const body = s.scope_summary || '';
+          return head ? (body ? `${head}\n${body}` : head) : body;
+        })
+        .join('\n\n')
+    : quoteState.scope_summary;
+
   return [{
     key: 'A',
     title: 'Option A',
-    scope_summary: quoteState.scope_summary,
+    quote_mode: detailed ? 'detailed' : 'simple',
+    scope_summary: derivedScope,
+    sections,
     duration_weeks: quoteState.duration_weeks,
     duration_value: quoteState.duration_value,
     duration_unit:  quoteState.duration_unit,
     materials_included: quoteState.materials_included,
     materials_budget: 0,
-    price_mode: 'single',
+    price_mode: detailed ? 'sections' : 'single',
     base_price: sub,
     apply_taxes: apply,
     promotions: Array.isArray(quoteState.promotions) ? quoteState.promotions.filter(p => p && p.text && p.text.trim()) : [],
@@ -787,6 +857,174 @@ function removePromotion(idx) {
 }
 
 /* ============================================
+   QUOTE MODE — Simplified vs Detailed (sections)
+   ============================================ */
+function setQuoteMode(mode) {
+  quoteState.quote_mode = (mode === 'detailed') ? 'detailed' : 'simple';
+  const isDetailed = quoteState.quote_mode === 'detailed';
+  document.getElementById('chip-mode-simple').className   = 'chip' + (isDetailed ? '' : ' active');
+  document.getElementById('chip-mode-detailed').className = 'chip' + (isDetailed ? ' active' : '');
+  document.getElementById('simple-mode-block').style.display   = isDetailed ? 'none' : '';
+  document.getElementById('detailed-mode-block').style.display = isDetailed ? '' : 'none';
+  // Hide the single-price input in detailed mode; sections drive the total.
+  document.getElementById('base-price-group').style.display = isDetailed ? 'none' : '';
+  if (isDetailed && (!Array.isArray(quoteState.sections) || quoteState.sections.length === 0)) {
+    quoteState.sections = [makeBlankSection()];
+  }
+  buildSectionsUI();
+  renderTaxPreview();
+  saveDraft();
+}
+
+function makeBlankSection() {
+  return { title: '', scope_summary: '', total: 0 };
+}
+
+function buildSectionsUI() {
+  const container = document.getElementById('sections-container');
+  if (!container) return;
+  if (!Array.isArray(quoteState.sections)) quoteState.sections = [];
+  container.innerHTML = quoteState.sections.map((sec, idx) => renderSectionCard(sec, idx)).join('');
+}
+
+function renderSectionCard(sec, idx) {
+  const title = (sec && sec.title) || '';
+  const scope = (sec && sec.scope_summary) || '';
+  const total = (sec && sec.total) || '';
+  const taId  = `f-section-scope-${idx}`;
+  return `<div class="section-card" data-idx="${idx}">
+    <div class="section-card-head">
+      <div class="section-card-num">${idx + 1}</div>
+      <input class="form-input section-card-title" type="text"
+             placeholder="${esc(t('section_title_ph'))}"
+             value="${esc(title)}"
+             oninput="onSectionTitleInput(${idx}, this.value)">
+      <button type="button" class="section-card-remove" onclick="removeSection(${idx})" title="${esc(t('remove_section'))}">
+        <span class="material-icons-round" style="font-size:18px;">close</span>
+      </button>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label class="form-label">${esc(t('section_scope_label'))}</label>
+      <div class="scope-toolbar" role="toolbar" aria-label="${esc(t('scope_fmt_subtitle'))}">
+        <button type="button" class="tb-btn" onclick="sectionFormat(${idx}, 'bold')"     title="${esc(t('scope_fmt_bold'))}"><b>B</b></button>
+        <button type="button" class="tb-btn" onclick="sectionFormat(${idx}, 'subtitle')" title="${esc(t('scope_fmt_subtitle'))}"><span class="material-icons-round">title</span><span>${esc(t('scope_fmt_subtitle_label'))}</span></button>
+        <button type="button" class="tb-btn" onclick="sectionFormat(${idx}, 'bullet')"   title="${esc(t('scope_fmt_bullet'))}"><span class="material-icons-round">format_list_bulleted</span><span>${esc(t('scope_fmt_bullet_label'))}</span></button>
+        <button type="button" class="tb-btn tb-grammar" onclick="correctGrammar('${taId}', this)" title="${esc(t('scope_fmt_grammar'))}"><span class="material-icons-round">auto_fix_high</span><span>${esc(t('scope_fmt_grammar_label'))}</span></button>
+      </div>
+      <textarea id="${taId}" class="form-textarea" rows="6" style="min-height:130px;"
+                oninput="onSectionScopeInput(${idx}, this.value)">${esc(scope)}</textarea>
+      <div class="form-helper">${t('scope_fmt_hint')}</div>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">${esc(t('section_total_label'))}</label>
+      <input class="form-input" type="number" min="0" step="100"
+             value="${total === 0 || total === '' ? '' : total}"
+             oninput="onSectionTotalInput(${idx}, this.value)">
+    </div>
+  </div>`;
+}
+
+function addSection() {
+  if (!Array.isArray(quoteState.sections)) quoteState.sections = [];
+  quoteState.sections.push(makeBlankSection());
+  buildSectionsUI();
+  renderTaxPreview();
+  saveDraft();
+  const cards = document.querySelectorAll('#sections-container .section-card .section-card-title');
+  if (cards.length) cards[cards.length - 1].focus();
+}
+
+function removeSection(idx) {
+  if (!Array.isArray(quoteState.sections) || !quoteState.sections[idx]) return;
+  quoteState.sections.splice(idx, 1);
+  if (quoteState.sections.length === 0) quoteState.sections.push(makeBlankSection());
+  buildSectionsUI();
+  renderTaxPreview();
+  saveDraft();
+}
+
+function onSectionTitleInput(idx, value) {
+  if (!quoteState.sections[idx]) return;
+  quoteState.sections[idx].title = value;
+  saveDraft();
+}
+function onSectionScopeInput(idx, value) {
+  if (!quoteState.sections[idx]) return;
+  quoteState.sections[idx].scope_summary = value;
+  saveDraft();
+}
+function onSectionTotalInput(idx, value) {
+  if (!quoteState.sections[idx]) return;
+  quoteState.sections[idx].total = Math.max(0, parseFloat(value) || 0);
+  renderTaxPreview();
+  saveDraft();
+}
+
+/* Apply the same Markdown formatting helpers to a section's scope textarea.
+   Re-uses scopeFormat() by temporarily pointing it at the right element. */
+function sectionFormat(idx, kind) {
+  const ta = document.getElementById(`f-section-scope-${idx}`);
+  if (!ta) return;
+  scopeFormatOnTextarea(ta, kind);
+  // Mirror the new textarea value back into state and persist.
+  if (quoteState.sections[idx]) {
+    quoteState.sections[idx].scope_summary = ta.value;
+  }
+  saveDraft();
+}
+
+/* ============================================
+   GRAMMAR CORRECTOR — calls fix-grammar edge function
+   ============================================ */
+async function correctGrammar(textareaId, btn) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const text = ta.value;
+  if (!text.trim()) { showToast(t('grammar_empty')); return; }
+
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-ring" style="width:14px;height:14px;border-width:2px;"></span><span>${esc(t('grammar_correcting'))}</span>`;
+  }
+
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/fix-grammar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ text, lang })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+    const corrected = String(data.text || '');
+    if (corrected.trim() === text.trim()) {
+      showToast(t('grammar_unchanged'));
+    } else {
+      ta.value = corrected;
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      showToast(t('grammar_fixed'));
+      // For section textareas, also mirror back into quoteState (the input
+      // event above already does this when the handler is bound, but the
+      // assignment for f-scope happens via readFormIntoState — covered there).
+    }
+    saveDraft();
+  } catch (err) {
+    console.error('[correctGrammar]', err);
+    showToast(t('grammar_failed') + ' : ' + (err.message || err));
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+/* ============================================
    SIGNATURE PAD
    ============================================ */
 function initContractorSignaturePad() {
@@ -924,8 +1162,26 @@ async function loadDraftById(id) {
     document.getElementById('f-project-title').value  = data.project_title  || '';
 
     const opt = Array.isArray(data.options) && data.options[0] ? data.options[0] : null;
+
+    // Restore mode + sections (detailed) OR scope + price (simple).
+    const isDetailed = opt && (opt.quote_mode === 'detailed' || (Array.isArray(opt.sections) && opt.sections.length > 0));
+    quoteState.quote_mode = isDetailed ? 'detailed' : 'simple';
+    quoteState.sections = isDetailed && Array.isArray(opt.sections)
+      ? opt.sections.map(s => ({
+          title:         (s && s.title) || '',
+          scope_summary: (s && s.scope_summary) || '',
+          total:         Math.max(0, Number(s && s.total) || 0)
+        }))
+      : [];
+    document.getElementById('chip-mode-simple').className   = 'chip' + (isDetailed ? '' : ' active');
+    document.getElementById('chip-mode-detailed').className = 'chip' + (isDetailed ? ' active' : '');
+    document.getElementById('simple-mode-block').style.display   = isDetailed ? 'none' : '';
+    document.getElementById('detailed-mode-block').style.display = isDetailed ? '' : 'none';
+    document.getElementById('base-price-group').style.display    = isDetailed ? 'none' : '';
+
     document.getElementById('f-scope').value      = opt?.scope_summary    || (data.ai_conversation?.source_text || '');
-    document.getElementById('f-base-price').value = opt?.base_price       || '';
+    document.getElementById('f-base-price').value = (!isDetailed && opt?.base_price) ? opt.base_price : '';
+    buildSectionsUI();
 
     // Duration: prefer the saved value+unit pair, fall back to weeks-only
     const savedUnit  = opt?.duration_unit  || data.ai_conversation?.duration_unit  || 'weeks';
@@ -1023,8 +1279,15 @@ async function saveAndSendForSignature() {
   readFormIntoState();
   const clientName = val('f-client-name');
   if (!clientName) { showToast(t('client_name_required')); return; }
-  if (!quoteState.scope_summary.trim()) { showToast(t('scope_required')); return; }
-  if (quoteState.base_price <= 0) { showToast(t('price_required')); return; }
+  if (quoteState.quote_mode === 'detailed') {
+    const usable = (quoteState.sections || []).filter(s =>
+      ((s.scope_summary || '').trim() !== '' || (s.title || '').trim() !== '') && Number(s.total) > 0
+    );
+    if (!usable.length) { showToast(t('sections_required')); return; }
+  } else {
+    if (!quoteState.scope_summary.trim()) { showToast(t('scope_required')); return; }
+    if (quoteState.base_price <= 0) { showToast(t('price_required')); return; }
+  }
   if (!contractorSignatureData) { showToast(t('signature_required')); return; }
   const selSched = findSchedule(selectedPaymentOption);
   if (scheduleTotalPct(selSched) !== 100) { showToast(t('schedule_invalid_save')); return; }
@@ -1234,10 +1497,23 @@ function renderFinalQuote() {
   h += `<div class="qp-option-title"></div>`;
   h += `<div class="qp-option-total">$${money(total)}</div>`;
   h += '</div>';
-  if (quoteState.scope_summary) {
+
+  const detailed = quoteState.quote_mode === 'detailed' && Array.isArray(quoteState.sections) && quoteState.sections.length;
+  if (detailed) {
+    quoteState.sections.forEach((sec, idx) => {
+      const title = (sec && sec.title && sec.title.trim()) || `${fr ? 'Section' : 'Section'} ${idx + 1}`;
+      h += `<div class="qp-section-block">`;
+      h += `<div class="qp-section-head"><div class="qp-section-title">${esc(title)}</div><div class="qp-section-total">$${money(Number(sec && sec.total) || 0)}</div></div>`;
+      if (sec && sec.scope_summary) {
+        h += `<div class="qp-scope">${renderScopeMarkdown(sec.scope_summary)}</div>`;
+      }
+      h += `</div>`;
+    });
+  } else if (quoteState.scope_summary) {
     h += `<div class="qp-scope">${renderScopeMarkdown(quoteState.scope_summary)}</div>`;
   }
-  h += `<div style="font-size:12px;color:#5f6368;margin-bottom:8px;">`;
+
+  h += `<div style="font-size:12px;color:#5f6368;margin:${detailed ? '12px' : '0'} 0 8px;">`;
   h += `<strong>${fr ? 'Durée' : 'Duration'}:</strong> ${esc(durationLabel(quoteState.duration_value, quoteState.duration_unit, fr))} · `;
   h += quoteState.materials_included
     ? `<span class="qp-badge included">${fr ? 'Matériaux inclus' : 'Materials included'}</span>`
@@ -1428,6 +1704,11 @@ function renderScopeMarkdown(text) {
    bullet   → adds "- " to the start of each selected line (or current line) */
 function scopeFormat(kind) {
   const ta = document.getElementById('f-scope');
+  scopeFormatOnTextarea(ta, kind);
+  saveDraft();
+}
+
+function scopeFormatOnTextarea(ta, kind) {
   if (!ta) return;
   ta.focus();
   const value = ta.value;
@@ -1455,7 +1736,6 @@ function scopeFormat(kind) {
     ta.setSelectionRange(lineStart, newEnd);
   }
   ta.dispatchEvent(new Event('input', { bubbles: true }));
-  saveDraft();
 }
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 function round2(n) { return Math.round(n * 100) / 100; }
