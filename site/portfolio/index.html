@@ -3,39 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Avant / Après — Portfolio MLP Reno & Design</title>
-    <meta name="description" content="Découvrez les transformations avant/après de nos rénovations de salles de bain à Montréal, Laval et Longueuil. Travail soigné par un entrepreneur général certifié RBQ.">
+    <title>Portfolio — Réalisations MLP Reno & Design</title>
+    <meta name="description" content="Découvrez nos rénovations résidentielles : salles de bain, cuisines et rénovations complètes. Transformations avant/après par un entrepreneur général certifié RBQ à Montréal.">
     <meta name="robots" content="index, follow">
 
-    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://mlprenodesign.ca/portfolio/">
     <meta property="og:site_name" content="MLP Reno & Design">
-    <meta property="og:title" content="Avant / Après — Salles de bain | MLP Reno & Design">
-    <meta property="og:description" content="✨ 5 transformations complètes de salles de bain. Glissez pour comparer l'avant et l'après. Entrepreneur général RBQ • Estimation gratuite ☎ (450) 500-8936">
+    <meta property="og:title" content="Portfolio — Réalisations MLP Reno & Design">
+    <meta property="og:description" content="Salles de bain · Cuisines · Rénovations complètes. Transformations avant / après par un entrepreneur général certifié RBQ.">
     <meta property="og:image" content="https://mlprenodesign.ca/css/js/assets/images/og-logo.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="fr_CA">
 
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Avant / Après — Salles de bain | MLP Reno & Design">
-    <meta name="twitter:description" content="Glissez pour comparer l'avant et l'après de nos rénovations de salles de bain.">
+    <meta name="twitter:title" content="Portfolio — MLP Reno & Design">
+    <meta name="twitter:description" content="Salles de bain · Cuisines · Rénovations complètes.">
     <meta name="twitter:image" content="https://mlprenodesign.ca/css/js/assets/images/og-logo.png">
 
     <meta name="theme-color" content="#1a1f2e">
     <link rel="canonical" href="https://mlprenodesign.ca/portfolio/">
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-    /* ============================================
-       Design tokens — aligned with main MLP site
-       ============================================ */
     :root {
         --color-dark: #1a1f2e;
         --color-darker: #12161f;
@@ -45,7 +39,7 @@
         --color-line: #e8e9ec;
         --color-bg: #ffffff;
         --color-surface: #f6f5f1;
-        --color-accent: #b58e5a; /* warm copper accent for luxury feel */
+        --color-accent: #b58e5a;
         --color-accent-deep: #8c6a3f;
         --shadow-sm: 0 4px 16px rgba(15, 17, 25, 0.06);
         --shadow-md: 0 12px 40px rgba(15, 17, 25, 0.10);
@@ -53,6 +47,7 @@
         --radius-sm: 8px;
         --radius-md: 14px;
         --radius-lg: 22px;
+        --radius-xl: 32px;
         --container: 1200px;
         --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -69,7 +64,7 @@
         -moz-osx-font-smoothing: grayscale;
         overflow-x: hidden;
     }
-    img { max-width: 100%; display: block; }
+    img, video { max-width: 100%; display: block; }
     a { color: inherit; text-decoration: none; }
     button { font-family: inherit; cursor: pointer; border: none; background: none; }
 
@@ -81,7 +76,7 @@
     }
 
     /* ============================================
-       Top bar (minimal)
+       Top bar
        ============================================ */
     .topbar {
         position: sticky;
@@ -144,9 +139,9 @@
        ============================================ */
     .hero {
         position: relative;
-        padding: 120px 0 90px;
+        padding: 140px 0 110px;
         background:
-            radial-gradient(1200px 500px at 75% -10%, rgba(181, 142, 90, 0.10), transparent 60%),
+            radial-gradient(1200px 600px at 75% -10%, rgba(181, 142, 90, 0.10), transparent 60%),
             radial-gradient(900px 400px at 10% 110%, rgba(26, 31, 46, 0.04), transparent 60%),
             var(--color-surface);
         overflow: hidden;
@@ -163,7 +158,7 @@
         -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 75%);
         pointer-events: none;
     }
-    .hero-inner { position: relative; }
+    .hero-inner { position: relative; text-align: center; }
     .eyebrow {
         display: inline-flex;
         align-items: center;
@@ -188,11 +183,12 @@
     .hero-title {
         font-family: var(--font-serif);
         font-weight: 500;
-        font-size: clamp(40px, 7vw, 84px);
-        line-height: 1.02;
-        letter-spacing: -0.02em;
-        margin: 22px 0 18px;
+        font-size: clamp(44px, 8vw, 96px);
+        line-height: 1.0;
+        letter-spacing: -0.025em;
+        margin: 26px auto 22px;
         color: var(--color-dark);
+        max-width: 14ch;
     }
     .hero-title em {
         font-style: italic;
@@ -200,343 +196,241 @@
         font-weight: 500;
     }
     .hero-sub {
-        max-width: 620px;
+        max-width: 640px;
+        margin: 0 auto;
         font-size: clamp(15px, 1.6vw, 18px);
         color: var(--color-muted);
         line-height: 1.65;
     }
 
-    .hero-stats {
-        margin-top: 44px;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
-        max-width: 640px;
-    }
-    .stat {
-        padding: 18px 20px;
-        background: white;
-        border: 1px solid var(--color-line);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-    }
-    .stat-num {
-        font-family: var(--font-serif);
-        font-size: 28px;
-        font-weight: 600;
-        color: var(--color-dark);
-        line-height: 1;
-    }
-    .stat-lbl {
-        margin-top: 6px;
-        font-size: 12px;
-        color: var(--color-muted);
-        letter-spacing: 0.3px;
-    }
-    @media (max-width: 480px) {
-        .hero { padding: 80px 0 60px; }
-        .hero-stats { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .stat { padding: 14px 12px; }
-        .stat-num { font-size: 22px; }
-        .stat-lbl { font-size: 11px; }
-    }
-
-    /* ============================================
-       Filter / categories
-       ============================================ */
-    .filters {
-        padding: 56px 0 12px;
-    }
-    .filters-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: center;
-        justify-content: center;
-    }
-    .pill {
+    .hero-meta {
+        margin-top: 48px;
         display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 11px 20px;
-        border-radius: 999px;
-        font-size: 14px;
-        font-weight: 500;
-        background: white;
-        color: var(--color-dark);
-        border: 1px solid var(--color-line);
-        transition: all .25s ease;
-    }
-    .pill .count {
-        font-size: 11px;
-        padding: 2px 8px;
-        background: rgba(15, 17, 25, 0.06);
-        border-radius: 999px;
-        color: var(--color-muted);
-        font-weight: 600;
-    }
-    .pill.active {
-        background: var(--color-dark);
-        color: white;
-        border-color: var(--color-dark);
-    }
-    .pill.active .count {
-        background: rgba(255,255,255,0.15);
-        color: white;
-    }
-    .pill.disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-    }
-    .pill .soon {
-        font-size: 10px;
-        padding: 2px 8px;
-        background: rgba(181, 142, 90, 0.12);
-        color: var(--color-accent-deep);
-        border-radius: 999px;
-        font-weight: 600;
-        letter-spacing: 0.4px;
+        flex-wrap: wrap;
+        gap: 26px 38px;
+        justify-content: center;
+        font-size: 12px;
+        letter-spacing: 1.2px;
         text-transform: uppercase;
+        color: var(--color-muted);
+    }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 9px; }
+    .hero-meta span::before {
+        content: "";
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--color-accent);
     }
 
     /* ============================================
-       Gallery
+       Category cards
        ============================================ */
-    .gallery {
-        padding: 60px 0 100px;
+    .categories {
+        padding: 100px 0 60px;
     }
     .section-head {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 30px;
-        margin-bottom: 48px;
-        padding-bottom: 22px;
-        border-bottom: 1px solid var(--color-line);
+        max-width: 880px;
+        margin: 0 auto 70px;
+        text-align: center;
+    }
+    .section-kicker {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--color-accent-deep);
+        margin-bottom: 16px;
     }
     .section-title {
         font-family: var(--font-serif);
-        font-size: clamp(28px, 4vw, 44px);
+        font-size: clamp(32px, 4.6vw, 54px);
         font-weight: 500;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.015em;
         color: var(--color-dark);
         line-height: 1.1;
     }
-    .section-meta {
-        font-size: 13px;
-        color: var(--color-muted);
-        letter-spacing: 0.3px;
-        white-space: nowrap;
-    }
 
-    .grid {
+    .cat-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 56px;
+        gap: 28px;
     }
-    @media (min-width: 980px) {
-        .grid { grid-template-columns: 1fr 1fr; gap: 56px 40px; }
-        /* feature first project full width */
-        .grid > .project:first-child { grid-column: 1 / -1; }
+    @media (min-width: 760px) {
+        .cat-grid { grid-template-columns: 1.5fr 1fr; grid-auto-rows: minmax(0, auto); }
+        .cat-card:first-child { grid-row: span 2; }
     }
-
-    .project {
-        opacity: 0;
-        transform: translateY(24px);
-        transition: opacity .9s ease, transform .9s ease;
-    }
-    .project.in-view { opacity: 1; transform: none; }
-
-    .project-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 18px;
-        margin-bottom: 16px;
-    }
-    .project-num {
-        font-family: var(--font-serif);
-        font-style: italic;
-        font-size: 14px;
-        color: var(--color-accent-deep);
-        letter-spacing: 0.5px;
-    }
-    .project-title {
-        font-family: var(--font-serif);
-        font-weight: 500;
-        font-size: clamp(22px, 2.6vw, 30px);
-        letter-spacing: -0.01em;
-        color: var(--color-dark);
-        line-height: 1.2;
-    }
-    .project-tag {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 500;
-        letter-spacing: 0.6px;
-        text-transform: uppercase;
-        color: var(--color-muted);
-        padding: 5px 11px;
-        background: var(--color-surface);
-        border-radius: 999px;
+    @media (min-width: 1080px) {
+        .cat-grid { grid-template-columns: 1.4fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 28px; }
+        .cat-card:nth-child(1) { grid-row: 1 / span 2; }
+        .cat-card:nth-child(2) { grid-column: 2 / span 2; grid-row: 1; }
+        .cat-card:nth-child(3) { grid-column: 2; grid-row: 2; }
+        .cat-card:nth-child(4) { grid-column: 3; grid-row: 2; }
     }
 
-    /* ============================================
-       Before / After toggle
-       ============================================ */
-    .ba {
+    .cat-card {
         position: relative;
-        width: 100%;
-        aspect-ratio: 3 / 4;
-        border-radius: var(--radius-lg);
+        display: block;
+        border-radius: var(--radius-xl);
         overflow: hidden;
         background: #11151c;
-        box-shadow: var(--shadow-md);
+        min-height: 380px;
         isolation: isolate;
+        transition: transform .5s cubic-bezier(.2,.7,.2,1), box-shadow .5s ease;
+        box-shadow: var(--shadow-md);
     }
-    .ba.ratio-4-3 { aspect-ratio: 4 / 3; }
-    .ba.ratio-3-4 { aspect-ratio: 3 / 4; }
-    .ba.ratio-1-1 { aspect-ratio: 1 / 1; }
-
-    .ba-img {
+    .cat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+    .cat-card .bg {
         position: absolute;
         inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        background: #11151c;
-        opacity: 0;
-        transition: opacity .55s ease;
-        backface-visibility: hidden;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        opacity: 0.82;
+        transition: transform 1.2s cubic-bezier(.2,.7,.2,1), opacity .5s ease;
+        z-index: 0;
     }
-    .ba-img.is-active { opacity: 1; }
-
-    .ba-corner {
+    .cat-card:hover .bg {
+        transform: scale(1.05);
+        opacity: 0.92;
+    }
+    .cat-card::after {
+        content: "";
         position: absolute;
-        top: 18px;
-        left: 18px;
-        padding: 6px 13px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 1.2px;
-        text-transform: uppercase;
-        color: white;
-        background: rgba(15, 17, 25, 0.62);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border-radius: 999px;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(13,17,26,0) 0%, rgba(13,17,26,0.0) 35%, rgba(13,17,26,0.78) 90%, rgba(13,17,26,0.92) 100%);
+        z-index: 1;
         pointer-events: none;
-        transition: background .35s ease;
     }
-    .ba[data-state="after"] .ba-corner {
-        background: rgba(181, 142, 90, 0.85);
-    }
-
-    .ba-toggle {
+    .cat-content {
         position: absolute;
-        bottom: 18px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 5px;
-        background: rgba(15, 17, 25, 0.62);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 999px;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        inset: auto 0 0 0;
+        z-index: 2;
+        padding: 30px 32px 30px;
+        color: white;
     }
-    .ba-toggle button {
-        position: relative;
-        padding: 9px 22px;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        color: rgba(255,255,255,0.7);
-        border-radius: 999px;
-        transition: color .25s ease;
-    }
-    .ba-toggle button:hover { color: white; }
-    .ba-toggle button.is-active {
-        color: var(--color-dark);
-        background: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-    .ba-toggle button:focus-visible {
-        outline: 2px solid var(--color-accent);
-        outline-offset: 2px;
-    }
-
-    @media (max-width: 540px) {
-        .ba-corner { font-size: 10px; padding: 5px 10px; top: 12px; left: 12px; }
-        .ba-toggle { bottom: 12px; }
-        .ba-toggle button { padding: 8px 18px; font-size: 11px; }
-    }
-
-    /* ============================================
-       Featured / hover-flip variant
-       ============================================ */
-    .ba.hover-flip {
-        aspect-ratio: 3 / 4;
-        max-width: 720px;
-        margin-left: auto;
-        margin-right: auto;
-        cursor: pointer;
-    }
-    @media (max-width: 760px) {
-        .ba.hover-flip { aspect-ratio: 3 / 4; }
-    }
-    .ba.hover-flip .ba-img {
-        transition: opacity .8s ease;
-    }
-
-    .ba-flip-hint {
-        position: absolute;
-        top: 18px;
-        right: 18px;
+    .cat-count {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 14px;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.8px;
+        letter-spacing: 1.4px;
         text-transform: uppercase;
-        color: white;
-        background: rgba(15, 17, 25, 0.55);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        color: rgba(255,255,255,0.85);
+        margin-bottom: 12px;
+    }
+    .cat-count::before {
+        content: "";
+        width: 22px; height: 1px;
+        background: var(--color-accent);
+    }
+    .cat-name {
+        font-family: var(--font-serif);
+        font-size: clamp(28px, 3vw, 38px);
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        line-height: 1.05;
+        margin-bottom: 8px;
+    }
+    .cat-desc {
+        font-size: 14px;
+        color: rgba(255,255,255,0.72);
+        max-width: 36ch;
+        line-height: 1.55;
+    }
+    .cat-arrow {
+        position: absolute;
+        top: 26px;
+        right: 26px;
+        z-index: 2;
+        width: 44px;
+        height: 44px;
         border-radius: 999px;
-        pointer-events: none;
-        opacity: 1;
-        transition: opacity .35s ease, transform .35s ease;
+        background: rgba(255,255,255,0.10);
+        border: 1px solid rgba(255,255,255,0.18);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: grid;
+        place-items: center;
+        color: white;
+        transition: all .35s ease;
     }
-    .ba.hover-flip:hover .ba-flip-hint,
-    .ba.hover-flip.is-touched .ba-flip-hint {
-        opacity: 0;
-        transform: translateY(-4px);
+    .cat-card:hover .cat-arrow {
+        background: white;
+        color: var(--color-dark);
+        transform: rotate(-45deg);
     }
-    .ba-flip-hint svg { width: 14px; height: 14px; }
+    .cat-arrow svg { width: 16px; height: 16px; }
 
-    /* Subtle pulse on the hint until first interaction */
-    @keyframes baPulse {
-        0%, 100% { transform: translateY(0); }
-        50%      { transform: translateY(-3px); }
+    .cat-card.featured .cat-name { font-size: clamp(34px, 4vw, 48px); }
+
+    .cat-card.coming-soon {
+        background: linear-gradient(140deg, #1f2638 0%, #11151c 100%);
+        cursor: default;
     }
-    .ba.hover-flip:not(.is-touched) .ba-flip-hint {
-        animation: baPulse 2.4s ease-in-out infinite;
+    .cat-card.coming-soon:hover { transform: none; }
+    .cat-card.coming-soon::after { background: none; }
+    .cat-card.coming-soon .cat-content { padding-bottom: 36px; }
+    .cat-card.coming-soon .cat-arrow {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.12);
+        color: rgba(255,255,255,0.55);
+    }
+    .cat-card.coming-soon:hover .cat-arrow {
+        background: rgba(255,255,255,0.04);
+        color: rgba(255,255,255,0.55);
+        transform: none;
+    }
+    .badge-soon {
+        display: inline-block;
+        padding: 4px 11px;
+        font-size: 10px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        font-weight: 600;
+        background: rgba(181, 142, 90, 0.18);
+        color: var(--color-accent);
+        border-radius: 999px;
+        margin-top: 14px;
     }
 
-    @media (max-width: 540px) {
-        .ba-flip-hint { font-size: 10px; padding: 6px 10px; top: 12px; right: 12px; }
+    /* ============================================
+       Trust band
+       ============================================ */
+    .trust {
+        padding: 80px 0;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-line);
+        border-bottom: 1px solid var(--color-line);
     }
-
-    /* Full width feature card */
-    @media (min-width: 980px) {
-        .grid > .project:first-child { grid-column: 1 / -1; }
-        .grid > .project:first-child .project-title { font-size: clamp(28px, 3.4vw, 40px); }
+    .trust-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+    }
+    @media (min-width: 720px) {
+        .trust-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
+    }
+    .trust-item {
+        text-align: center;
+    }
+    .trust-num {
+        font-family: var(--font-serif);
+        font-size: clamp(32px, 4vw, 44px);
+        font-weight: 500;
+        color: var(--color-dark);
+        line-height: 1;
+    }
+    .trust-lbl {
+        margin-top: 8px;
+        font-size: 12px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--color-muted);
+        font-weight: 500;
     }
 
     /* ============================================
@@ -544,7 +438,7 @@
        ============================================ */
     .cta {
         position: relative;
-        padding: 90px 0;
+        padding: 110px 0;
         background: var(--color-dark);
         color: white;
         overflow: hidden;
@@ -561,7 +455,7 @@
     .cta-inner {
         position: relative;
         text-align: center;
-        max-width: 720px;
+        max-width: 760px;
         margin: 0 auto;
     }
     .cta-eyebrow {
@@ -575,16 +469,18 @@
     .cta h2 {
         font-family: var(--font-serif);
         font-weight: 500;
-        font-size: clamp(28px, 4.5vw, 48px);
-        letter-spacing: -0.01em;
-        line-height: 1.15;
-        margin-bottom: 18px;
+        font-size: clamp(30px, 4.6vw, 52px);
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin-bottom: 20px;
     }
     .cta p {
         font-size: 16px;
         color: rgba(255,255,255,0.72);
         line-height: 1.6;
-        margin-bottom: 36px;
+        margin-bottom: 40px;
+        max-width: 56ch;
+        margin-left: auto; margin-right: auto;
     }
     .cta-actions {
         display: inline-flex;
@@ -636,163 +532,142 @@
     .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
 
     /* ============================================
-       Reduced motion
+       Reveal animations
        ============================================ */
+    .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity .9s ease, transform .9s ease;
+    }
+    .reveal.in-view { opacity: 1; transform: none; }
+
     @media (prefers-reduced-motion: reduce) {
         * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-        .project { opacity: 1; transform: none; }
+        .reveal { opacity: 1; transform: none; }
     }
     </style>
 </head>
 <body>
 
-    <!-- ====================== TOP BAR ====================== -->
     <header class="topbar">
         <div class="container topbar-inner">
-            <a href="../index.html" class="brand" aria-label="Retour à MLP Reno & Design">
+            <a href="/" class="brand" aria-label="Retour à MLP Reno & Design">
                 <span class="brand-mark">M</span>
                 <span class="brand-name">MLP Reno &amp; Design <span>· Portfolio</span></span>
             </a>
-            <a href="../index.html#contact" class="topbar-cta">
+            <a href="/#contact" class="topbar-cta">
                 <span class="lbl">Estimation gratuite</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </a>
         </div>
     </header>
 
-    <!-- ====================== HERO ====================== -->
     <section class="hero">
         <div class="container hero-inner">
-            <span class="eyebrow"><span class="dot"></span>Avant · Après · Réalisations</span>
-            <h1 class="hero-title">Des <em>transformations</em><br>qui parlent d'elles-mêmes.</h1>
+            <span class="eyebrow"><span class="dot"></span>Portfolio · Réalisations</span>
+            <h1 class="hero-title">Du <em>croquis</em><br>à la <em>finition.</em></h1>
             <p class="hero-sub">
-                Survolez l'image vedette ou utilisez les onglets <strong>Avant&nbsp;/&nbsp;Après</strong> pour découvrir chaque transformation de <strong>salle de bain</strong>.
+                Chaque projet est mené sous une même équipe — plomberie, électricité, céramique, ébénisterie, finitions. Voici nos rénovations, par catégorie.
             </p>
-
+            <div class="hero-meta">
+                <span>Salles de bain</span>
+                <span>Cuisines</span>
+                <span>Rénovations complètes</span>
+            </div>
         </div>
     </section>
 
-    <!-- ====================== GALLERY ====================== -->
-    <section class="gallery" id="bathrooms">
+    <section class="categories">
         <div class="container">
-            <div class="section-head">
-                <h2 class="section-title">Salles de bain</h2>
-                <span class="section-meta">Quelques réalisations</span>
+            <div class="section-head reveal">
+                <div class="section-kicker">Explorer par catégorie</div>
+                <h2 class="section-title">Trois spécialités. Une équipe.</h2>
             </div>
 
-            <div class="grid">
+            <div class="cat-grid">
 
-                <!-- Project — featured -->
-                <article class="project" data-project>
-                    <header class="project-head">
-                        <div>
-                            <h3 class="project-title">Boucherville</h3>
-                        </div>
-                        <span class="project-tag">Salle de bain</span>
-                    </header>
-                    <div class="ba ratio-3-4 hover-flip" data-ba data-state="before" aria-label="Avant et après — Boucherville" tabindex="0">
-                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-5-before.jpg" alt="Salle de bain à Boucherville — avant rénovation" loading="eager" decoding="async">
-                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-5-after.jpg" alt="Salle de bain à Boucherville — après rénovation" loading="eager" decoding="async">
-                        <span class="ba-corner" data-corner>Avant</span>
-                        <span class="ba-flip-hint">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><polyline points="21 4 21 9 16 9"></polyline></svg>
-                            Survolez pour révéler
-                        </span>
-                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
-                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
-                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
-                        </div>
+                <a href="/portfolio/renovations-completes/" class="cat-card featured reveal">
+                    <img class="bg" src="/css/js/assets/images/portfolio/complete/thomas-dubuc/after-frontage-2.jpeg" alt="Maison Thomas-Dubuc — après rénovation complète" loading="eager" decoding="async">
+                    <span class="cat-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <div class="cat-content">
+                        <div class="cat-count">2 projets</div>
+                        <h3 class="cat-name">Rénovations<br>complètes</h3>
+                        <p class="cat-desc">Maisons transformées du toit aux fondations — façades, intérieurs, sous-sols et logements locatifs.</p>
                     </div>
-                </article>
+                </a>
 
-                <!-- Project 01 -->
-                <article class="project" data-project>
-                    <header class="project-head">
-                        <div>
-                            <h3 class="project-title">Brossard</h3>
-                        </div>
-                        <span class="project-tag">Salle de bain</span>
-                    </header>
-                    <div class="ba ratio-3-4" data-ba data-state="before" aria-label="Avant et après — Projet 01">
-                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-1-before.jpg" alt="Salle de bain — avant rénovation, projet 01" loading="lazy" decoding="async">
-                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-1-after.jpg" alt="Salle de bain — après rénovation, projet 01" loading="lazy" decoding="async">
-                        <span class="ba-corner" data-corner>Avant</span>
-                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
-                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
-                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
-                        </div>
+                <a href="/portfolio/salles-de-bain/" class="cat-card reveal">
+                    <img class="bg" src="/css/js/assets/images/portfolio/bathrooms/bathroom-5-after.jpg" alt="Salle de bain rénovée — Boucherville" loading="lazy" decoding="async">
+                    <span class="cat-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <div class="cat-content">
+                        <div class="cat-count">5 projets</div>
+                        <h3 class="cat-name">Salles de bain</h3>
+                        <p class="cat-desc">Céramique, douches sur mesure, vanités intégrées — comparaison avant / après sur chaque projet.</p>
                     </div>
-                </article>
+                </a>
 
-                <!-- Project 02 -->
-                <article class="project" data-project>
-                    <header class="project-head">
-                        <div>
-                            <h3 class="project-title">Saint-Bruno</h3>
-                        </div>
-                        <span class="project-tag">Salle de bain</span>
-                    </header>
-                    <div class="ba ratio-3-4" data-ba data-state="before" aria-label="Avant et après — Projet 02">
-                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-2-before.jpg" alt="Salle de bain — avant rénovation, projet 02" loading="lazy" decoding="async">
-                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-2-after.jpg" alt="Salle de bain — après rénovation, projet 02" loading="lazy" decoding="async">
-                        <span class="ba-corner" data-corner>Avant</span>
-                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
-                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
-                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
-                        </div>
+                <a href="/portfolio/cuisines/" class="cat-card reveal">
+                    <img class="bg" src="/css/js/assets/images/portfolio/kitchens/westgate/after-1.jpeg" alt="Cuisine Westgate — après rénovation" loading="lazy" decoding="async">
+                    <span class="cat-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </span>
+                    <div class="cat-content">
+                        <div class="cat-count">3 projets</div>
+                        <h3 class="cat-name">Cuisines</h3>
+                        <p class="cat-desc">Armoires sur mesure, comptoirs et îlots — vidéos avant / après pour chaque chantier.</p>
                     </div>
-                </article>
+                </a>
 
-                <!-- Project 03 -->
-                <article class="project" data-project>
-                    <header class="project-head">
-                        <div>
-                            <h3 class="project-title">Blainville</h3>
-                        </div>
-                        <span class="project-tag">Salle de bain</span>
-                    </header>
-                    <div class="ba ratio-3-4" data-ba data-state="before" aria-label="Avant et après — Projet 03">
-                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-3-before.jpg" alt="Salle de bain — avant rénovation, projet 03" loading="lazy" decoding="async">
-                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-3-after.jpg" alt="Salle de bain — après rénovation, projet 03" loading="lazy" decoding="async">
-                        <span class="ba-corner" data-corner>Avant</span>
-                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
-                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
-                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
-                        </div>
+                <div class="cat-card coming-soon reveal">
+                    <span class="cat-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </span>
+                    <div class="cat-content">
+                        <div class="cat-count">À venir</div>
+                        <h3 class="cat-name">Sous-sols<br>&amp; extensions</h3>
+                        <p class="cat-desc">Aménagement de sous-sols, agrandissements et extérieurs — bientôt en ligne.</p>
+                        <span class="badge-soon">Bientôt</span>
                     </div>
-                </article>
-
-                <!-- Project 04 -->
-                <article class="project" data-project>
-                    <header class="project-head">
-                        <div>
-                            <h3 class="project-title">Sainte-Julie</h3>
-                        </div>
-                        <span class="project-tag">Salle de bain</span>
-                    </header>
-                    <div class="ba ratio-4-3" data-ba data-state="before" aria-label="Avant et après — Projet 04">
-                        <img class="ba-img is-active" data-role="before" src="../css/js/assets/images/portfolio/bathrooms/bathroom-4-before.jpg" alt="Salle de bain — avant rénovation, projet 04" loading="lazy" decoding="async">
-                        <img class="ba-img" data-role="after" src="../css/js/assets/images/portfolio/bathrooms/bathroom-4-after.jpg" alt="Salle de bain — après rénovation, projet 04" loading="lazy" decoding="async">
-                        <span class="ba-corner" data-corner>Avant</span>
-                        <div class="ba-toggle" role="tablist" aria-label="Choisir avant ou après">
-                            <button type="button" class="is-active" data-target="before" role="tab" aria-selected="true">Avant</button>
-                            <button type="button" data-target="after" role="tab" aria-selected="false">Après</button>
-                        </div>
-                    </div>
-                </article>
+                </div>
 
             </div>
         </div>
     </section>
 
-    <!-- ====================== CTA ====================== -->
+    <section class="trust">
+        <div class="container">
+            <div class="trust-grid">
+                <div class="trust-item">
+                    <div class="trust-num">15+</div>
+                    <div class="trust-lbl">Années d'expérience</div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-num">RBQ</div>
+                    <div class="trust-lbl">Entrepreneur certifié</div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-num">100%</div>
+                    <div class="trust-lbl">Travaux garantis</div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-num">Mtl</div>
+                    <div class="trust-lbl">Grand Montréal</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="cta">
         <div class="container cta-inner">
             <div class="cta-eyebrow">— Prêt à transformer votre espace</div>
-            <h2>Votre salle de bain, repensée<br>du croquis à la finition.</h2>
-            <p>Estimation gratuite, transparente et sans pression. Nous nous occupons de tout — plomberie, électricité, céramique, finitions — sous une même équipe certifiée RBQ.</p>
+            <h2>Votre projet, repensé<br>du croquis à la finition.</h2>
+            <p>Estimation gratuite, transparente et sans pression. Plomberie, électricité, céramique, ébénisterie, finitions — sous une même équipe certifiée RBQ.</p>
             <div class="cta-actions">
-                <a href="../index.html#contact" class="btn btn-primary">
+                <a href="/#contact" class="btn btn-primary">
                     Demander une estimation
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </a>
@@ -804,94 +679,21 @@
         </div>
     </section>
 
-    <!-- ====================== FOOTER ====================== -->
     <footer class="footer">
         <div class="container footer-inner">
             <div>© <span id="year"></span> MLP Reno &amp; Design — Entrepreneur général certifié RBQ</div>
             <div class="footer-links">
-                <a href="../index.html">Site principal</a>
-                <a href="../index.html#services">Services</a>
-                <a href="../index.html#contact">Contact</a>
+                <a href="/">Site principal</a>
+                <a href="/#services">Services</a>
+                <a href="/#contact">Contact</a>
             </div>
         </div>
     </footer>
 
     <script>
-    // ============================================
-    // Before / After toggle
-    // ============================================
     (function () {
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        const LABELS = { before: 'Avant', after: 'Après' };
-
-        function initBA(el) {
-            const imgs    = el.querySelectorAll('.ba-img');
-            const buttons = el.querySelectorAll('.ba-toggle button');
-            const corner  = el.querySelector('[data-corner]');
-            const isFlip  = el.classList.contains('hover-flip');
-
-            const setState = (target) => {
-                el.dataset.state = target;
-                imgs.forEach((img) => img.classList.toggle('is-active', img.dataset.role === target));
-                buttons.forEach((btn) => {
-                    const active = btn.dataset.target === target;
-                    btn.classList.toggle('is-active', active);
-                    btn.setAttribute('aria-selected', active ? 'true' : 'false');
-                });
-                if (corner) corner.textContent = LABELS[target];
-            };
-
-            buttons.forEach((btn) => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    setState(btn.dataset.target);
-                });
-            });
-
-            if (isFlip) {
-                let hoverState = 'before';
-                let touchTimer = null;
-
-                el.addEventListener('mouseenter', () => {
-                    hoverState = 'after';
-                    el.classList.add('is-touched');
-                    setState('after');
-                });
-                el.addEventListener('mouseleave', () => {
-                    hoverState = 'before';
-                    setState('before');
-                });
-
-                // Touch / tap: flip momentarily so mobile users still get the effect
-                el.addEventListener('touchstart', () => {
-                    el.classList.add('is-touched');
-                    setState(el.dataset.state === 'before' ? 'after' : 'before');
-                }, { passive: true });
-
-                // Keyboard accessibility on the focusable container
-                el.addEventListener('focus', () => {
-                    el.classList.add('is-touched');
-                    setState('after');
-                });
-                el.addEventListener('blur', () => setState('before'));
-
-                // Idle teaser: a single subtle preview animation a moment after load
-                setTimeout(() => {
-                    if (el.classList.contains('is-touched')) return;
-                    setState('after');
-                    setTimeout(() => {
-                        if (!el.classList.contains('is-touched')) setState('before');
-                    }, 1400);
-                }, 1800);
-            }
-        }
-
-        document.querySelectorAll('[data-ba]').forEach(initBA);
-
-        // ============================================
-        // Reveal on scroll
-        // ============================================
         if ('IntersectionObserver' in window) {
             const io = new IntersectionObserver((entries) => {
                 entries.forEach((entry) => {
@@ -901,9 +703,9 @@
                     }
                 });
             }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-            document.querySelectorAll('[data-project]').forEach((el) => io.observe(el));
+            document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
         } else {
-            document.querySelectorAll('[data-project]').forEach((el) => el.classList.add('in-view'));
+            document.querySelectorAll('.reveal').forEach((el) => el.classList.add('in-view'));
         }
     })();
     </script>
