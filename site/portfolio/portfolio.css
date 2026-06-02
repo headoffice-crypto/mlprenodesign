@@ -360,6 +360,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .ba-img.is-active, .ba-video.is-active { opacity: 1; }
 
+/* Videos: never crop — show full frame inside the dark tile.
+   Container aspect should match the source where possible. */
+.ba-video { object-fit: contain; }
+
 .ba.fit-contain .ba-img,
 .ba.fit-contain .ba-video {
     object-fit: contain;
@@ -499,7 +503,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     position: absolute;
     inset: 0;
     width: 100%; height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #11151c;
 }
 .showcase-overlay {
     position: absolute;
@@ -509,6 +514,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     color: white;
     z-index: 2;
     pointer-events: none;
+}
+/* Mobile: switch to a taller card so the 16:9 video still reads,
+   the overlay sits in the bottom letterbox, and the text scales down. */
+@media (max-width: 760px) {
+    .showcase {
+        aspect-ratio: 4 / 5;
+    }
+    .showcase-overlay {
+        padding: 18px 20px 20px;
+        background: linear-gradient(180deg, transparent 0%, rgba(13,17,26,0.96) 65%);
+    }
+    .showcase-title { font-size: 22px !important; }
+    .showcase-sub   { font-size: 13px !important; }
+    .showcase-kicker { font-size: 10px; letter-spacing: 1.2px; }
 }
 .showcase-kicker {
     font-size: 11px;

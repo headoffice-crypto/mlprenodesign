@@ -1,0 +1,13 @@
+{
+  "name": "MLP Reno & Design",
+  "short_name": "MLP Reno",
+  "description": "Entrepreneur général certifié RBQ — rénovation résidentielle à Montréal.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#1a1f2e",
+  "background_color": "#1a1f2e",
+  "display": "browser",
+  "start_url": "/"
+}

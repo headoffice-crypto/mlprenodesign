@@ -2,71 +2,60 @@
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1a1f2e"/>
+      <stop offset="55%" stop-color="#161b27"/>
       <stop offset="100%" stop-color="#0d1117"/>
     </linearGradient>
-    <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e0c074"/>
-      <stop offset="100%" stop-color="#c8a45a"/>
+    <radialGradient id="glow" cx="80%" cy="15%" r="55%">
+      <stop offset="0%" stop-color="rgba(181,142,90,0.22)"/>
+      <stop offset="100%" stop-color="rgba(181,142,90,0)"/>
+    </radialGradient>
+    <radialGradient id="glowBl" cx="12%" cy="92%" r="42%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.04)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d4ad6f"/>
+      <stop offset="100%" stop-color="#b58e5a"/>
     </linearGradient>
   </defs>
 
+  <!-- Base + warm radial glows -->
   <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect width="1200" height="630" fill="url(#glowBl)"/>
 
-  <!-- Subtle gold corner accents -->
-  <rect x="0" y="0" width="1200" height="6" fill="#c8a45a"/>
-  <rect x="0" y="624" width="1200" height="6" fill="#c8a45a"/>
+  <!-- Top + bottom hairlines -->
+  <rect x="0" y="0" width="1200" height="1" fill="rgba(255,255,255,0.06)"/>
+  <rect x="0" y="629" width="1200" height="1" fill="rgba(255,255,255,0.06)"/>
 
-  <!-- Gold "M" mark -->
-  <g transform="translate(140 165)">
-    <rect width="300" height="300" rx="56" fill="#1f2533" stroke="url(#goldStroke)" stroke-width="4"/>
-    <text x="150" y="165" text-anchor="middle" dominant-baseline="central"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="800" font-size="200" fill="#c8a45a"
-          letter-spacing="-8">M</text>
+  <!-- Centered composition -->
+  <!-- Monogram tile (top, centered) -->
+  <g transform="translate(510 110)">
+    <rect width="180" height="180" rx="34" ry="34" fill="#1f2535"
+          stroke="rgba(212,173,111,0.30)" stroke-width="1.5"/>
+    <g transform="translate(36 36)" fill="url(#mark)">
+      <path d="M 0 108 L 0 0 L 24 0 L 54 66 L 84 0 L 108 0 L 108 108 L 88.5 108 L 88.5 36 L 63 90 L 45 90 L 19.5 36 L 19.5 108 Z"/>
+    </g>
   </g>
 
-  <!-- Brand name + tagline -->
-  <g transform="translate(495 215)">
-    <text x="0" y="0"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="800" font-size="76" fill="#ffffff"
-          letter-spacing="-1.5">MLP RENO</text>
-    <text x="0" y="86"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="800" font-size="76" fill="#c8a45a"
-          letter-spacing="-1.5">&amp; DESIGN</text>
-    <text x="0" y="160"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="500" font-size="28" fill="#9aa0a6"
-          letter-spacing="3">CONSTRUCTION &amp; RÉNOVATION</text>
-    <text x="0" y="208"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="400" font-size="24" fill="#9aa0a6">
-      Entrepreneur général · Montréal &amp; Grand Montréal
-    </text>
-  </g>
+  <!-- Wordmark (centered horizontally) -->
+  <text x="600" y="380"
+        text-anchor="middle"
+        font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
+        font-weight="500" font-size="86" fill="#ffffff" letter-spacing="-1.2">MLP Reno &amp; Design</text>
 
-  <!-- Bottom credentials bar -->
-  <g transform="translate(140 540)">
-    <text x="0" y="0"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="600" font-size="22" fill="#c8a45a"
-          letter-spacing="1.2">RBQ 5847-0378-01</text>
-    <text x="280" y="0"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="600" font-size="22" fill="#c8a45a"
-          letter-spacing="1.2">·</text>
-    <text x="305" y="0"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="600" font-size="22" fill="#c8a45a"
-          letter-spacing="1.2">15+ ANS D'EXPÉRIENCE</text>
-    <text x="700" y="0"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="600" font-size="22" fill="#c8a45a"
-          letter-spacing="1.2">·</text>
-    <text x="725" y="0"
-          font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif"
-          font-weight="600" font-size="22" fill="#c8a45a"
-          letter-spacing="1.2">MLPRENODESIGN.CA</text>
-  </g>
+  <!-- Copper accent line -->
+  <rect x="555" y="416" width="90" height="2" fill="#b58e5a"/>
+
+  <!-- Tagline -->
+  <text x="600" y="470"
+        text-anchor="middle"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-weight="400" font-size="22" fill="#a8aebd" letter-spacing="4">RÉNOVATION RÉSIDENTIELLE · MONTRÉAL</text>
+
+  <!-- Footer: small RBQ note -->
+  <text x="600" y="555"
+        text-anchor="middle"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
+        font-weight="500" font-size="14" fill="rgba(181,142,90,0.78)" letter-spacing="3">ENTREPRENEUR GÉNÉRAL CERTIFIÉ RBQ</text>
 </svg>
