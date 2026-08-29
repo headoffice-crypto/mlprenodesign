@@ -6,6 +6,14 @@
 
 let lang = 'fr';
 
+// Header back-arrow: same-origin history if available, else follow the href.
+function navBack(e) {
+  const ref = document.referrer;
+  const sameOrigin = ref && ref.startsWith(location.origin) && ref !== location.href;
+  if (sameOrigin) { e.preventDefault(); history.back(); return false; }
+  return true;
+}
+
 /* Quote state — kept compatible with the existing customer-facing
    sign.html / quotes.html which expect an `options` array on the row. */
 let quoteState = {
@@ -1222,11 +1230,27 @@ async function loadDraftById(id) {
     renderTaxPreview();
     refreshSendButtonForState();
     showShareBoxIfSent();
+    showAmendBannerIfAmended();
     showToast(lang === 'fr' ? 'Brouillon chargé.' : 'Draft loaded.');
   } catch (err) {
     console.error('[loadDraftById]', err);
     showToast('Error: ' + err.message);
   }
+}
+
+// After the contractor clicks "Amender" on quotes.html, amendSignedQuote()
+// bumps the revision and marks ai_conversation.amended_from_signed_at. Show
+// a persistent banner so the contractor knows the customer must re-sign.
+function showAmendBannerIfAmended() {
+  if (!savedQuote?.ai_conversation?.amended_from_signed_at) return;
+  const rev = Number(savedQuote?.ai_conversation?.revision) || 2;
+  const msg = lang === 'fr'
+    ? `Amendement d'une soumission signée — version ${rev}. Le client devra signer la nouvelle version après envoi.`
+    : `Amending a signed quote — version ${rev}. The customer will need to sign the updated version.`;
+  const bar = document.getElementById('amend-banner');
+  if (!bar) return;
+  bar.style.display = '';
+  bar.innerHTML = `<span class="material-icons-round" style="font-size:16px;vertical-align:middle;margin-right:6px;">edit_note</span>${msg}`;
 }
 
 // If the loaded quote was already sent (status: sent / viewed / declined / expired),
@@ -1307,7 +1331,12 @@ async function saveAndSendForSignature() {
     const previousStatus = savedQuote?.status || 'draft';
     const isReSend = previousStatus !== 'draft';
     const previousRevision = Number(savedQuote?.ai_conversation?.revision) || 1;
-    const newRevision = isReSend ? previousRevision + 1 : 1;
+    // Amend flow: amendSignedQuote() pre-bumps revision and drops status to 'draft'
+    // so the editor lets the contractor make changes. Detect that case via the
+    // `amended_from_signed_at` marker and treat the save as a re-send.
+    const isAmendedResend = !isReSend && !!savedQuote?.ai_conversation?.amended_from_signed_at;
+    const newRevision = isReSend ? previousRevision + 1 : (isAmendedResend ? previousRevision : 1);
+    const treatAsReSend = isReSend || isAmendedResend;
 
     const record = {
       id: savedQuote?.id,
@@ -1328,6 +1357,8 @@ async function saveAndSendForSignature() {
         duration_unit: quoteState.duration_unit,
         payment_schedule: buildSelectedScheduleSnapshot(),
         revision: newRevision
+        // amended_from_signed_at intentionally omitted — cleared once the amended
+        // version is saved, so subsequent normal re-sends bump revision correctly.
       },
       options,
       payment_option: selectedPaymentOption,
@@ -1339,11 +1370,11 @@ async function saveAndSendForSignature() {
       sent_at: new Date().toISOString()
     };
 
-    if (isReSend) {
+    if (treatAsReSend) {
       // The previous sent version may have been viewed; clear those flags so
       // the customer sees a clean "sent → viewed → signed" cycle on the new
-      // version. Defensive resets for signing fields (this branch never runs
-      // for a 'signed' quote — loadDraftById blocks that — but be explicit).
+      // version. amendSignedQuote already cleared signature fields; keep the
+      // defensive resets so a manual re-send behaves identically.
       record.viewed_at = null;
       record.customer_signature = null;
       record.customer_signed_at = null;
@@ -1354,8 +1385,8 @@ async function saveAndSendForSignature() {
 
     savedQuote = await saveQuote(record);
 
-    if (isReSend) {
-      logQuoteEvent(savedQuote.id, 'revised', { revision: newRevision }).catch(() => {});
+    if (treatAsReSend) {
+      logQuoteEvent(savedQuote.id, 'revised', { revision: newRevision, amended: isAmendedResend }).catch(() => {});
     }
 
     const link = buildShareLink(savedQuote.share_token);

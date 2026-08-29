@@ -21,6 +21,9 @@
 
 <div class="header">
   <div class="header-brand">
+    <a href="quotes.html" class="header-link" title="Retour" onclick="return navBack(event)" style="color:inherit;">
+      <span class="material-icons-round">arrow_back</span>
+    </a>
     <div class="header-logo">M</div>
     <h1>MLP Reno &amp; Design <span style="font-size:10px;background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:10px;margin-left:6px;font-weight:600;">v27</span></h1>
   </div>
@@ -77,6 +80,13 @@ const customersById = {};
     root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
   }
 })();
+
+function navBack(e) {
+  const ref = document.referrer;
+  const sameOrigin = ref && ref.startsWith(location.origin) && ref !== location.href;
+  if (sameOrigin) { e.preventDefault(); history.back(); return false; }
+  return true;
+}
 
 function initials(name) {
   return (name || '?')

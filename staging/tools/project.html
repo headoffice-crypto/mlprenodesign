@@ -124,6 +124,46 @@
     .photo-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
 
     .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
+
+    /* Invoice adjuster modal */
+    .adj-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 16px;
+    }
+    .adj-modal {
+      background: #fff; border-radius: var(--radius);
+      max-width: 460px; width: 100%;
+      padding: 22px 22px 18px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.24);
+    }
+    .adj-title { font-size: 17px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.2px; }
+    .adj-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+    .adj-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .adj-field label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .adj-field input {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--outline);
+      border-radius: 8px; font-size: 15px; font-weight: 600; font-family: inherit;
+    }
+    .adj-field input:focus { outline: none; border-color: var(--accent); }
+    .adj-preview {
+      background: var(--surface-dim); border-radius: 8px;
+      padding: 12px 14px; margin: 14px 0 16px;
+      font-size: 13px; line-height: 1.7;
+    }
+    .adj-preview .r { display: flex; justify-content: space-between; }
+    .adj-preview strong { color: var(--text-primary); }
+    .adj-warn {
+      font-size: 12px; color: var(--text-secondary);
+      background: #fef7e0; border-left: 3px solid var(--accent);
+      padding: 8px 12px; border-radius: 6px; margin-bottom: 14px;
+    }
+    .adj-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .adj-actions .btn { flex: 0 1 auto; }
+    @media (max-width: 520px) {
+      .adj-row { grid-template-columns: 1fr; }
+      .adj-actions .btn { flex: 1 1 100%; }
+    }
   </style>
 </head>
 <body>
@@ -520,9 +560,31 @@ function previewInvoice(token) {
 }
 
 async function sendInvoice(invoiceId, channel, btn) {
-  const originalHtml = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-ring" style="width:12px;height:12px;border-width:2px;"></span> …';
+  const inv = invoices.find(i => i.id === invoiceId);
+  if (!inv) return;
+
+  // Paid invoices go out as receipts unchanged — skip the adjuster.
+  if (inv.status !== 'paid') {
+    const adjust = await openInvoiceAdjuster(inv);
+    if (adjust === null) return; // cancelled
+    if (adjust.changed) {
+      try {
+        showToast('Ajustement du montant…');
+        invoices = await adjustInvoice(inv.id, { pct: adjust.pct }, quote, invoices);
+        render();
+      } catch (err) {
+        showToast('Erreur : ' + err.message);
+        return;
+      }
+    }
+  }
+
+  const liveBtn = btn && btn.isConnected ? btn : document.querySelector(`[data-invoice-send-btn="${invoiceId}-${channel}"]`);
+  const originalHtml = liveBtn ? liveBtn.innerHTML : '';
+  if (liveBtn) {
+    liveBtn.disabled = true;
+    liveBtn.innerHTML = '<span class="spinner-ring" style="width:12px;height:12px;border-width:2px;"></span> …';
+  }
   try {
     const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
       method: 'POST',
@@ -541,9 +603,107 @@ async function sendInvoice(invoiceId, channel, btn) {
     showToast(channel === 'sms' ? `SMS envoyé à ${data.to}` : `Courriel envoyé à ${data.to}`);
   } catch (err) {
     showToast('Erreur : ' + err.message);
-    btn.disabled = false;
-    btn.innerHTML = originalHtml;
+    if (liveBtn) { liveBtn.disabled = false; liveBtn.innerHTML = originalHtml; }
   }
+}
+
+// Modal that lets the contractor override this invoice's % (or pre-tax amount)
+// before it goes out. Delta auto-shifts to the next unpaid installment.
+// Resolves { changed:boolean, pct:number } on OK, or null on cancel.
+function openInvoiceAdjuster(inv) {
+  return new Promise((resolve) => {
+    const opts = quote.options || [];
+    const accepted = opts.find(o => o.key === quote.accepted_option_key) || opts[0];
+    const base = Number(accepted?.subtotal || 0);
+    const applyTaxes = accepted ? accepted.apply_taxes !== false : true;
+    if (base <= 0) { showToast('Sous-total de la soumission introuvable'); resolve(null); return; }
+
+    const contractTotal = invoices.reduce((s, i) => s + Number(i.amount_total || 0), 0);
+    const paidToDate    = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount_total || 0), 0);
+    const currentPct    = Number(inv.pct_of_total || 0);
+    const nextInv       = invoices
+      .filter(i => i.id !== inv.id && i.status !== 'paid' && i.status !== 'cancelled' && i.sequence > inv.sequence)
+      .sort((a, b) => a.sequence - b.sequence)[0];
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'adj-backdrop';
+    backdrop.innerHTML = `
+      <div class="adj-modal" role="dialog" aria-modal="true">
+        <div class="adj-title">Ajuster avant l'envoi</div>
+        <div class="adj-sub">Versement « ${esc(inv.label || '')} » · ${esc(inv.invoice_number)}</div>
+
+        <div class="adj-row">
+          <div class="adj-field">
+            <label>Pourcentage</label>
+            <input type="number" id="adj-pct" step="0.01" min="0" max="100" value="${currentPct}">
+          </div>
+          <div class="adj-field">
+            <label>Montant avant taxes ($)</label>
+            <input type="number" id="adj-amt" step="0.01" min="0" value="${Number(inv.amount_before_tax || 0).toFixed(2)}">
+          </div>
+        </div>
+
+        <div class="adj-preview" id="adj-preview"></div>
+
+        ${nextInv
+          ? `<div class="adj-warn">La différence sera automatiquement reportée sur le prochain versement : <strong>${esc(nextInv.label || '')}</strong>.</div>`
+          : `<div class="adj-warn">Aucun versement suivant à ajuster — la différence ne sera pas redistribuée.</div>`}
+
+        <div class="adj-actions">
+          <button class="btn btn-secondary btn-sm" id="adj-cancel">Annuler</button>
+          <button class="btn btn-secondary btn-sm" id="adj-skip">Envoyer sans modifier</button>
+          <button class="btn btn-primary btn-sm" id="adj-ok">Enregistrer &amp; envoyer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+
+    const pctEl = backdrop.querySelector('#adj-pct');
+    const amtEl = backdrop.querySelector('#adj-amt');
+    const prev  = backdrop.querySelector('#adj-preview');
+
+    const recompute = (pct) => {
+      const p = Math.max(0, Math.min(100, Number(pct) || 0));
+      const preTax = Math.round(base * p) / 100;
+      const gst = applyTaxes ? Math.round(preTax * 0.05 * 100) / 100 : 0;
+      const qst = applyTaxes ? Math.round(preTax * 0.09975 * 100) / 100 : 0;
+      const total = Math.round((preTax + gst + qst) * 100) / 100;
+      const newContract = contractTotal - Number(inv.amount_total || 0) + total;
+      const newBalance = Math.max(0, newContract - paidToDate - (inv.status === 'paid' ? 0 : total));
+      prev.innerHTML = `
+        <div class="r"><span>Sous-total</span><strong>$${money(preTax)}</strong></div>
+        ${applyTaxes ? `<div class="r"><span>TPS 5%</span><span>$${money(gst)}</span></div>
+        <div class="r"><span>TVQ 9.975%</span><span>$${money(qst)}</span></div>` : ''}
+        <div class="r"><span>${applyTaxes ? 'Total avec taxes' : 'Total'}</span><strong style="color:var(--accent-dark);">$${money(total)}</strong></div>
+        <div class="r" style="margin-top:6px;border-top:1px solid var(--outline-light);padding-top:6px;">
+          <span>Solde après ce paiement</span><strong>$${money(newBalance)}</strong>
+        </div>`;
+      return { pct: p, preTax, total };
+    };
+
+    let last = recompute(currentPct);
+
+    pctEl.addEventListener('input', () => {
+      const p = Number(pctEl.value) || 0;
+      amtEl.value = (Math.round(base * p) / 100).toFixed(2);
+      last = recompute(p);
+    });
+    amtEl.addEventListener('input', () => {
+      const preTax = Number(amtEl.value) || 0;
+      const p = base > 0 ? Math.round((preTax / base) * 10000) / 100 : 0;
+      pctEl.value = p;
+      last = recompute(p);
+    });
+
+    const close = (result) => { document.body.removeChild(backdrop); resolve(result); };
+    backdrop.querySelector('#adj-cancel').onclick = () => close(null);
+    backdrop.querySelector('#adj-skip').onclick   = () => close({ changed: false, pct: currentPct });
+    backdrop.querySelector('#adj-ok').onclick     = () => {
+      const p = last.pct;
+      const changed = Math.abs(p - currentPct) >= 0.005;
+      close({ changed, pct: p });
+    };
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(null); });
+  });
 }
 
 async function markPaid(invoiceId, total) {

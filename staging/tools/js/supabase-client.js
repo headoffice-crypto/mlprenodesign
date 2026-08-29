@@ -400,6 +400,100 @@ async function markInvoicePaid(id, paidAmount, method) {
   });
 }
 
+// Compute invoice tax breakdown from a pre-tax amount and the accepted option's tax flag.
+function computeInvoiceAmounts(preTax, applyTaxes) {
+  const amtBefore = Math.round(Number(preTax || 0) * 100) / 100;
+  const gst = applyTaxes ? Math.round(amtBefore * 0.05 * 100) / 100 : 0;
+  const qst = applyTaxes ? Math.round(amtBefore * 0.09975 * 100) / 100 : 0;
+  const total = Math.round((amtBefore + gst + qst) * 100) / 100;
+  return { amount_before_tax: amtBefore, gst, qst, amount_total: total };
+}
+
+// Adjust one invoice's percentage/amount and shift the delta to the next unpaid,
+// non-cancelled installment. Returns the refreshed invoice list for the project.
+async function adjustInvoice(invoiceId, { pct = null, preTax = null }, quote, allInvoices) {
+  const inv = allInvoices.find(i => i.id === invoiceId);
+  if (!inv) throw new Error('Invoice not found');
+  if (inv.status === 'paid') throw new Error('Cannot adjust a paid invoice');
+
+  const opts = Array.isArray(quote.options) ? quote.options : [];
+  const accepted = opts.find(o => o.key === quote.accepted_option_key) || opts[0];
+  if (!accepted) throw new Error('No accepted option on quote');
+  const base = Number(accepted.subtotal || 0);
+  const applyTaxes = accepted.apply_taxes !== false;
+  if (base <= 0) throw new Error('Quote subtotal is zero');
+
+  // Resolve target values — pct wins if provided, otherwise derive pct from preTax.
+  let newPct;
+  if (pct !== null && pct !== undefined) {
+    newPct = Math.max(0, Math.min(100, Number(pct)));
+  } else if (preTax !== null && preTax !== undefined) {
+    newPct = Math.max(0, Math.min(100, (Number(preTax) / base) * 100));
+  } else {
+    throw new Error('Provide pct or preTax');
+  }
+
+  const oldPct = Number(inv.pct_of_total || 0);
+  const deltaPct = Math.round((newPct - oldPct) * 100) / 100;
+  if (Math.abs(deltaPct) < 0.005) return allInvoices;
+
+  const newPreTax = Math.round(base * newPct) / 100;
+  const patch = { pct_of_total: Math.round(newPct * 100) / 100, ...computeInvoiceAmounts(newPreTax, applyTaxes) };
+  await updateInvoice(invoiceId, patch);
+
+  // Shift the delta to the next unpaid, non-cancelled invoice by sequence.
+  const next = allInvoices
+    .filter(i => i.id !== invoiceId && i.status !== 'paid' && i.status !== 'cancelled' && i.sequence > inv.sequence)
+    .sort((a, b) => a.sequence - b.sequence)[0];
+
+  if (next) {
+    const nextNewPct = Math.max(0, Math.round((Number(next.pct_of_total || 0) - deltaPct) * 100) / 100);
+    const nextPreTax = Math.round(base * nextNewPct) / 100;
+    await updateInvoice(next.id, { pct_of_total: nextNewPct, ...computeInvoiceAmounts(nextPreTax, applyTaxes) });
+  }
+
+  // Reload the full list for this project.
+  const { data, error } = await sb.from('invoices').select('*').eq('project_id', inv.project_id).order('sequence', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+// Amend a signed quote: unlock it for editing and cancel any pending invoices.
+// The customer will need to re-sign the updated version. Preserves the revision
+// counter so the re-send is stamped as the next version (v2, v3, …).
+async function amendSignedQuote(id) {
+  const { data: q, error: qe } = await sb.from('quotes').select('id, ai_conversation').eq('id', id).maybeSingle();
+  if (qe) throw qe;
+  if (!q) throw new Error('Quote not found');
+
+  const conv = (q.ai_conversation && typeof q.ai_conversation === 'object') ? q.ai_conversation : {};
+  const currentRevision = Number(conv.revision) || 1;
+  const newConv = { ...conv, revision: currentRevision + 1, amended_from_signed_at: new Date().toISOString() };
+
+  const { error: ue } = await sb.from('quotes').update({
+    status: 'draft',
+    customer_signature: null,
+    customer_signer_name: null,
+    customer_signed_at: null,
+    customer_signer_ip: null,
+    accepted_option_key: null,
+    viewed_at: null,
+    ai_conversation: newConv
+  }).eq('id', id);
+  if (ue) throw ue;
+
+  // Cancel any pending/sent (unpaid) invoices tied to this quote's project.
+  const { data: proj } = await sb.from('projects').select('id').eq('quote_id', id).maybeSingle();
+  if (proj) {
+    await sb.from('invoices').update({ status: 'cancelled' })
+      .eq('project_id', proj.id)
+      .neq('status', 'paid');
+  }
+
+  logQuoteEvent(id, 'amended', { previous_revision: currentRevision }).catch(() => {});
+  return { id, revision: currentRevision + 1 };
+}
+
 /* ---------- Photos ---------- */
 
 async function listProjectPhotos(projectId) {

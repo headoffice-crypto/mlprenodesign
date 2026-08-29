@@ -21,6 +21,9 @@
 
 <div class="header">
   <div class="header-brand">
+    <a href="quotes.html" class="header-link" title="Retour" onclick="return navBack(event)" style="color:inherit;">
+      <span class="material-icons-round">arrow_back</span>
+    </a>
     <div class="header-logo">M</div>
     <h1>MLP Reno &amp; Design</h1>
   </div>
@@ -136,6 +139,11 @@ function rowHtml(q) {
           <span class="material-icons-round" style="font-size:16px">edit</span>
           <span>Modifier</span>
         </button>` : ''}
+      ${isSigned ? `
+        <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;color:var(--accent-dark);border-color:var(--accent);" onclick="event.stopPropagation();amendSigned('${q.id}', this)" title="Modifier la soumission signée et renvoyer au client pour re-signature">
+          <span class="material-icons-round" style="font-size:16px">edit_note</span>
+          <span>Amender &amp; renvoyer</span>
+        </button>` : ''}
       ${sendable ? `
         <button class="btn btn-secondary btn-sm" style="flex:1;padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();window.open('sign.html?token=${encodeURIComponent(q.share_token)}','_blank')">
           <span class="material-icons-round" style="font-size:16px">visibility</span>
@@ -184,6 +192,31 @@ async function confirmDeleteQuote(id) {
     console.error('[deleteQuote failed]', err);
     if (row) row.style.opacity = '';
     showToast('⚠️ ' + (err.message || err), 'error');
+  }
+}
+
+async function amendSigned(id, btn) {
+  const q = quotesById[id];
+  const label = (q && (q.project_title || q.quote_number)) || 'cette soumission';
+  const ok = confirm(
+    `Amender la soumission signée « ${label} » ?\n\n` +
+    `• La signature actuelle du client sera retirée.\n` +
+    `• Le client devra signer la nouvelle version.\n` +
+    `• Les factures en attente liées seront annulées (les factures payées sont conservées).\n\n` +
+    `Continuer ?`
+  );
+  if (!ok) return;
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-ring"></span><span>Déverrouillage…</span>';
+  try {
+    await amendSignedQuote(id);
+    window.location.href = 'index.html?draft=' + encodeURIComponent(id);
+  } catch (err) {
+    console.error('[amendSigned]', err);
+    showToast('⚠️ ' + (err.message || err), 'error');
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
   }
 }
 
@@ -236,6 +269,12 @@ function showToast(msg) {
 
 function esc(s) { if (s === null || s === undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function money(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function navBack(e) {
+  const ref = document.referrer;
+  const sameOrigin = ref && ref.startsWith(location.origin) && ref !== location.href;
+  if (sameOrigin) { e.preventDefault(); history.back(); return false; }
+  return true;
+}
 </script>
 <script src="js/pwa.js?v=40"></script>
 
