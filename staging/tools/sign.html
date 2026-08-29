@@ -97,10 +97,32 @@
 
 <div class="header">
   <div class="header-brand">
+    <a href="quotes.html" id="sign-back" class="header-link" title="Retour" onclick="return signNavBack(event)" style="display:none;color:inherit;">
+      <span class="material-icons-round">arrow_back</span>
+    </a>
     <div class="header-logo">M</div>
     <h1>MLP Reno &amp; Design</h1>
   </div>
 </div>
+
+<script>
+// Only surface the back arrow when the visitor came from within the tool
+// (contractor previewing / opening from quotes list). Customers landing on
+// this page from an email or SMS link have no MLP page to go back to.
+(function() {
+  const ref = document.referrer;
+  if (ref && ref.startsWith(location.origin) && ref !== location.href) {
+    const el = document.getElementById('sign-back');
+    if (el) el.style.display = '';
+  }
+})();
+function signNavBack(e) {
+  e.preventDefault();
+  if (history.length > 1) history.back();
+  else location.href = 'quotes.html';
+  return false;
+}
+</script>
 
 <div class="container" id="root">
   <div class="loading">
