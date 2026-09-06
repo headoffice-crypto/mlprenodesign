@@ -255,31 +255,61 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 (async function () {
   const root = document.getElementById('root');
   const params = new URLSearchParams(location.search);
+  const receiptToken = params.get('receipt');
   const token = params.get('token');
-  if (!token) return showError('Lien invalide.', 'Invalid link.');
+
+  if (!receiptToken && !token) return showError('Lien invalide.', 'Invalid link.');
 
   try {
+    if (receiptToken) {
+      // ---- Payment receipt mode ----
+      const { data: pays, error: pe } = await sb.from('payments').select('*').eq('share_token', receiptToken).limit(1);
+      if (pe) throw pe;
+      const pay = pays && pays[0];
+      if (!pay) return showError('Reçu introuvable.', 'Receipt not found.');
+
+      const { data: proj, error: pjErr } = await sb.from('projects').select('quote_id').eq('id', pay.project_id).maybeSingle();
+      if (pjErr) throw pjErr;
+      if (!proj) return showError('Projet introuvable.', 'Project not found.');
+
+      const [{ data: q, error: e2 }, { data: siblings, error: e3 }, { data: allPays, error: e4 }] = await Promise.all([
+        sb.from('quotes').select('*').eq('id', proj.quote_id).maybeSingle(),
+        sb.from('invoices').select('*').eq('project_id', pay.project_id).order('sequence', { ascending: true }),
+        sb.from('payments').select('*').eq('project_id', pay.project_id).order('paid_at', { ascending: true })
+      ]);
+      if (e2) throw e2;
+      if (e3) throw e3;
+      if (e4) throw e4;
+      if (!q) return showError('Soumission liée introuvable.', 'Related quote not found.');
+
+      renderReceipt(pay, q, siblings || [], allPays || []);
+      return;
+    }
+
+    // ---- Invoice mode (existing) ----
     const { data: invs, error: e1 } = await sb.from('invoices').select('*').eq('share_token', token).limit(1);
     if (e1) throw e1;
     const inv = invs && invs[0];
     if (!inv) return showError('Facture introuvable.', 'Invoice not found.');
 
-    const [{ data: q, error: e2 }, { data: siblings, error: e3 }] = await Promise.all([
+    const [{ data: q, error: e2 }, { data: siblings, error: e3 }, { data: allPays, error: e4 }] = await Promise.all([
       sb.from('quotes').select('*').eq('id', inv.quote_id).maybeSingle(),
-      sb.from('invoices').select('*').eq('project_id', inv.project_id).order('sequence', { ascending: true })
+      sb.from('invoices').select('*').eq('project_id', inv.project_id).order('sequence', { ascending: true }),
+      sb.from('payments').select('amount').eq('project_id', inv.project_id)
     ]);
     if (e2) throw e2;
     if (e3) throw e3;
+    if (e4) throw e4;
     if (!q) return showError('Soumission liée introuvable.', 'Related quote not found.');
 
-    render(inv, q, siblings || []);
+    render(inv, q, siblings || [], allPays || []);
   } catch (err) {
     console.error(err);
     showError('Erreur de chargement.', 'Failed to load.', err.message);
   }
 })();
 
-function render(inv, q, all) {
+function render(inv, q, all, allPays) {
   const fr = q.language !== 'en';
   const isPaid = inv.status === 'paid';
   document.documentElement.lang = fr ? 'fr' : 'en';
@@ -287,7 +317,10 @@ function render(inv, q, all) {
   document.getElementById('btn-print-label').textContent = fr ? 'Imprimer / PDF' : 'Print / PDF';
 
   const contractTotal = all.reduce((s, i) => s + Number(i.amount_total || 0), 0);
-  const paidToDate    = all.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount_total || 0), 0);
+  // Prefer the real payments ledger; fall back to invoice.status if none.
+  const paidToDate    = (allPays && allPays.length)
+    ? allPays.reduce((s, p) => s + Number(p.amount || 0), 0)
+    : all.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount_total || 0), 0);
   const remaining     = Math.max(0, contractTotal - paidToDate);
   const projected     = isPaid ? remaining : Math.max(0, remaining - Number(inv.amount_total || 0));
 
@@ -409,6 +442,129 @@ function render(inv, q, all) {
       <div class="pay">${esc(q.payment_methods)}</div>
       <div class="pay-note">${T.referenceNote}</div>
     ` : ''}
+
+    <div class="foot">
+      MLP Reno &amp; Design — ${T.rbq} 5847-0378-01 — (450) 500-8936 — headoffice@mlpexperience.com
+    </div>
+  </div>`;
+
+  document.getElementById('root').innerHTML = html;
+}
+
+function renderReceipt(pay, q, invoicesAll, allPays) {
+  const fr = q.language !== 'en';
+  document.documentElement.lang = fr ? 'fr' : 'en';
+  document.title = (fr ? 'Reçu' : 'Receipt') + ' ' + pay.receipt_number + ' — MLP Reno & Design';
+  document.getElementById('btn-print-label').textContent = fr ? 'Imprimer / PDF' : 'Print / PDF';
+
+  const T = fr ? L_FR : L_EN;
+  const M_FR = { interac: 'Interac', cheque: 'Chèque', card: 'Carte', cash: 'Comptant', other: 'Autre' };
+  const M_EN = { interac: 'Interac', cheque: 'Cheque', card: 'Card', cash: 'Cash', other: 'Other' };
+  const methodLabel = (fr ? M_FR : M_EN)[pay.method] || pay.method;
+
+  const contractTotal = invoicesAll.reduce((s, i) => s + Number(i.amount_total || 0), 0);
+  const paidToDate    = allPays.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const remaining     = Math.max(0, contractTotal - paidToDate);
+
+  const linkedInv = pay.invoice_id ? invoicesAll.find(i => i.id === pay.invoice_id) : null;
+
+  // Per-invoice payment history (sorted by paid_at)
+  const historyRows = allPays
+    .slice()
+    .sort((a, b) => (a.paid_at < b.paid_at ? -1 : 1))
+    .map((p) => {
+      const isThis = p.id === pay.id;
+      const inv = p.invoice_id ? invoicesAll.find(i => i.id === p.invoice_id) : null;
+      const label = inv ? esc(inv.label || inv.invoice_number) : (fr ? 'Avance' : 'Advance');
+      return `
+        <tr class="${isThis ? 'this' : ''}${isThis ? ' paid-row' : ''}">
+          <td>
+            <span class="seq">✓</span>
+            <strong>${esc(p.receipt_number)}</strong>
+            ${isThis ? `<span class="this-tag">${fr ? 'ce reçu' : 'this receipt'}</span>` : ''}
+          </td>
+          <td class="r">${formatDate(p.paid_at, fr)}</td>
+          <td class="r">${label}</td>
+          <td class="r">$${money(p.amount)}</td>
+        </tr>`;
+    }).join('');
+
+  const html = `
+  <div class="page">
+    <div class="brand">
+      <div>
+        <div class="brand-name">MLP Reno &amp; Design</div>
+        <div class="brand-tag">${T.brandTag}</div>
+      </div>
+      <div class="brand-contact">
+        <strong>${T.rbq}: 5847-0378-01</strong>
+        (450) 500-8936<br>
+        headoffice@mlpexperience.com
+      </div>
+    </div>
+
+    <div class="doc-head">
+      <div>
+        <div class="doc-title">${T.receipt}</div>
+        <div class="doc-num">${esc(pay.receipt_number)}</div>
+      </div>
+      <div class="doc-meta">
+        <div class="label">${T.paidOnLabel}</div>
+        <div class="value">${formatDate(pay.paid_at, fr)}</div>
+        <div class="label">${fr ? 'Méthode' : 'Method'}</div>
+        <div class="value">${esc(methodLabel)}</div>
+      </div>
+    </div>
+
+    <div class="parties">
+      <div class="party">
+        <h4>${T.billedTo}</h4>
+        <div class="name">${esc(q.client_name || '')}</div>
+        ${q.client_address ? `<div>${esc(q.client_address)}</div>` : ''}
+        ${q.client_email ? `<div>${esc(q.client_email)}</div>` : ''}
+        ${q.client_phone ? `<div>${esc(q.client_phone)}</div>` : ''}
+      </div>
+      <div class="party">
+        <h4>${T.project}</h4>
+        <div class="name">${esc(q.project_title || '—')}</div>
+        <div>${T.contract}: ${esc(q.quote_number || '')}</div>
+        ${linkedInv ? `<div>${fr ? 'Appliqué à' : 'Applied to'}: ${esc(linkedInv.label || '')} (${esc(linkedInv.invoice_number)})</div>` : `<div>${fr ? 'Avance sur contrat' : 'Advance on contract'}</div>`}
+      </div>
+    </div>
+
+    <div class="hero paid">
+      <div>
+        <div class="hero-label">${T.amountPaid}</div>
+        <div class="hero-installment">${esc(linkedInv ? linkedInv.label : (fr ? 'Avance' : 'Advance'))}</div>
+        <div class="hero-pct">${esc(methodLabel)}${pay.note ? ' · ' + esc(pay.note) : ''}</div>
+        <span class="hero-status">${T.paidOn(formatDate(pay.paid_at, fr))}</span>
+      </div>
+      <div style="text-align:right;">
+        <div class="hero-amount">$${money(pay.amount)}</div>
+      </div>
+    </div>
+
+    ${allPays.length > 1 ? `
+    <div class="schedule">
+      <h3 class="sec-h">${fr ? 'Historique des paiements' : 'Payment history'}</h3>
+      <table class="sched-table">
+        <thead>
+          <tr>
+            <th>${fr ? 'Reçu' : 'Receipt'}</th>
+            <th class="r">${T.date}</th>
+            <th class="r">${fr ? 'Appliqué à' : 'Applied to'}</th>
+            <th class="r">${T.amount}</th>
+          </tr>
+        </thead>
+        <tbody>${historyRows}</tbody>
+      </table>
+    </div>` : ''}
+
+    <div class="totals">
+      <div class="tot-row"><span class="lbl">${T.contractTotal}</span><span class="val">$${money(contractTotal)}</span></div>
+      <div class="tot-row paid"><span class="lbl">${T.paidToDate}</span><span class="val">$${money(paidToDate)}</span></div>
+      <div class="tot-row remaining ${remaining === 0 ? 'zero' : ''}"><span class="lbl">${T.remaining}</span><span class="val">$${money(remaining)}</span></div>
+    </div>
 
     <div class="foot">
       MLP Reno &amp; Design — ${T.rbq} 5847-0378-01 — (450) 500-8936 — headoffice@mlpexperience.com

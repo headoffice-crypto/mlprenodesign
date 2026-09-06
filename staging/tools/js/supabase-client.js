@@ -494,6 +494,83 @@ async function amendSignedQuote(id) {
   return { id, revision: currentRevision + 1 };
 }
 
+/* ---------- Payments (ledger of money actually received) ---------- */
+
+function generateReceiptNumber() {
+  const y = new Date().getFullYear();
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const ts = Date.now().toString(36).slice(-3).toUpperCase();
+  return `R-${y}-${ts}${rand}`;
+}
+
+async function listProjectPayments(projectId) {
+  const { data, error } = await sb
+    .from('payments')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('paid_at', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function insertPayment({ project_id, invoice_id, customer_id, amount, method, paid_at, note }) {
+  const row = {
+    project_id,
+    invoice_id: invoice_id || null,
+    customer_id: customer_id || null,
+    amount: Number(amount),
+    method: method || 'other',
+    paid_at: paid_at || new Date().toISOString().slice(0, 10),
+    note: (note || '').trim() || null,
+    receipt_number: generateReceiptNumber(),
+    share_token: generateShareToken()
+  };
+
+  const { data, error } = await sb.from('payments').insert(row).select('*').single();
+  if (error) throw error;
+
+  // If this payment is linked to an invoice, check whether that invoice is
+  // now fully covered by cumulative payments and update its status.
+  if (data.invoice_id) {
+    await syncInvoiceStatusFromPayments(data.invoice_id).catch(() => {});
+  }
+  return data;
+}
+
+async function deletePayment(id) {
+  const { data: pay } = await sb.from('payments').select('invoice_id').eq('id', id).maybeSingle();
+  const { error } = await sb.from('payments').delete().eq('id', id);
+  if (error) throw error;
+  if (pay?.invoice_id) {
+    await syncInvoiceStatusFromPayments(pay.invoice_id).catch(() => {});
+  }
+}
+
+// Recompute an invoice's paid_amount/paid_at/status from the payments ledger.
+async function syncInvoiceStatusFromPayments(invoiceId) {
+  const { data: inv } = await sb.from('invoices').select('*').eq('id', invoiceId).maybeSingle();
+  if (!inv) return;
+
+  const { data: pays } = await sb
+    .from('payments')
+    .select('amount, method, paid_at, created_at')
+    .eq('invoice_id', invoiceId);
+
+  const list = pays || [];
+  const total = list.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const covered = total + 0.005 >= Number(inv.amount_total || 0);
+  const latest = list.sort((a, b) => (a.paid_at < b.paid_at ? 1 : -1))[0];
+
+  const patch = {
+    paid_amount: total || null,
+    paid_at: covered && latest ? new Date(latest.paid_at).toISOString() : null,
+    payment_method: covered && latest ? latest.method : null,
+    status: covered ? 'paid' : (inv.status === 'paid' ? (inv.sent_at ? 'sent' : 'pending') : inv.status)
+  };
+  await sb.from('invoices').update(patch).eq('id', invoiceId);
+}
+
 /* ---------- Photos ---------- */
 
 async function listProjectPhotos(projectId) {

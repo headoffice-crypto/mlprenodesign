@@ -316,6 +316,79 @@ function buildInvoiceEmailHtml(invoice, quote, allInvoices, lang, billUrl) {
 </body></html>`;
 }
 
+/* ===== Payment receipt email body =====
+   One row = one payment. Shows the amount received, the running "paid to date"
+   and remaining balance, and CTAs to the detailed receipt on bill.html. */
+function buildReceiptEmailHtml(payment, quote, linkedInvoice, allInvoices, allPayments, lang, receiptUrl) {
+  const fr = lang === "fr";
+  const M_FR = { interac: "Interac", cheque: "Chèque", card: "Carte", cash: "Comptant", other: "Autre" };
+  const M_EN = { interac: "Interac", cheque: "Cheque", card: "Card", cash: "Cash", other: "Other" };
+  const methodLabel = (fr ? M_FR : M_EN)[payment.method] || payment.method;
+
+  const contractTotal = (allInvoices || []).reduce((s, i) => s + Number(i.amount_total || 0), 0);
+  const paidToDate    = (allPayments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const remaining     = Math.max(0, contractTotal - paidToDate);
+
+  const greeting   = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const projectRef = escHtml(quote.project_title || quote.quote_number || "");
+  const appliedTo  = linkedInvoice
+    ? (fr ? `versement « ${escHtml(linkedInvoice.label || "")} »` : `"${escHtml(linkedInvoice.label || "")}" installment`)
+    : (fr ? "une avance sur le contrat" : "an advance on the contract");
+  const intro = fr
+    ? `Nous confirmons la réception de votre paiement de <strong>$${money(payment.amount)}</strong> pour ${appliedTo} du projet ${projectRef}. Merci !`
+    : `We confirm receipt of your payment of <strong>$${money(payment.amount)}</strong> for ${appliedTo} of project ${projectRef}. Thank you!`;
+  const cta = fr ? "Voir le reçu détaillé →" : "View detailed receipt →";
+
+  return `<!DOCTYPE html><html lang="${fr ? "fr" : "en"}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${fr ? "Reçu" : "Receipt"} ${escHtml(payment.receipt_number)}</title></head>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#202124;line-height:1.5;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 24px rgba(0,0,0,0.04);overflow:hidden;">
+
+        <tr><td style="padding:32px 40px 24px;border-bottom:2px solid #c8a45a;">
+          <div style="font-size:22px;font-weight:800;color:#c8a45a;letter-spacing:-0.3px;">MLP Reno &amp; Design</div>
+          <div style="font-size:12px;color:#5f6368;margin-top:2px;">${fr ? "Construction & Rénovation" : "Construction & Renovation"} — ${fr ? "RBQ" : "RBQ Licence"} 5847-0378-01</div>
+        </td></tr>
+
+        <tr><td style="padding:32px 40px 8px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#9aa0a6;">${fr ? "Reçu de paiement" : "Payment receipt"}</div>
+          <div style="font-size:14px;color:#5f6368;font-variant-numeric:tabular-nums;margin-top:2px;">${escHtml(payment.receipt_number)}</div>
+
+          <p style="font-size:15px;margin:24px 0 8px;color:#202124;">${greeting}</p>
+          <p style="font-size:14px;color:#3c4043;margin:0 0 24px;">${intro}</p>
+
+          <div style="background:#e6f4ea;border:1px solid #a8d5b3;border-radius:12px;padding:24px 28px;margin-bottom:28px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#1e8e3e;">${fr ? "Montant reçu" : "Amount received"}</div>
+            <div style="font-size:32px;font-weight:800;color:#202124;letter-spacing:-0.6px;margin-top:6px;font-variant-numeric:tabular-nums;line-height:1;">$${money(payment.amount)}</div>
+            <div style="font-size:13px;color:#5f6368;margin-top:8px;">${escHtml(methodLabel)}${payment.note ? " · " + escHtml(payment.note) : ""}</div>
+          </div>
+
+          ${receiptUrl ? `
+          <div style="text-align:center;margin:0 0 32px;">
+            <a href="${escHtml(receiptUrl)}" style="display:inline-block;background:#1e8e3e;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 28px;border-radius:10px;letter-spacing:0.2px;">${cta}</a>
+            <div style="font-size:12px;color:#9aa0a6;margin-top:10px;">${fr ? "Imprimer ou télécharger en PDF depuis votre navigateur." : "Print or save as PDF from your browser."}</div>
+          </div>` : ""}
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#3c4043;border-top:1px solid #e8eaed;margin-bottom:8px;">
+            <tr><td style="padding:10px 0;color:#5f6368;">${fr ? "Total du contrat" : "Contract total"}</td><td style="padding:10px 0;text-align:right;font-variant-numeric:tabular-nums;">$${money(contractTotal)}</td></tr>
+            <tr><td style="padding:10px 0;border-top:1px solid #f1f3f4;color:#5f6368;">${fr ? "Payé à ce jour" : "Paid to date"}</td><td style="padding:10px 0;border-top:1px solid #f1f3f4;text-align:right;color:#1e8e3e;font-weight:700;font-variant-numeric:tabular-nums;">$${money(paidToDate)}</td></tr>
+            <tr><td style="padding:10px 0;border-top:1px solid #f1f3f4;color:#202124;font-weight:600;">${fr ? "Solde restant" : "Remaining balance"}</td><td style="padding:10px 0;border-top:1px solid #f1f3f4;text-align:right;color:#a68a3e;font-weight:800;font-variant-numeric:tabular-nums;">$${money(remaining)}</td></tr>
+          </table>
+
+          <p style="font-size:14px;color:#3c4043;margin:24px 0 0;">${fr ? "Merci," : "Thanks,"}<br><strong>MLP Reno &amp; Design</strong></p>
+        </td></tr>
+
+        <tr><td style="padding:24px 40px 32px;border-top:1px solid #f1f3f4;text-align:center;font-size:11px;color:#9aa0a6;line-height:1.7;">
+          MLP Reno &amp; Design — ${fr ? "RBQ" : "RBQ Licence"} 5847-0378-01<br>
+          (450) 500-8936 — headoffice@mlpexperience.com
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
 function buildProgressEmailHtml(project, quote, lang) {
   const fr = lang === "fr";
   const items = Array.isArray(project.action_items) ? project.action_items : [];
@@ -386,10 +459,10 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { quote_id, invoice_id, project_id, channel = "sms", type, to, message, draft } = body;
+    const { quote_id, invoice_id, project_id, payment_id, channel = "sms", type, to, message, draft } = body;
     const isDraft = !!draft;
 
-    if (!quote_id && !invoice_id && !project_id) return jsonResp({ error: "quote_id, invoice_id, or project_id required" }, 400);
+    if (!quote_id && !invoice_id && !project_id && !payment_id) return jsonResp({ error: "quote_id, invoice_id, project_id, or payment_id required" }, 400);
     if (!["sms", "email"].includes(channel)) return jsonResp({ error: "channel must be 'sms' or 'email'" }, 400);
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -473,6 +546,100 @@ Deno.serve(async (req) => {
       const copy = await sendInternalCopy({ html: payload.html, subject, customerTo: emailTo, FROM, REPLY_TO, RESEND_KEY });
 
       return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, overall, internal_copy: copy });
+    }
+
+    // ---------- PAYMENT RECEIPT PATH ----------
+    if (payment_id) {
+      const payArr = await sbGet(`${SUPABASE_URL}/rest/v1/payments?id=eq.${encodeURIComponent(payment_id)}&select=*`, SUPABASE_KEY);
+      const pay = payArr?.[0];
+      if (!pay) return jsonResp({ error: "payment not found" }, 404);
+
+      const projArr = await sbGet(`${SUPABASE_URL}/rest/v1/projects?id=eq.${encodeURIComponent(pay.project_id)}&select=*`, SUPABASE_KEY);
+      const proj = projArr?.[0];
+      if (!proj) return jsonResp({ error: "project not found" }, 404);
+
+      const qArr = await sbGet(`${SUPABASE_URL}/rest/v1/quotes?id=eq.${encodeURIComponent(proj.quote_id)}&select=*`, SUPABASE_KEY);
+      const quote = qArr?.[0];
+      if (!quote) return jsonResp({ error: "related quote not found" }, 404);
+
+      const [allInv, allPays] = await Promise.all([
+        sbGet(`${SUPABASE_URL}/rest/v1/invoices?project_id=eq.${encodeURIComponent(pay.project_id)}&order=sequence.asc&select=*`, SUPABASE_KEY),
+        sbGet(`${SUPABASE_URL}/rest/v1/payments?project_id=eq.${encodeURIComponent(pay.project_id)}&order=paid_at.asc&select=*`, SUPABASE_KEY),
+      ]);
+      const linkedInv = pay.invoice_id ? (allInv || []).find((i: any) => i.id === pay.invoice_id) : null;
+
+      const lang = quote.language === "en" ? "en" : "fr";
+      const receiptUrl = pay.share_token ? `${APP_BASE_URL}/bill?receipt=${encodeURIComponent(pay.share_token)}` : "";
+      const contractTotal = (allInv || []).reduce((s: number, i: any) => s + Number(i.amount_total || 0), 0);
+      const paidToDate    = (allPays || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      const remaining     = Math.max(0, contractTotal - paidToDate);
+
+      if (channel === "sms") {
+        const TWILIO_SID = Deno.env.get("TWILIO_SID") ?? "";
+        const TWILIO_TOKEN = Deno.env.get("TWILIO_TOKEN") ?? "";
+        const TWILIO_FROM = Deno.env.get("TWILIO_FROM") ?? "";
+        if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) return jsonResp({ error: "Twilio env missing" }, 500);
+
+        const raw = String(to || quote.client_phone || "");
+        const digits = raw.replace(/\D/g, "");
+        if (!digits) return jsonResp({ error: "no phone number" }, 400);
+        const to_e164 = raw.startsWith("+") ? raw : (digits.length === 10 ? `+1${digits}` : `+${digits}`);
+
+        const smsBody = message || (lang === "fr"
+          ? `MLP Reno & Design — Reçu ${pay.receipt_number} : $${money(pay.amount)} reçu${linkedInv ? ` (${linkedInv.label})` : ""}. Solde restant : $${money(remaining)}. Détail : ${receiptUrl}`
+          : `MLP Reno & Design — Receipt ${pay.receipt_number}: $${money(pay.amount)} received${linkedInv ? ` (${linkedInv.label})` : ""}. Remaining: $${money(remaining)}. Details: ${receiptUrl}`);
+
+        const auth = btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`);
+        const form = new URLSearchParams({ From: TWILIO_FROM, To: to_e164, Body: smsBody });
+        const twRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
+          method: "POST",
+          headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
+          body: form.toString(),
+        });
+        const twData = await twRes.json();
+        if (!twRes.ok) return jsonResp({ error: twData.message || "Twilio error", code: twData.code }, 500);
+
+        await sbPatch(`${SUPABASE_URL}/rest/v1/payments?id=eq.${encodeURIComponent(pay.id)}`, SUPABASE_KEY, {
+          receipt_sent_at: new Date().toISOString(),
+        });
+        return jsonResp({ ok: true, channel: "sms", sid: twData.sid, to: to_e164 });
+      }
+
+      const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+      const FROM = Deno.env.get("EMAIL_FROM") ?? "MLP Reno & Design <onboarding@resend.dev>";
+      const REPLY_TO = Deno.env.get("EMAIL_REPLY_TO") ?? "";
+      if (!RESEND_KEY) return jsonResp({ error: "Resend env missing" }, 500);
+
+      const emailTo = (to || quote.client_email || "").trim();
+      if (!emailTo) return jsonResp({ error: "no email address" }, 400);
+
+      const subject = lang === "fr"
+        ? `Reçu ${pay.receipt_number} — $${money(pay.amount)} (MLP Reno & Design)`
+        : `Receipt ${pay.receipt_number} — $${money(pay.amount)} (MLP Reno & Design)`;
+
+      const payload: any = {
+        from: FROM,
+        to: [emailTo],
+        subject,
+        html: buildReceiptEmailHtml(pay, quote, linkedInv, allInv || [], allPays || [], lang, receiptUrl),
+      };
+      if (REPLY_TO) payload.reply_to = REPLY_TO;
+
+      const rRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const rData = await rRes.json();
+      if (!rRes.ok) return jsonResp({ error: rData.message || rData.name || "Resend error" }, 500);
+
+      const copy = await sendInternalCopy({ html: payload.html, subject, customerTo: emailTo, FROM, REPLY_TO, RESEND_KEY });
+
+      await sbPatch(`${SUPABASE_URL}/rest/v1/payments?id=eq.${encodeURIComponent(pay.id)}`, SUPABASE_KEY, {
+        receipt_sent_at: new Date().toISOString(),
+      });
+
+      return jsonResp({ ok: true, channel: "email", id: rData.id, to: emailTo, internal_copy: copy });
     }
 
     // ---------- INVOICE PATH ----------

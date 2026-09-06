@@ -164,6 +164,48 @@
       .adj-row { grid-template-columns: 1fr; }
       .adj-actions .btn { flex: 1 1 100%; }
     }
+
+    /* Payment ledger */
+    .section-title-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin: 20px 0 10px;
+    }
+    .section-title-row .section-title { margin: 0; }
+    .payment-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; gap: 12px;
+      border-bottom: 1px solid var(--outline-light);
+    }
+    .payment-row:last-child { border-bottom: none; }
+    .payment-main { flex: 1; min-width: 0; }
+    .payment-title { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+    .payment-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .payment-amount { font-size: 15px; font-weight: 700; color: var(--green); white-space: nowrap; }
+    .payment-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .empty-ledger {
+      padding: 20px 16px; text-align: center;
+      font-size: 13px; color: var(--text-hint);
+    }
+
+    /* Payment modal (reuses .adj-backdrop) */
+    .pay-field { margin-bottom: 12px; }
+    .pay-field label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--text-secondary); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .pay-field input, .pay-field select, .pay-field textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--outline);
+      border-radius: 8px; font-size: 14px; font-family: inherit;
+      background: #fff; color: var(--text-primary);
+    }
+    .pay-field input:focus, .pay-field select:focus, .pay-field textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .pay-field textarea { resize: vertical; min-height: 60px; }
+    .pay-field .hint { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+    .pay-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 520px) { .pay-two { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -194,6 +236,7 @@
 let project = null;
 let quote = null;
 let invoices = [];
+let payments = [];
 let photos = [];
 let activePhotoCat = 'before';
 
@@ -222,8 +265,9 @@ let activePhotoCat = 'before';
       throw new Error('quote_id ou id requis');
     }
 
-    // Load invoices (auto-generate if none)
+    // Load invoices (auto-generate if none) + payments + photos
     invoices = await getOrGenerateInvoicesForProject(project, quote);
+    payments = await listProjectPayments(project.id);
     photos = await listProjectPhotos(project.id);
 
     // Migrate old {text, done} action items to new {id, text, pct} format
@@ -287,8 +331,9 @@ function render() {
   const opts = quote.options || [];
   const accepted = opts.find(o => o.key === quote.accepted_option_key) || opts[0];
   const totalSigned = accepted ? accepted.total : 0;
-  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount_total || 0), 0);
-  const totalOutstanding = totalSigned - totalPaid;
+  // Balance is driven by the payments ledger, not by invoice.status.
+  const totalPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalOutstanding = Math.max(0, totalSigned - totalPaid);
   const overallPct = computeOverallProgress();
 
   let h = '';
@@ -335,9 +380,25 @@ function render() {
   </div>`;
 
   // INVOICES
-  h += '<div class="section-title">Facturation</div>';
+  h += `<div class="section-title-row">
+    <div class="section-title">Facturation</div>
+    <button class="btn btn-primary btn-sm" style="padding:6px 12px;font-size:12px;" onclick="openPaymentModal()">
+      <span class="material-icons-round" style="font-size:14px">payments</span>
+      Enregistrer un paiement
+    </button>
+  </div>`;
   h += '<div class="card-flat">';
   invoices.forEach(inv => h += invoiceRow(inv));
+  h += '</div>';
+
+  // PAYMENTS RECEIVED
+  h += '<div class="section-title">Paiements reçus</div>';
+  h += '<div class="card-flat">';
+  if (payments.length === 0) {
+    h += '<div class="empty-ledger">Aucun paiement enregistré pour ce projet.</div>';
+  } else {
+    payments.forEach(p => h += paymentRow(p));
+  }
   h += '</div>';
 
   // ACTION ITEMS
@@ -399,7 +460,7 @@ function invoiceRow(inv) {
           <span class="material-icons-round" style="font-size:14px">sms</span> ${inv.status === 'paid' ? 'Reçu SMS' : 'SMS'}
         </button>
         ${inv.status !== 'paid' ? `
-          <button class="btn btn-primary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="markPaid('${inv.id}', ${inv.amount_total})">
+          <button class="btn btn-primary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="openPaymentModal('${inv.id}')">
             <span class="material-icons-round" style="font-size:14px">check</span> Payée
           </button>
         ` : ''}
@@ -706,16 +767,233 @@ function openInvoiceAdjuster(inv) {
   });
 }
 
-async function markPaid(invoiceId, total) {
-  const amount = prompt('Montant reçu :', total);
-  if (amount === null) return;
-  const method = prompt('Méthode (interac / cheque / card / cash / other) :', 'interac');
-  if (method === null) return;
+/* ---- Payments ledger ---- */
+const METHOD_FR = { interac: 'Interac', cheque: 'Chèque', card: 'Carte', cash: 'Comptant', other: 'Autre' };
+
+function paymentRow(p) {
+  const inv = p.invoice_id ? invoices.find(i => i.id === p.invoice_id) : null;
+  const linkedTo = inv ? `${esc(inv.label || '')} · ${esc(inv.invoice_number)}` : 'Avance (non liée à une facture)';
+  const dateStr = new Date(p.paid_at + 'T00:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+  return `<div class="payment-row">
+    <div class="payment-main">
+      <div class="payment-title">${esc(p.receipt_number)} <span style="color:var(--text-hint);font-weight:400;">· ${esc(METHOD_FR[p.method] || p.method)}</span></div>
+      <div class="payment-sub">${dateStr} · ${linkedTo}${p.receipt_sent_at ? ' · Reçu envoyé' : ''}${p.note ? ' · ' + esc(p.note) : ''}</div>
+      <div class="payment-actions">
+        <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="previewReceipt('${esc(p.share_token || '')}')" title="Aperçu du reçu">
+          <span class="material-icons-round" style="font-size:14px">visibility</span> Aperçu
+        </button>
+        <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendReceipt('${p.id}', 'email', this)">
+          <span class="material-icons-round" style="font-size:14px">mail</span> Reçu courriel
+        </button>
+        <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;" onclick="sendReceipt('${p.id}', 'sms', this)">
+          <span class="material-icons-round" style="font-size:14px">sms</span> Reçu SMS
+        </button>
+        <button class="btn btn-secondary btn-sm" style="padding:6px 10px;font-size:12px;color:var(--red);" onclick="deletePaymentClick('${p.id}')" title="Supprimer">
+          <span class="material-icons-round" style="font-size:14px">delete</span>
+        </button>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="payment-amount">+$${money(p.amount)}</div>
+    </div>
+  </div>`;
+}
+
+function previewReceipt(token) {
+  if (!token) { showToast('Aucun jeton de partage'); return; }
+  window.open('bill.html?receipt=' + encodeURIComponent(token), '_blank', 'noopener');
+}
+
+// Modal: record a customer payment. Optionally pre-links to an invoice.
+function openPaymentModal(preselectInvoiceId) {
+  const opts = quote.options || [];
+  const accepted = opts.find(o => o.key === quote.accepted_option_key) || opts[0];
+  const totalSigned  = accepted ? accepted.total : 0;
+  const totalPaid    = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const remaining    = Math.max(0, totalSigned - totalPaid);
+
+  const preselect = preselectInvoiceId
+    ? invoices.find(i => i.id === preselectInvoiceId)
+    : null;
+
+  // Suggest amount: outstanding on the selected invoice, or full remaining balance.
+  const invoicePayments = (invId) => payments.filter(p => p.invoice_id === invId).reduce((s, p) => s + Number(p.amount || 0), 0);
+  const defaultAmount = preselect
+    ? Math.max(0, Number(preselect.amount_total || 0) - invoicePayments(preselect.id)).toFixed(2)
+    : remaining.toFixed(2);
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const invoiceOptions = invoices
+    .filter(i => i.status !== 'cancelled')
+    .map(i => {
+      const outstanding = Math.max(0, Number(i.amount_total || 0) - invoicePayments(i.id));
+      const label = `${i.label || ''} — $${money(i.amount_total)}${outstanding < Number(i.amount_total) ? ` (reste $${money(outstanding)})` : ''}`;
+      return `<option value="${i.id}" ${preselect && preselect.id === i.id ? 'selected' : ''}>${esc(label)}</option>`;
+    }).join('');
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'adj-backdrop';
+  backdrop.innerHTML = `
+    <div class="adj-modal" role="dialog" aria-modal="true">
+      <div class="adj-title">Enregistrer un paiement</div>
+      <div class="adj-sub">Solde restant sur le contrat : <strong>$${money(remaining)}</strong></div>
+
+      <div class="pay-two">
+        <div class="pay-field">
+          <label>Montant reçu ($)</label>
+          <input type="number" id="pay-amount" step="0.01" min="0.01" value="${defaultAmount}" autofocus>
+        </div>
+        <div class="pay-field">
+          <label>Date du paiement</label>
+          <input type="date" id="pay-date" value="${today}">
+        </div>
+      </div>
+
+      <div class="pay-two">
+        <div class="pay-field">
+          <label>Méthode</label>
+          <select id="pay-method">
+            <option value="interac">Interac</option>
+            <option value="cheque">Chèque</option>
+            <option value="card">Carte</option>
+            <option value="cash">Comptant</option>
+            <option value="other">Autre</option>
+          </select>
+        </div>
+        <div class="pay-field">
+          <label>Appliquer à</label>
+          <select id="pay-invoice">
+            <option value="">— Avance (non liée) —</option>
+            ${invoiceOptions}
+          </select>
+        </div>
+      </div>
+
+      <div class="pay-field">
+        <label>Note (optionnelle)</label>
+        <textarea id="pay-note" placeholder="Numéro de chèque, référence Interac, etc."></textarea>
+      </div>
+
+      <div class="adj-preview" id="pay-preview"></div>
+
+      <div class="pay-field" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="pay-send" style="width:auto;margin:0;" checked>
+        <label for="pay-send" style="margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text-primary);font-weight:500;">Envoyer un reçu par courriel après l'enregistrement</label>
+      </div>
+
+      <div class="adj-actions">
+        <button class="btn btn-secondary btn-sm" id="pay-cancel">Annuler</button>
+        <button class="btn btn-primary btn-sm" id="pay-ok">Enregistrer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+
+  const amtEl    = backdrop.querySelector('#pay-amount');
+  const methodEl = backdrop.querySelector('#pay-method');
+  const invEl    = backdrop.querySelector('#pay-invoice');
+  const prev     = backdrop.querySelector('#pay-preview');
+
+  const recompute = () => {
+    const amt = Math.max(0, Number(amtEl.value) || 0);
+    const newPaid = totalPaid + amt;
+    const newBal  = Math.max(0, totalSigned - newPaid);
+    prev.innerHTML = `
+      <div class="r"><span>Payé à ce jour</span><strong>$${money(totalPaid)}</strong></div>
+      <div class="r"><span>Ce paiement</span><strong style="color:var(--green);">+$${money(amt)}</strong></div>
+      <div class="r" style="margin-top:6px;border-top:1px solid var(--outline-light);padding-top:6px;">
+        <span>Nouveau solde</span><strong style="color:var(--accent-dark);">$${money(newBal)}</strong>
+      </div>`;
+  };
+  amtEl.addEventListener('input', recompute);
+  recompute();
+
+  // If linked to an invoice, refresh the suggested amount to that invoice's outstanding.
+  invEl.addEventListener('change', () => {
+    if (!invEl.value) { amtEl.value = remaining.toFixed(2); recompute(); return; }
+    const inv = invoices.find(i => i.id === invEl.value);
+    if (!inv) return;
+    const outstanding = Math.max(0, Number(inv.amount_total || 0) - invoicePayments(inv.id));
+    amtEl.value = outstanding.toFixed(2);
+    recompute();
+  });
+
+  const close = () => document.body.removeChild(backdrop);
+  backdrop.querySelector('#pay-cancel').onclick = close;
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+  backdrop.querySelector('#pay-ok').onclick = async () => {
+    const amount = Number(amtEl.value);
+    if (!(amount > 0)) { showToast('Montant invalide'); return; }
+    const paid_at = backdrop.querySelector('#pay-date').value || today;
+    const method  = methodEl.value;
+    const invoice_id = invEl.value || null;
+    const note    = backdrop.querySelector('#pay-note').value || null;
+    const sendAfter = backdrop.querySelector('#pay-send').checked;
+
+    const okBtn = backdrop.querySelector('#pay-ok');
+    okBtn.disabled = true;
+    okBtn.innerHTML = '<span class="spinner-ring" style="width:12px;height:12px;border-width:2px;"></span> …';
+    try {
+      const created = await insertPayment({
+        project_id: project.id,
+        invoice_id,
+        customer_id: quote.customer_id || null,
+        amount, method, paid_at, note
+      });
+      // Refresh state
+      payments = await listProjectPayments(project.id);
+      invoices = await sb.from('invoices').select('*').eq('project_id', project.id).order('sequence').then(r => r.data || []);
+      close();
+      render();
+      showToast('Paiement enregistré');
+      if (sendAfter) {
+        // Fire-and-forget receipt send
+        sendReceipt(created.id, 'email', null).catch(() => {});
+      }
+    } catch (err) {
+      showToast('Erreur : ' + err.message);
+      okBtn.disabled = false;
+      okBtn.innerHTML = 'Enregistrer';
+    }
+  };
+}
+
+async function sendReceipt(paymentId, channel, btn) {
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-ring" style="width:12px;height:12px;border-width:2px;"></span> …';
+  }
   try {
-    await markInvoicePaid(invoiceId, parseFloat(amount), method);
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ payment_id: paymentId, channel })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    payments = await listProjectPayments(project.id);
+    render();
+    showToast(channel === 'sms' ? `Reçu SMS envoyé à ${data.to}` : `Reçu envoyé à ${data.to}`);
+  } catch (err) {
+    showToast('Erreur : ' + err.message);
+    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+  }
+}
+
+async function deletePaymentClick(id) {
+  if (!confirm('Supprimer ce paiement ? Le solde sera recalculé.')) return;
+  try {
+    await deletePayment(id);
+    payments = await listProjectPayments(project.id);
     invoices = await sb.from('invoices').select('*').eq('project_id', project.id).order('sequence').then(r => r.data || []);
     render();
-    showToast('Marquée comme payée');
+    showToast('Paiement supprimé');
   } catch (err) { showToast('Erreur : ' + err.message); }
 }
 
