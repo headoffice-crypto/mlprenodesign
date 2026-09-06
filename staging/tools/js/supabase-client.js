@@ -510,8 +510,20 @@ async function listProjectPayments(projectId) {
     .eq('project_id', projectId)
     .order('paid_at', { ascending: false })
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  // If the payments table doesn't exist yet (migration not run), degrade gracefully
+  // so the rest of the project page still renders.
+  if (error) {
+    if (isMissingRelation(error)) { console.warn('[payments] table missing — feature disabled until migration runs'); return []; }
+    throw error;
+  }
   return data || [];
+}
+
+function isMissingRelation(err) {
+  const msg = String(err?.message || err?.code || '');
+  return /relation .*payments.* does not exist/i.test(msg)
+      || err?.code === '42P01'
+      || /not.+find.+table/i.test(msg);
 }
 
 async function insertPayment({ project_id, invoice_id, customer_id, amount, method, paid_at, note }) {
@@ -528,7 +540,12 @@ async function insertPayment({ project_id, invoice_id, customer_id, amount, meth
   };
 
   const { data, error } = await sb.from('payments').insert(row).select('*').single();
-  if (error) throw error;
+  if (error) {
+    if (isMissingRelation(error)) {
+      throw new Error("Table 'payments' introuvable — exécutez sql/04_payments.sql dans Supabase.");
+    }
+    throw error;
+  }
 
   // If this payment is linked to an invoice, check whether that invoice is
   // now fully covered by cumulative payments and update its status.

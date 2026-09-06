@@ -292,17 +292,18 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const inv = invs && invs[0];
     if (!inv) return showError('Facture introuvable.', 'Invoice not found.');
 
-    const [{ data: q, error: e2 }, { data: siblings, error: e3 }, { data: allPays, error: e4 }] = await Promise.all([
+    const [{ data: q, error: e2 }, { data: siblings, error: e3 }, paysRes] = await Promise.all([
       sb.from('quotes').select('*').eq('id', inv.quote_id).maybeSingle(),
       sb.from('invoices').select('*').eq('project_id', inv.project_id).order('sequence', { ascending: true }),
-      sb.from('payments').select('amount').eq('project_id', inv.project_id)
+      // Payments table may not exist yet — swallow that specific error so the invoice still renders.
+      sb.from('payments').select('amount').eq('project_id', inv.project_id).then(r => r, () => ({ data: [], error: null }))
     ]);
     if (e2) throw e2;
     if (e3) throw e3;
-    if (e4) throw e4;
     if (!q) return showError('Soumission liée introuvable.', 'Related quote not found.');
 
-    render(inv, q, siblings || [], allPays || []);
+    const allPays = (paysRes && !paysRes.error && paysRes.data) ? paysRes.data : [];
+    render(inv, q, siblings || [], allPays);
   } catch (err) {
     console.error(err);
     showError('Erreur de chargement.', 'Failed to load.', err.message);
