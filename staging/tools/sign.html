@@ -271,23 +271,85 @@ function renderPage() {
     h += '</ul>';
   }
 
+  // Payment schedule — build a full breakdown table (pre-tax, GST, QST, total)
+  // per installment based on the accepted (or first) option's subtotal.
   const embedded = q.ai_conversation && q.ai_conversation.payment_schedule;
-  let payText;
-  if (embedded && Array.isArray(embedded.rows)) {
-    payText = embedded.rows
-      .filter(r => Number(r.pct) > 0)
-      .map(r => `${r.pct}% ${fr ? (r.label_fr || '') : (r.label_en || '')}`)
-      .join('\n');
-  } else {
-    const payDesc = {
-      A: { fr: '10% dépôt\n40% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '10% deposit\n40% before work begins\n40% mid-project\n10% upon completion' },
-      B: { fr: '20% dépôt\n30% avant le début des travaux\n40% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n30% before work begins\n40% mid-project\n10% upon completion' },
-      C: { fr: '20% dépôt\n40% avant le début des travaux\n30% mi-parcours\n10% à la fin des travaux', en: '20% deposit\n40% before work begins\n30% mid-project\n10% upon completion' }
-    };
-    payText = payDesc[q.payment_option || 'A'][fr ? 'fr' : 'en'];
-  }
+  const DEFAULT_SCHEDULES = {
+    A: [
+      { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 10 },
+      { label_fr: 'Avant début',     label_en: 'Before start',    pct: 40 },
+      { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 40 },
+      { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 10 }
+    ],
+    B: [
+      { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 20 },
+      { label_fr: 'Avant début',     label_en: 'Before start',    pct: 30 },
+      { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 40 },
+      { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 10 }
+    ],
+    C: [
+      { label_fr: 'Dépôt',           label_en: 'Deposit',         pct: 20 },
+      { label_fr: 'Avant début',     label_en: 'Before start',    pct: 40 },
+      { label_fr: 'Mi-parcours',     label_en: 'Mid-project',     pct: 30 },
+      { label_fr: 'Fin des travaux', label_en: 'Upon completion', pct: 10 }
+    ]
+  };
+  const scheduleRows = (embedded && Array.isArray(embedded.rows) && embedded.rows.length)
+    ? embedded.rows.map(r => ({ label_fr: r.label_fr || '', label_en: r.label_en || '', pct: Number(r.pct) || 0 })).filter(r => r.pct > 0)
+    : (DEFAULT_SCHEDULES[q.payment_option || 'A'] || DEFAULT_SCHEDULES.A);
+
+  const scheduleOption = options.find(o => o.key === q.accepted_option_key) || options[0];
+  const scheduleBase = Number(scheduleOption?.subtotal || 0);
+  const scheduleApply = scheduleOption ? scheduleOption.apply_taxes !== false : true;
+
   h += `<h2>${fr ? 'Modalités de paiement' : 'Payment Terms'}</h2>`;
-  h += `<div class="qp-section">${esc(payText)}</div>`;
+  if (scheduleBase > 0) {
+    let sTot = { pre: 0, gst: 0, qst: 0, total: 0 };
+    h += '<table class="qp-scope-table"><thead><tr>';
+    h += `<th>${fr ? 'Versement' : 'Installment'}</th>`;
+    h += `<th class="r" style="width:60px;">%</th>`;
+    h += `<th class="r">${fr ? 'Sous-total' : 'Subtotal'}</th>`;
+    if (scheduleApply) {
+      h += `<th class="r">TPS</th>`;
+      h += `<th class="r">TVQ</th>`;
+    }
+    h += `<th class="r">${fr ? 'Total' : 'Total'}</th>`;
+    h += '</tr></thead><tbody>';
+    scheduleRows.forEach(r => {
+      const pre = Math.round(scheduleBase * r.pct) / 100;
+      const gst = scheduleApply ? Math.round(pre * 0.05 * 100) / 100 : 0;
+      const qst = scheduleApply ? Math.round(pre * 0.09975 * 100) / 100 : 0;
+      const tot = Math.round((pre + gst + qst) * 100) / 100;
+      sTot.pre += pre; sTot.gst += gst; sTot.qst += qst; sTot.total += tot;
+      const label = fr ? r.label_fr : r.label_en;
+      h += `<tr><td><strong>${esc(label)}</strong></td>`;
+      h += `<td class="r">${r.pct}%</td>`;
+      h += `<td class="r">$${money(pre)}</td>`;
+      if (scheduleApply) {
+        h += `<td class="r">$${money(gst)}</td>`;
+        h += `<td class="r">$${money(qst)}</td>`;
+      }
+      h += `<td class="r"><strong>$${money(tot)}</strong></td></tr>`;
+    });
+    h += '</tbody><tfoot>';
+    h += `<tr style="border-top:2px solid #c8a45a;">`;
+    h += `<td style="font-weight:800;color:#202124;">${fr ? 'Total' : 'Total'}</td>`;
+    h += `<td class="r" style="font-weight:800;color:#202124;">100%</td>`;
+    h += `<td class="r" style="font-weight:800;color:#202124;">$${money(sTot.pre)}</td>`;
+    if (scheduleApply) {
+      h += `<td class="r" style="font-weight:800;color:#202124;">$${money(sTot.gst)}</td>`;
+      h += `<td class="r" style="font-weight:800;color:#202124;">$${money(sTot.qst)}</td>`;
+    }
+    h += `<td class="r" style="font-weight:800;color:#c8a45a;">$${money(sTot.total)}</td>`;
+    h += `</tr>`;
+    h += '</tfoot></table>';
+  } else {
+    // Fallback: no priceable option — show percentages only
+    const payText = scheduleRows
+      .map(r => `${r.pct}% ${fr ? r.label_fr : r.label_en}`)
+      .join('\n');
+    h += `<div class="qp-section">${esc(payText)}</div>`;
+  }
   if (q.payment_methods) {
     h += `<h2>${fr ? 'Méthodes de paiement' : 'Payment Methods'}</h2>`;
     h += `<div class="qp-section">${esc(q.payment_methods)}</div>`;
