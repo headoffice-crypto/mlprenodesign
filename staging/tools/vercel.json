@@ -9,6 +9,7 @@
     { "source": "/project",   "destination": "/project.html" },
     { "source": "/sign",      "destination": "/sign.html" },
     { "source": "/bill",      "destination": "/bill.html" },
+    { "source": "/quote",     "destination": "/quote.html" },
     { "source": "/new",       "destination": "/index.html" }
   ],
   "redirects": [
