@@ -119,6 +119,14 @@
     </div>
     <div class="card">
       <div class="form-group">
+        <label class="form-label" data-i18n="quote_lang_label">Langue de la soumission</label>
+        <div class="chip-group">
+          <button class="chip active" id="chip-lang-fr" type="button" onclick="setLang('fr')" data-i18n="lang_fr_label">Français</button>
+          <button class="chip" id="chip-lang-en" type="button" onclick="setLang('en')" data-i18n="lang_en_label">Anglais</button>
+        </div>
+        <div class="form-helper" data-i18n="quote_lang_hint">Langue affichée au client sur la soumission et dans les courriels/SMS.</div>
+      </div>
+      <div class="form-group">
         <label class="form-label" data-i18n="client_name">Nom du client</label>
         <input class="form-input" type="text" id="f-client-name">
       </div>

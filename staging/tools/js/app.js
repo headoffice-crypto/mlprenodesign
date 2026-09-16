@@ -90,6 +90,10 @@ const I18N = {
 
   client_title: { fr: 'Client', en: 'Client' },
   client_sub:   { fr: 'Coordonnées qui apparaissent sur la soumission.', en: 'Contact details shown on the quote.' },
+  quote_lang_label: { fr: 'Langue de la soumission', en: 'Quote language' },
+  quote_lang_hint:  { fr: 'Langue affichée au client sur la soumission et dans les courriels/SMS.', en: 'Language shown to the client on the quote and in emails/SMS.' },
+  lang_fr_label: { fr: 'Français', en: 'French' },
+  lang_en_label: { fr: 'Anglais', en: 'English' },
   client_name: { fr: 'Nom du client', en: 'Client name' },
   client_address: { fr: 'Adresse du projet', en: 'Project address' },
   client_email: { fr: 'Courriel', en: 'Email' },
@@ -315,6 +319,10 @@ function setLang(l) {
   lang = l;
   document.getElementById('lang-fr').className = l === 'fr' ? 'active' : '';
   document.getElementById('lang-en').className = l === 'en' ? 'active' : '';
+  const chipFr = document.getElementById('chip-lang-fr');
+  const chipEn = document.getElementById('chip-lang-en');
+  if (chipFr) chipFr.className = 'chip' + (l === 'fr' ? ' active' : '');
+  if (chipEn) chipEn.className = 'chip' + (l === 'en' ? ' active' : '');
 
   const pmField = document.getElementById('f-payment-methods');
   const notesField = document.getElementById('f-notes');
@@ -1161,6 +1169,10 @@ async function loadDraftById(id) {
     if (data.language === 'en' || data.language === 'fr') lang = data.language;
     document.getElementById('lang-fr').className = lang === 'fr' ? 'active' : '';
     document.getElementById('lang-en').className = lang === 'en' ? 'active' : '';
+    const chipFr = document.getElementById('chip-lang-fr');
+    const chipEn = document.getElementById('chip-lang-en');
+    if (chipFr) chipFr.className = 'chip' + (lang === 'fr' ? ' active' : '');
+    if (chipEn) chipEn.className = 'chip' + (lang === 'en' ? ' active' : '');
 
     document.getElementById('f-client-name').value    = data.client_name    || '';
     document.getElementById('f-client-email').value   = data.client_email   || '';
