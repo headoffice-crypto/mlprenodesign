@@ -177,6 +177,19 @@
     .tot-row.remaining .val{ color:var(--accent-dark) }
     .tot-row.zero .val{ color:var(--green) }
 
+    /* Scope of work rendered from linked quote (markdown → HTML) */
+    .scope{ font-size:13px; color:var(--ink); line-height:1.7; margin-bottom:32px; }
+    .scope h1, .scope h2, .scope h3, .scope h4{ color:var(--ink); margin:16px 0 6px; letter-spacing:-0.1px; }
+    .scope h1{ font-size:15px; font-weight:800; color:var(--accent-dark); border-bottom:1px solid var(--line-soft); padding-bottom:4px; }
+    .scope h2{ font-size:14px; font-weight:700; }
+    .scope h3{ font-size:13px; font-weight:700; }
+    .scope ul{ margin:4px 0 8px; padding-left:20px; }
+    .scope li{ margin:2px 0; color:var(--muted); }
+    .scope li strong{ color:var(--ink); font-weight:600; }
+    .scope p{ margin:6px 0; color:var(--muted); }
+    .scope p strong{ color:var(--ink); font-weight:600; }
+    .scope em{ color:var(--muted); font-style:italic; font-size:12px; display:block; margin:4px 0; }
+
     /* Payment methods */
     .pay{
       background:var(--accent-soft); border-left:4px solid var(--accent);
@@ -407,6 +420,11 @@ function render(inv, q, all, allPays) {
       </div>
     </div>
 
+    ${isPaid && scopeMarkdown(q) ? `
+      <h3 class="sec-h">${T.scopeDone}</h3>
+      <div class="scope">${renderMarkdown(scopeMarkdown(q))}</div>
+    ` : ''}
+
     <div class="breakdown">
       <h3 class="sec-h">${T.breakdown}</h3>
       <div class="row"><span class="lbl">${T.subtotal}</span><span class="val">$${money(inv.amount_before_tax)}</span></div>
@@ -616,6 +634,7 @@ const L_FR = {
   remainingAfter: 'Solde après ce paiement',
   payMethods: 'Méthodes de paiement',
   referenceNote: 'Merci d\'indiquer le numéro de facture lors du paiement.',
+  scopeDone: 'Détail des travaux réalisés',
   status: { paid: 'Payée', sent: 'Envoyée', pending: 'À venir', overdue: 'En retard', cancelled: 'Annulée' }
 };
 const L_EN = {
@@ -648,8 +667,47 @@ const L_EN = {
   remainingAfter: 'Balance after this payment',
   payMethods: 'Payment methods',
   referenceNote: 'Please reference the invoice number with your payment.',
+  scopeDone: 'Work performed',
   status: { paid: 'Paid', sent: 'Sent', pending: 'Upcoming', overdue: 'Overdue', cancelled: 'Cancelled' }
 };
+
+function scopeMarkdown(q) {
+  const opts = Array.isArray(q && q.options) ? q.options : [];
+  const opt = opts.find(o => o.key === q.accepted_option_key) || opts[0];
+  return opt && opt.scope_summary ? opt.scope_summary : '';
+}
+
+/* Minimal markdown → HTML (#/##/### headings, - lists, **bold**, *italic*). */
+function renderMarkdown(text) {
+  if (!text) return '';
+  const inline = (s) => s
+    .replace(/\*\*([^\n*]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^\n*]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  const escaped = esc(text);
+  const lines = escaped.split('\n');
+  let out = ''; let inList = false;
+  const closeList = () => { if (inList) { out += '</ul>'; inList = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) { closeList(); continue; }
+    let m;
+    if ((m = line.match(/^(#{1,4})\s+(.+)$/))) {
+      closeList();
+      const lvl = m[1].length;
+      out += `<h${lvl}>${inline(m[2])}</h${lvl}>`;
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*]\s+(.+)$/))) {
+      if (!inList) { out += '<ul>'; inList = true; }
+      out += `<li>${inline(m[1])}</li>`;
+      continue;
+    }
+    closeList();
+    out += `<p>${inline(line)}</p>`;
+  }
+  closeList();
+  return out;
+}
 
 function esc(s) { return s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function money(n) { return Number(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
