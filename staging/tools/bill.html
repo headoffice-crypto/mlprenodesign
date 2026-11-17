@@ -397,6 +397,7 @@ function render(inv, q, all, allPays) {
       <div class="party">
         <h4>${T.billedTo}</h4>
         <div class="name">${esc(q.client_name || '')}</div>
+        ${q.client_name_2 ? `<div class="name">${esc(q.client_name_2)}</div>` : ''}
         ${q.client_address ? `<div>${esc(q.client_address)}</div>` : ''}
         ${q.client_email ? `<div>${esc(q.client_email)}</div>` : ''}
         ${q.client_phone ? `<div>${esc(q.client_phone)}</div>` : ''}
@@ -539,6 +540,7 @@ function renderReceipt(pay, q, invoicesAll, allPays) {
       <div class="party">
         <h4>${T.billedTo}</h4>
         <div class="name">${esc(q.client_name || '')}</div>
+        ${q.client_name_2 ? `<div class="name">${esc(q.client_name_2)}</div>` : ''}
         ${q.client_address ? `<div>${esc(q.client_address)}</div>` : ''}
         ${q.client_email ? `<div>${esc(q.client_email)}</div>` : ''}
         ${q.client_phone ? `<div>${esc(q.client_phone)}</div>` : ''}

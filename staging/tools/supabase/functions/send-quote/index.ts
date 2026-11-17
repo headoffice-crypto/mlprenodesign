@@ -28,6 +28,15 @@ function money(n) {
   return Number(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/* Builds the addressee line for email greetings.
+   One name: "John". Two names: "John & Jane" (fr) / "John and Jane" (en). */
+function clientGreetingName(quote, fr) {
+  const a = (quote?.client_name || "").trim();
+  const b = (quote?.client_name_2 || "").trim();
+  if (a && b) return `${escHtml(a)} ${fr ? "&amp;" : "and"} ${escHtml(b)}`;
+  return escHtml(a || b || "");
+}
+
 /* Mirror of renderScopeMarkdown() in js/app.js and sign.html.
    Email clients strip <style>, so styles are inlined per tag. */
 function renderScopeMarkdown(text) {
@@ -183,7 +192,7 @@ function buildQuoteEmailHtml(quote, link, lang, opts = {}) {
     : isUpdate
       ? (fr ? "Soumission mise à jour" : "Updated quote")
       : (fr ? "Votre soumission" : "Your quote");
-  const greeting = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const greeting = fr ? `Bonjour ${clientGreetingName(quote, fr)},` : `Hi ${clientGreetingName(quote, fr)},`;
   const intro = isDraft
     ? (fr
         ? `Voici un <strong>brouillon</strong> de la soumission <strong>${escHtml(quote.quote_number)}</strong> ${multi ? "avec les options proposées" : ""} pour révision. Ce document n'est pas contractuel et ne peut pas être signé.`
@@ -240,7 +249,7 @@ function buildInvoiceEmailHtml(invoice, quote, allInvoices, lang, billUrl) {
   const paidToDate    = list.filter(i => i.status === "paid").reduce((s, i) => s + Number(i.amount_total || 0), 0);
   const remaining     = Math.max(0, contractTotal - paidToDate);
 
-  const greeting   = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const greeting   = fr ? `Bonjour ${clientGreetingName(quote, fr)},` : `Hi ${clientGreetingName(quote, fr)},`;
   const projectRef = escHtml(quote.project_title || quote.quote_number || "");
   const docLabel   = isPaid ? (fr ? "Reçu de paiement" : "Payment receipt") : (fr ? "Facture" : "Invoice");
   const intro = isPaid
@@ -329,7 +338,7 @@ function buildReceiptEmailHtml(payment, quote, linkedInvoice, allInvoices, allPa
   const paidToDate    = (allPayments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
   const remaining     = Math.max(0, contractTotal - paidToDate);
 
-  const greeting   = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const greeting   = fr ? `Bonjour ${clientGreetingName(quote, fr)},` : `Hi ${clientGreetingName(quote, fr)},`;
   const projectRef = escHtml(quote.project_title || quote.quote_number || "");
   const appliedTo  = linkedInvoice
     ? (fr ? `versement « ${escHtml(linkedInvoice.label || "")} »` : `"${escHtml(linkedInvoice.label || "")}" installment`)
@@ -413,7 +422,7 @@ function buildProgressEmailHtml(project, quote, lang) {
       </div>`;
   });
 
-  const greeting = fr ? `Bonjour ${escHtml(quote.client_name || "")},` : `Hi ${escHtml(quote.client_name || "")},`;
+  const greeting = fr ? `Bonjour ${clientGreetingName(quote, fr)},` : `Hi ${clientGreetingName(quote, fr)},`;
   const intro = fr
     ? `Voici une mise à jour de l'avancement de votre projet <strong>${escHtml(quote.project_title || quote.quote_number)}</strong>.`
     : `Here is a progress update on your project <strong>${escHtml(quote.project_title || quote.quote_number)}</strong>.`;

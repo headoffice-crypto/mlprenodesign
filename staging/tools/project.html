@@ -36,6 +36,23 @@
       margin-top: 10px;
     }
 
+    .co-client-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 12px; flex-wrap: wrap;
+    }
+    .co-client-row label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-secondary);
+    }
+    .co-client-row input {
+      flex: 1; min-width: 180px;
+      padding: 7px 10px; border: 1.5px solid var(--outline);
+      border-radius: 8px; font-size: 13px; font-family: inherit;
+      background: var(--white); color: var(--text-primary);
+    }
+    .co-client-row input:focus { outline: none; border-color: var(--accent); }
+    .co-client-row .hint { font-size: 11px; color: var(--text-hint); }
+
     .invoice-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 16px; gap: 12px;
@@ -342,8 +359,13 @@ function render() {
   h += `<div class="project-head">
     <div class="project-title">${esc(quote.project_title || quote.quote_number)}</div>
     <div class="project-sub">
-      Client : <a href="customer.html?id=${encodeURIComponent(quote.customer_id)}" style="color:var(--accent-dark);">${esc(quote.client_name || '—')}</a>
+      Client : <a href="customer.html?id=${encodeURIComponent(quote.customer_id)}" style="color:var(--accent-dark);">${esc(quote.client_name || '—')}</a>${quote.client_name_2 ? ' &amp; ' + esc(quote.client_name_2) : ''}
       · ${esc(quote.client_address || '')}
+    </div>
+    <div class="co-client-row">
+      <label for="f-coclient">Co-client</label>
+      <input id="f-coclient" type="text" placeholder="Second nom à inscrire sur la facture (optionnel)" value="${esc(quote.client_name_2 || '')}">
+      <span class="hint">Apparaît dans « Facturé à » sur les factures et reçus.</span>
     </div>
     <div class="customer-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;">
       <div class="stat-card" style="background:var(--surface-dim);border-radius:8px;padding:12px;text-align:center;">
@@ -506,6 +528,29 @@ function wireUp() {
     try { project = await updateProject(project.id, { status: e.target.value }); showToast('Statut mis à jour'); }
     catch (err) { showToast('Erreur : ' + err.message); }
   });
+
+  // Co-client (patches the linked quote so every invoice/receipt picks it up)
+  const coEl = document.getElementById('f-coclient');
+  if (coEl) {
+    let coTimer = null;
+    const saveCo = async () => {
+      const next = (coEl.value || '').trim() || null;
+      if (next === (quote.client_name_2 || null)) return;
+      try {
+        const { data, error } = await sb.from('quotes').update({ client_name_2: next }).eq('id', quote.id).select('*').single();
+        if (error) throw error;
+        quote = data;
+        showToast(next ? 'Co-client enregistré' : 'Co-client retiré');
+        // Repaint the "Client :" line without blowing away the input focus state.
+        const subEl = document.querySelector('.project-head .project-sub');
+        if (subEl) {
+          subEl.innerHTML = 'Client : <a href="customer.html?id=' + encodeURIComponent(quote.customer_id || '') + '" style="color:var(--accent-dark);">' + esc(quote.client_name || '—') + '</a>' + (quote.client_name_2 ? ' &amp; ' + esc(quote.client_name_2) : '') + ' · ' + esc(quote.client_address || '');
+        }
+      } catch (err) { showToast('Erreur : ' + err.message); }
+    };
+    coEl.addEventListener('blur', saveCo);
+    coEl.addEventListener('input', () => { clearTimeout(coTimer); coTimer = setTimeout(saveCo, 1000); });
+  }
 
   // Notes (debounced)
   const notesEl = document.getElementById('project-notes');

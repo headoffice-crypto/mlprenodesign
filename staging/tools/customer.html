@@ -42,6 +42,23 @@
     .stat-val { font-size: 20px; font-weight: 800; color: var(--accent-dark); }
     .stat-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
     .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 10px; }
+
+    .co-client-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 14px; flex-wrap: wrap;
+    }
+    .co-client-row label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-secondary);
+    }
+    .co-client-row input {
+      flex: 1; min-width: 200px;
+      padding: 8px 11px; border: 1.5px solid var(--outline);
+      border-radius: 8px; font-size: 13px; font-family: inherit;
+      background: var(--white); color: var(--text-primary);
+    }
+    .co-client-row input:focus { outline: none; border-color: var(--accent); }
+    .co-client-row .hint { font-size: 11px; color: var(--text-hint); flex-basis: 100%; }
   </style>
 </head>
 <body>
@@ -125,6 +142,28 @@ let currentCustomer = null;
         } catch (err) { showToast('Erreur : ' + err.message); }
       }, 800);
     });
+
+    // Wire up co-client save + fan-out to every quote under this customer,
+    // so existing invoices/receipts (incl. paid ones) pick up the new name on resend.
+    const coEl = document.getElementById('f-coclient');
+    let coTimer = null;
+    const saveCo = async () => {
+      const next = (coEl.value || '').trim() || null;
+      if (next === (currentCustomer.name_2 || null)) return;
+      try {
+        await updateCustomer(currentCustomer.id, { name_2: next });
+        const { error: qErr } = await sb.from('quotes').update({ client_name_2: next }).eq('customer_id', currentCustomer.id);
+        if (qErr) throw qErr;
+        currentCustomer = { ...currentCustomer, name_2: next };
+        const nameEl = document.querySelector('.customer-head .customer-name');
+        if (nameEl) {
+          nameEl.innerHTML = esc(currentCustomer.name) + (next ? ' <span style="color:var(--text-hint);font-weight:500;">&amp; ' + esc(next) + '</span>' : '');
+        }
+        showToast(next ? 'Co-client enregistré sur toutes les soumissions' : 'Co-client retiré');
+      } catch (err) { showToast('Erreur : ' + err.message); }
+    };
+    coEl.addEventListener('blur', saveCo);
+    coEl.addEventListener('input', () => { clearTimeout(coTimer); coTimer = setTimeout(saveCo, 1200); });
   } catch (err) {
     root.innerHTML = `<div class="card" style="color:var(--red);">Erreur: ${err.message}</div>`;
   }
@@ -137,8 +176,13 @@ function renderHead(c, stats) {
   if (c.address) contactLines.push(`<span><span class="material-icons-round" style="font-size:14px;vertical-align:-3px;">place</span> ${esc(c.address)}</span>`);
 
   return `<div class="customer-head">
-    <div class="customer-name">${esc(c.name)}</div>
+    <div class="customer-name">${esc(c.name)}${c.name_2 ? ' <span style="color:var(--text-hint);font-weight:500;">&amp; ' + esc(c.name_2) + '</span>' : ''}</div>
     <div class="customer-contact">${contactLines.join('')}</div>
+    <div class="co-client-row">
+      <label for="f-coclient">Co-client</label>
+      <input id="f-coclient" type="text" placeholder="Second nom (ex. conjoint·e) — apparaîtra sur toutes les factures et reçus" value="${esc(c.name_2 || '')}">
+      <span class="hint">Appliqué à toutes les soumissions existantes de ce client lors de l'enregistrement.</span>
+    </div>
     <div class="customer-stats">
       <div class="stat-card"><div class="stat-val">${stats.totalQuotes}</div><div class="stat-label">Soumissions</div></div>
       <div class="stat-card"><div class="stat-val">${stats.totalSigned}</div><div class="stat-label">Signées</div></div>

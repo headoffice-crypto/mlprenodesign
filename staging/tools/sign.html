@@ -194,6 +194,7 @@ function renderPage() {
   h += '<div class="qp-meta"><div>';
   h += `<div class="qp-meta-label">Client</div>`;
   h += `<div class="qp-meta-value">${esc(q.client_name)}</div>`;
+  if (q.client_name_2) h += `<div class="qp-meta-value">${esc(q.client_name_2)}</div>`;
   if (q.client_email) h += `<div class="qp-meta-value">${esc(q.client_email)}</div>`;
   if (q.client_phone) h += `<div class="qp-meta-value">${esc(q.client_phone)}</div>`;
   h += '</div><div>';

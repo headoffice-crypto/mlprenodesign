@@ -307,6 +307,7 @@ function render(q) {
       <div class="party">
         <h4>${T.billedTo}</h4>
         <div class="name">${escHtml(q.client_name || '')}</div>
+        ${q.client_name_2 ? `<div class="name">${escHtml(q.client_name_2)}</div>` : ''}
         ${q.client_address ? `<div>${escHtml(q.client_address)}</div>` : ''}
         ${q.client_email ? `<div>${escHtml(q.client_email)}</div>` : ''}
         ${q.client_phone ? `<div>${escHtml(q.client_phone)}</div>` : ''}
